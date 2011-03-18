@@ -11,7 +11,7 @@
  *******************************************************************************/
  $email = $_POST['email'];
  if ($email != ""){
- 	mail('nathan@eclipse.org', 'OrionHub Invite', $email);
+ 	mail('orionhub8723_invite@eclipse.org', 'OrionHub Invite', $email);
  }
 ?>
 
