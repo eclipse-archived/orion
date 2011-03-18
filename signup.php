@@ -46,8 +46,8 @@
   <div id="container">
     <header>
 		<ul>
-			<li><a href="community.html">Join the Community</a></li>
-			<li>Already Using Orion? <a class="yellow bold">Sign In</a></li>
+			<li><a href="community.php">Join the Community</a></li>
+			<li>Already Using Orion? <a href="http://orionhub.org" class="yellow bold">Sign In</a></li>
 		</ul>
 
     </header>

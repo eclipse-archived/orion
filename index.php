@@ -30,8 +30,8 @@
   <div id="container">
     <header>
 		<ul>
-			<li><a href="community.html">Join the Community</a></li>
-			<li>Already Using Orion? <a class="yellow bold">Sign In</a></li>
+			<li><a href="community.php">Join the Community</a></li>
+			<li>Already Using Orion? <a href="http://orionhub.org" class="yellow bold">Sign In</a></li>
 		</ul>
 
     </header>
@@ -41,7 +41,7 @@
 		<div id="navblock">
 			<div id="tryit" class="roundedbox"><a class="bold">Try it</a></div>
 			<div id="watchit" class="roundedbox">
-				<a class="bold" href="tryit">Watch it</a>
+				<a class="bold">Watch it</a>
 				<div class="videowindow">
 					<img src="images/videowindow.png" title="Orion Introduction" rel="#video1"/>
 				</div>
