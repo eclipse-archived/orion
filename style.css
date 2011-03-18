@@ -28,9 +28,14 @@ footer ul li { float:left; padding-right:30px; }
 #editorNav { background: #404040; height:50px; }
 #editorNav .right { float:right; position:relative; top:20px; right:10px;}
 #editorNav .right img { padding-left:5px; cursor:pointer;}
-#logosmall { position:relative; top:3px; left:5px; }
+#editorNav .left { float:left; width:500px;}
+#editorNav .left p { float:left; width:90px; }
+#editorNav .left .box { padding-top:25px; font-size:13px; }
+#editorNav .left .box a {padding-right:20px; cursor:pointer;}
+#editorNav .left .box a.first {padding-left:40px; cursor:pointer;}
+#examples { margin-left:90px; margin-top:7px; background:transparent url(images/examples.png) no-repeat; }
+#logosmall {float:left; padding:0 4px; margin-right:20px;}
 #editorDiv { color:#000; height:411px; }
-
 #social { float:left; width:260px; }
 #social img { padding-bottom:5px; }
 #social > span { font-size:18px; position:relative; left:5px; top:-15px;}

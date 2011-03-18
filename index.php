@@ -58,7 +58,14 @@
 		<hr class="clear"/>
 		<div id="editorcontainer">
 			<div id="editorNav">
-				<img id="logosmall" src="images/logosmall.png"/>
+				<div class="left">
+					<img id="logosmall" src="images/logosmall.png"/>
+					<div id="examples" class="box">
+						<a id="altcss" class="first" title="Style the way you want">Alternate CSS</a>
+						<?php  /* <a id="jsbeautify" title="Re-Format messy code">JS Beautifier</a>*/?>
+						<a id="largefile" title="15,000 Lines of code">A Very Large File</a>
+					</div>
+				</div>
 				<div class="right">
 					<img id="undo" alt="Undo" title="Undo" src="http://orion.eclipse.org/images/undo_edit.gif"/>
 					<img id="redo" alt="Redo" title="Redo" src="http://orion.eclipse.org/images/redo_edit.gif"/>
@@ -77,31 +84,9 @@
 			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
 		</div>
 		<div id="social">
-			<img src="images/twitter.png"/><span>Follow us on Twitter</span><br/>
-			<img src="images/rss.png"/><span>Orion News Feed</span><br/>
-			<table class="newsfeed">
-				<tr>
-					<td class="date">Mar 12 2011</td>
-					<td class="content">
-						<p class="bold">Some longer string that will wrap so i can see what content looks like in here</p><br/>
-						Some longer string that will wrap so i can see what content looks like in here
-					</td>
-				</tr>
-				<tr>
-					<td class="date">Mar 12 2011</td>
-					<td class="content">
-						<p class="bold">Some longer string that will wrap so i can see what content looks like in here</p><br/>
-						Some longer string that will wrap so i can see what content looks like in here
-					</td>
-				</tr>
-				<tr>
-					<td class="date">Mar 12 2011</td>
-					<td class="content">
-						<p class="bold">Some longer string that will wrap so i can see what content looks like in here</p><br/>
-						Some longer string that will wrap so i can see what content looks like in here
-					</td>
-				</tr>								
-			</table>
+			<img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orion_oti">Follow us on Twitter</a></span><br/>
+			<img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span><br/>
+
 		</div>
 		<hr class="clear"/>				
     </div>
@@ -134,8 +119,7 @@
   <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if necessary -->
   <script src="//ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
   <script src="//cdn.jquerytools.org/1.2.5/all/jquery.tools.min.js"></script>
-  <script src="//ajax.microsoft.com/ajax/jquery.validate/1.7/jquery.validate.min.js"></script>
-  <script src="js/interface.js"></script>   
+  <script src="js/interface.js"></script>
   <script src="js/editor.js"></script>
   <script src="js/model.js"></script>
   <script src="js/rulers.js"></script>
@@ -154,3 +138,35 @@
   </script>
 </body>
 </html>
+<?php  
+/*<script src="//orion.eclipse.org/js/fileClient.js"></script>   
+  <script src="//orion.eclipse.org/js/serviceregistry.js"></script>   
+  <script src="//orion.eclipse.org/js/pluginregistry.js"></script>
+  <script type="text/javascript" src="//orion.eclipse.org/openajax/release/all/OpenAjaxManagedHub-all.js"></script>
+  <script type="text/javascript" src="//orion.eclipse.org/org.dojotoolkit/dojo/dojo.js.uncompressed.js"></script>  */ 
+
+/* 			<table class="newsfeed">
+				<tr>
+					<td class="date">Mar 12 2011</td>
+					<td class="content">
+						<p class="bold">Some longer string that will wrap so i can see what content looks like in here</p><br/>
+						Some longer string that will wrap so i can see what content looks like in here
+					</td>
+				</tr>
+				<tr>
+					<td class="date">Mar 12 2011</td>
+					<td class="content">
+						<p class="bold">Some longer string that will wrap so i can see what content looks like in here</p><br/>
+						Some longer string that will wrap so i can see what content looks like in here
+					</td>
+				</tr>
+				<tr>
+					<td class="date">Mar 12 2011</td>
+					<td class="content">
+						<p class="bold">Some longer string that will wrap so i can see what content looks like in here</p><br/>
+						Some longer string that will wrap so i can see what content looks like in here
+					</td>
+				</tr>								
+			</table> */
+
+?>

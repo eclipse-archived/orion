@@ -48,8 +48,8 @@ styler = new eclipse.TextStyler(editor, "js");
 editor.addRuler(lines);
 editor.setText(file);
 
-//pluginRegistry.installPlugin("http://the.plugin.url/goes/here")
-//http://mamacdon.github.com/m6/beautify/jsbeautify.html
+//pluginRegistry.installPlugin("http://mamacdon.github.com/m6/beautify/jsbeautify.html")
+//
 
 
 
