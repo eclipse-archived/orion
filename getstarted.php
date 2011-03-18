@@ -43,7 +43,7 @@
 		<div id="getstartedcontent">
 			<div class="roundedbox short">
 				<div class="content">
-					<h3>1a. Sign-Up for OrionHub</h3>
+					<h3>Sign-Up for OrionHub</h3>
 					<p>OrionHub is currently in a limited beta stage, Sign-Up today to see what Orion is all about.</p>
 					<a rel="#signupoverlay" class="yellow bold">Sign-Up Today</a>
 				</div>
@@ -53,14 +53,14 @@
 			<div class="roundedbox">
 				<div class="icon"><img src="images/gslocal.png"/></div>
 				<div class="content">
-					<h3>1b. Download and Install Orion on your localhost</h3>
+					<h3>Download and Install Orion on your localhost</h3>
 					<p>Get Orion installed and running on your own machine.</p>
 					<a href="http://wiki.eclipse.org/Orion/How_Tos/Install_Orion_on_Localhost" class="yellow bold">Download Now</a>
 				</div>
 			</div>
 			<div class="roundedbox">
 				<div class="content">
-					<h3>2. Getting Started with Orion</h3>
+					<h3>Getting Started with Orion</h3>
 					<p>Check out our Getting Started guide with Orion as we show you our features and functionality.</p>
 					<a href="http://wiki.eclipse.org/Orion/Getting_Started_with_Orion" class="yellow bold">Follow Along</a>
 				</div>
@@ -69,9 +69,9 @@
 			<div class="roundedbox">
 				<div class="icon"><img src="images/gsembed.png"/></div>
 				<div class="content">
-					<h3>3. Embed Orion into your Application</h3>
+					<h3>Embed Orion into your Application</h3>
 					<p>We've embedded Orion into our <a class="bold" href="index.html">main page</a>, see how you can do the same.</p>
-					<a href="signup" class="yellow bold">Find Out How</a>
+					<a href="http://aniefer.blogspot.com/2011/02/embedding-orion-editor_02.html" class="yellow bold">Find Out How</a>
 				</div>
 				
 			</div>						

@@ -46,7 +46,7 @@
 				<div class="right tall">
 					<ul>
 						<li><a class="yellow" href="https://dev.eclipse.org/mailman/listinfo/orion-dev">Mailing List</a></li>
-						<li><a class="yellow" href="http://www.eclipse.org/forums/eclipse.e4">Forums</a></li>
+						<?php /*<li><a class="yellow" href="http://www.eclipse.org/forums/eclipse.e4">Forums</a></li>*/?>
 						<li><a class="yellow" href="https://bugs.eclipse.org/bugs/buglist.cgi?query_format=advanced&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&product=E4&component=Orion">Bugzilla</a></li>
 						<li><a class="yellow" href="irc://irc.freenode.net/#eclipse-orion">IRC</a></li>
 					</ul>
@@ -58,7 +58,6 @@
 				<div class="right">
 					<ul>
 						<li><a class="yellow" a href="http://wiki.eclipse.org/Orion/How_Tos/Installing_A_Plugin">Instructions</a></li>
-						<li><a class="yellow">Linked Tools</a></li>
 					</ul>
 				</div>
 			</div>
@@ -75,10 +74,10 @@
 			<div class="roundedbox">
 				<a href="https://github.com/orion-oti"><img id="github" src="images/fork.png"/></a>
 				<div class="left"><img src="images/jcorion.png"></div>
-				<div class="content"><h3>Contribute Back to Orion</h3>Fork Orion on Github, fix bugs, add new features and contribute them back. Join us.</div>
+				<div class="content"><h3>Contribute Back to Orion</h3>Fork Orion on GitHub, fix bugs, add new features and contribute them back. Join us.</div>
 				<div class="right">
 					<ul>
-						<li><a class="yellow" href="https://github.com/orion-oti">Github</a></li>
+						<li><a class="yellow" href="https://github.com/orion-oti">GitHub</a></li>
 						<li><a class="yellow" href="http://wiki.eclipse.org/Orion/Getting_the_source">Git Repo</a></li>
 					</ul>
 				</div>
