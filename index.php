@@ -1,3 +1,4 @@
+<?php if (file_exists('/home/data/httpd/writable/www.eclipse.org/orion_stop.txt')) $queue = TRUE; else $queue = true;?>
 <!doctype html>
 <html class="no-js" lang="en"> 
 <head>
@@ -36,7 +37,7 @@
     </header>
     <div id="main" role="main">
 		<hr class="clear"/>
-		<a href="index.html"><img id="tagline" src="images/tagline.png"/></a>
+		<a href="index.php"><img id="tagline" src="images/tagline.png"/></a>
 		<div id="navblock">
 			<div id="tryit" class="roundedbox"><a class="bold">Try it</a></div>
 			<div id="watchit" class="roundedbox">
@@ -44,14 +45,14 @@
 				<div class="videowindow">
 					<img src="images/videowindow.png" title="Orion Introduction" rel="#video1"/>
 				</div>
-				<div class="videowindow">
+				<!-- <div class="videowindow">
 					<img src="images/videowindow.png" title="Client Side Integration" rel="#video2"/>
 				</div>
 				<div class="videowindow">
 					<img src="images/videowindow.png" title="Server Side Integration" rel="#video3"/>
-				</div>
+				</div> -->
 			</div>
-			<div id="getstarted" class="roundedbox"><a class="bold" href="getstarted.html"/>Get Started</a></div>
+			<div id="getstarted" class="roundedbox"><a class="bold" href="getstarted.php"/>Get Started</a></div>
 			<div id="arrow"><img src="images/arrow.png"></div>
 		</div>
 		<hr class="clear"/>
@@ -70,9 +71,10 @@
 			<img src="images/signup.png"/>
 			<form id="signupform" method="post" action="signup.php">
 				<input id="signupemail" class="empty" type="text" name="email" value="email address"/>
-				<input id="signupsubmit" type="submit" name="submit" value=""/>
+				<input id="signupsubmit" <?php if ($queue) print 'class="queue"'; ?> type="submit" name="submit" value=""/>
 			</form><hr class="clear"/>
 			<p id="error" class="yellow">Please enter a valid email address.</p>
+			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
 		</div>
 		<div id="social">
 			<img src="images/twitter.png"/><span>Follow us on Twitter</span><br/>
@@ -104,14 +106,15 @@
 		<hr class="clear"/>				
     </div>
     <div class="simple_overlay" id="video1">
-		<iframe title="YouTube video player" width="480" height="390" src="http://www.youtube.com/embed/vED9hMoscfo" frameborder="0" allowfullscreen></iframe>
+		<iframe title="YouTube video player" width="480" height="390" src="http://www.youtube.com/embed/gOZWCCvItdU" frameborder="0" allowfullscreen></iframe>
     </div>
-    <div class="simple_overlay" id="video2">
+<!--     <div class="simple_overlay" id="video2">
     	<iframe title="YouTube video player" width="480" height="390" src="http://www.youtube.com/embed/tgdB1L4IYpg" frameborder="0" allowfullscreen></iframe>
     </div>
     <div class="simple_overlay" id="video3">
 		<iframe title="YouTube video player" width="480" height="390" src="http://www.youtube.com/embed/uAHhZjfdetU" frameborder="0" allowfullscreen></iframe>
-    </div>        
+    </div>
+ -->        
     <footer>
 		<ul>
 			<li><a href="/">Home</a></li>
@@ -129,7 +132,7 @@
   <!-- JavaScript at the bottom for fast page loading -->
 
   <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if necessary -->
-  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.js"></script>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.4.2/jquery.js"></script>
   <script src="//cdn.jquerytools.org/1.2.5/all/jquery.tools.min.js"></script>
   <script src="//ajax.microsoft.com/ajax/jquery.validate/1.7/jquery.validate.min.js"></script>
   <script src="js/interface.js"></script>   
@@ -139,7 +142,6 @@
   <script src="js/styler.js"></script>  
   <script src="js/undostack.js"></script>
   <script src="js/orion.js"></script>
-  <script>window.jQuery || document.write('<script src="js/libs/jquery-1.5.1.min.js">\x3C/script>')</script>
 
 
 

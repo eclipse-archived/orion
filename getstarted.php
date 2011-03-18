@@ -1,3 +1,4 @@
+<?php if (file_exists('/home/data/httpd/writable/www.eclipse.org/orion_stop.txt')) $queue = TRUE; else $queue = true;?>
 <!doctype html>
 <html class="no-js" lang="en"> 
 <head>
@@ -29,49 +30,60 @@
   <div id="container">
     <header>
 		<ul>
-			<li><a href="community.html">Join the Community</a></li>
+			<li><a href="community.php">Join the Community</a></li>
 			<li>Already Using Orion? <a class="yellow bold">Sign In</a></li>
 		</ul>
 
     </header>
     <div id="main" role="main">
 		<hr class="clear"/>
-		<a href="index.html"><img id="tagline" src="images/tagline.png"/></a>
+		<a href="index.php"><img id="tagline" src="images/tagline.png"/></a>
 		<img id="gstagline" src="images/gstagline.png"/>
 		
 		<div id="getstartedcontent">
-			<div class="roundedbox">
+			<div class="roundedbox short">
 				<div class="content">
-					<h3>1. Sign-Up for OrionHub</h3>
+					<h3>1a. Sign-Up for OrionHub</h3>
 					<p>OrionHub is currently in a limited beta stage, Sign-Up today to see what Orion is all about.</p>
-					<a rel="#signupoverlay" class="yellow bold">Sign-up Today</a>
+					<a rel="#signupoverlay" class="yellow bold">Sign-Up Today</a>
 				</div>
 				<div class="icon"><img src="images/gshost.png"/></div>
 			</div>
+			<div class="or">- OR -</div>
 			<div class="roundedbox">
 				<div class="icon"><img src="images/gslocal.png"/></div>
 				<div class="content">
-					<h3>2. Download and Install Orion on your localhost</h3>
+					<h3>1b. Download and Install Orion on your localhost</h3>
 					<p>Get Orion installed and running on your own machine.</p>
 					<a href="http://wiki.eclipse.org/Orion/How_Tos/Install_Orion_on_Localhost" class="yellow bold">Download Now</a>
 				</div>
 			</div>
 			<div class="roundedbox">
 				<div class="content">
+					<h3>2. Getting Started with Orion</h3>
+					<p>Check out our Getting Started guide with Orion as we show you our features and functionality.</p>
+					<a href="http://wiki.eclipse.org/Orion/Getting_Started_with_Orion" class="yellow bold">Follow Along</a>
+				</div>
+				<div class="icon"><img src="images/gsstart.png"/></div>
+			</div>				
+			<div class="roundedbox">
+				<div class="icon"><img src="images/gsembed.png"/></div>
+				<div class="content">
 					<h3>3. Embed Orion into your Application</h3>
 					<p>We've embedded Orion into our <a class="bold" href="index.html">main page</a>, see how you can do the same.</p>
 					<a href="signup" class="yellow bold">Find Out How</a>
 				</div>
-				<div class="icon"><img src="images/gsembed.png"/></div>
+				
 			</div>						
 		</div>
 	    <div class="simple_overlay" id="signupoverlay">
 			<img src="images/signup.png"/>
 			<form method="post" action="signup.php">
 				<input id="signupemail" class="empty" type="text" name="email" value="email address"/>
-				<input id="signupsubmit" type="submit" name="submit" value=""/>
+				<input id="signupsubmit" <?php if ($queue) print 'class="queue"'; ?> type="submit" name="submit" value=""/>
 			</form><hr class="clear"/>
 			<p id="error" class="yellow" style="padding-left:150px;">Please enter a valid email address.</p>
+			<?php if ($queue) {?><p id="queue" style="padding:10px 100px;">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
 	    </div>		
     <footer>
 		<ul>

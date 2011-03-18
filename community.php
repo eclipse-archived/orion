@@ -36,7 +36,7 @@
     </header>
     <div id="main" role="main">
 		<hr class="clear"/>
-		<a href="index.html"><img id="tagline" src="images/tagline.png"/></a>
+		<a href="index.php"><img id="tagline" src="images/tagline.png"/></a>
 		<img id="jctagline" src="images/jctagline.png"/>
 		
 		<div id="communitycontent">
