@@ -11,7 +11,7 @@
  *******************************************************************************/
  $email = $_POST['email'];
  if ($email != ""){
- 	//mail('orionhub8723_invite@eclipse.org', 'OrionHub Invite', $email);
+ 	mail('orionhub8723_invite@eclipse.org', 'OrionHub Invite', $email);
  }
 ?>
 
@@ -53,11 +53,11 @@
     </header>
     <div id="main" role="main">
 		<hr class="clear"/>
-		<a href="index.html"><img id="tagline" src="images/tagline.png"/></a>
+		<a href="index.php"><img id="tagline" src="images/tagline.png"/></a>
 		<div id='thankyou'>
 			<h1>Thank you for Signing up for OrionHub.</h1>
 			<p>You'll receive an email shortly containing instruction on how to connect to OrionHub.</p>
-			<a class="yellow bold" href="index.html">Back to Orion</a>
+			<a class="yellow bold" href="index.php">Back to Orion</a>
 		</div>
     </div>
     <footer>
