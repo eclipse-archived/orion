@@ -34,7 +34,7 @@ footer ul li { float:left; padding-right:30px; }
 #editorNav .left .box a {padding-right:20px; cursor:pointer;}
 #editorNav .left .box a.first {padding-left:40px; cursor:pointer;}
 #examples { margin-left:90px; margin-top:7px; background:transparent url(images/examples.png) no-repeat; }
-#logosmall {float:left; padding:0 4px; margin-right:20px;}
+#logosmall {float:left; padding:1px 4px; margin-right:20px;}
 #editorDiv { color:#000; height:411px; }
 #social { float:left; width:260px; }
 #social img { padding-bottom:5px; }
