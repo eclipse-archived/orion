@@ -10,7 +10,9 @@
  *    
  *******************************************************************************/
  $email = $_POST['email'];
- mail('nathan@eclipse.org', 'OrionHub Invite', $email);
+ if ($email != ""){
+ 	mail('nathan@eclipse.org', 'OrionHub Invite', $email);
+ }
 ?>
 
 <!doctype html>
