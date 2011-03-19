@@ -62,6 +62,7 @@
 					<img id="logosmall" src="images/logosmall.png"/>
 					<div id="examples" class="box">
 						<a id="altcss" class="first" title="Style the way you want">Alternate CSS</a>
+						<a id="plaincss" class="first" style="display:none"; title="Style the way you want">Default CSS</a>
 						<?php  /* <a id="jsbeautify" title="Re-Format messy code">JS Beautifier</a>*/?>
 						<a id="largefile" title="15,000 Lines of code">A Very Large File</a>
 					</div>

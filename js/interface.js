@@ -40,6 +40,8 @@ $('#signupsubmit').click(function() {
 });
 
 $('#altcss').click(function() {
+	
+	
 	var options = {
 			parent: "editorDiv",
 			model: new eclipse.TextModel(),
@@ -47,11 +49,32 @@ $('#altcss').click(function() {
 		};
 
 	editor = new eclipse.Editor(options);
-	
+	$('#plaincss').toggle();
+	$(this).toggle();
 	var file = getFile('js/example.js');
 	styler = new eclipse.TextStyler(editor, "js");	
 	editor.addRuler(lines);
 	editor.setText(file);
+	
+});
+
+$('#plaincss').click(function() {
+	
+	
+	var options = {
+			parent: "editorDiv",
+			model: new eclipse.TextModel(),
+			stylesheet: "css/ide.css" 
+		};
+
+	editor = new eclipse.Editor(options);
+	$('#altcss').toggle();
+	$(this).toggle();
+	var file = getFile('js/example.js');
+	styler = new eclipse.TextStyler(editor, "js");	
+	editor.addRuler(lines);
+	editor.setText(file);
+	
 });
 
 $('#largefile').click(function() {

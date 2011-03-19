@@ -47,7 +47,7 @@
 					<ul>
 						<li><a class="yellow" href="https://dev.eclipse.org/mailman/listinfo/orion-dev">Mailing List</a></li>
 						<?php /*<li><a class="yellow" href="http://www.eclipse.org/forums/eclipse.e4">Forums</a></li>*/?>
-						<li><a class="yellow" href="https://bugs.eclipse.org/bugs/buglist.cgi?query_format=advanced&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&product=E4&component=Orion">Bugzilla</a></li>
+						<li><a class="yellow" href="https://bugs.eclipse.org/bugs/enter_bug.cgi?product=e4&component=Orion&version=0.2">Bugzilla</a></li>
 						<li><a class="yellow" href="irc://irc.freenode.net/#eclipse-orion">IRC</a></li>
 					</ul>
 				</div>
