@@ -44,12 +44,12 @@
 			<div class="roundedbox short">
 				<div class="content">
 					<h3>Sign-Up for OrionHub</h3>
-					<p>OrionHub is currently in a limited beta stage, Sign-Up today to see what Orion is all about.</p>
+					<p>OrionHub is our hosted Orion solution, currently in a limited beta stage. Sign-Up today to see what Orion is all about.</p>
 					<a rel="#signupoverlay" class="yellow bold">Sign-Up Today</a>
 				</div>
 				<div class="icon"><img src="images/gshost.png"/></div>
 			</div>
-			<div class="or">- OR -</div>
+			<div class="or"><img src="images/or.png"/></div>
 			<div class="roundedbox">
 				<div class="icon"><img src="images/gslocal.png"/></div>
 				<div class="content">
