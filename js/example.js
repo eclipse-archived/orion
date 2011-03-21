@@ -2,7 +2,7 @@
  * 
  *  This is an Orion Editor, running in your browser using javascript.  
  *  
- *  We've prepared some examples of what Orion can do, click the icons below
+ *  We've prepared some examples of what Orion can do, click the links above
  *  to explore.
  * 
  *  Example #1 - This is the javascript used on this page to embed Orion
