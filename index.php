@@ -67,10 +67,6 @@
 						<a id="largefile" title="15,000 Lines of code">A Very Large File</a>
 					</div>
 				</div>
-				<div class="right">
-					<img id="undo" alt="Undo" title="Undo" src="http://orion.eclipse.org/images/undo_edit.gif"/>
-					<img id="redo" alt="Redo" title="Redo" src="http://orion.eclipse.org/images/redo_edit.gif"/>
-				</div>
 			</div>
 			<div id="editorDiv"></div>
 		</div>
