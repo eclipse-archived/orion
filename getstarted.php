@@ -70,7 +70,7 @@
 				<div class="icon"><img src="images/gsembed.png"/></div>
 				<div class="content">
 					<h3>Embed Orion into your Application</h3>
-					<p>We've embedded Orion into our <a class="bold" href="index.html">main page</a>, see how you can do the same.</p>
+					<p>We've embedded Orion into our <a class="bold" href="index.php">main page</a>, see how you can do the same.</p>
 					<a href="http://aniefer.blogspot.com/2011/02/embedding-orion-editor_02.html" class="yellow bold">Find Out How</a>
 				</div>
 				
