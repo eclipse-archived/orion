@@ -72,12 +72,12 @@
 				</div>
 			</div>
 			<div class="roundedbox">
-				<a href="https://github.com/orion-oti"><img id="github" src="images/fork.png"/></a>
+				<a href="https://github.com/eclipse/orion.client"><img id="github" src="images/fork.png"/></a>
 				<div class="left"><img src="images/jcorion.png"></div>
 				<div class="content"><h3>Contribute Back to Orion</h3>Fork Orion on GitHub, fix bugs, add new features and contribute them back. Join us.</div>
 				<div class="right">
 					<ul>
-						<li><a class="yellow" href="https://github.com/orion-oti">GitHub</a></li>
+						<li><a class="yellow" href="https://github.com/eclipse/orion.client">GitHub</a></li>
 						<li><a class="yellow" href="http://wiki.eclipse.org/Orion/Getting_the_source">Git Repo</a></li>
 					</ul>
 				</div>
