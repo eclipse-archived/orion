@@ -83,7 +83,7 @@
 		<div id="social">
 			<img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orion_oti">Follow us on Twitter</a></span><br/>
 			<img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span><br/>
-
+		    <g:plusone></g:plusone>
 		</div>
 		<hr class="clear"/>				
     </div>
@@ -123,7 +123,7 @@
   <script src="js/styler.js"></script>  
   <script src="js/undostack.js"></script>
   <script src="js/orion.js"></script>
-
+  <script type="text/javascript" src="https://apis.google.com/js/plusone.js"></script>
 
 
 
