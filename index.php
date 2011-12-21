@@ -81,7 +81,7 @@
 			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
 		</div>
 		<div id="social">
-			<img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orion_oti">Follow us on Twitter</a></span><br/>
+			<img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orionhub">Follow us on Twitter</a></span><br/>
 			<img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span><br/>
 		    <g:plusone></g:plusone>
 		</div>
