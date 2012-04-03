@@ -45,7 +45,7 @@
 				<div class="content">
 					<h3>Sign-Up for OrionHub</h3>
 					<p>OrionHub is our hosted Orion solution, currently in a limited beta stage. Sign-Up today to see what Orion is all about.</p>
-					<a rel="#signupoverlay" class="yellow bold">Sign-Up Today</a>
+					<a rel="#signupoverlay" class="yellow bold linkcursor">Sign-Up Today</a>
 				</div>
 				<div class="icon"><img src="images/gshost.png"/></div>
 			</div>
