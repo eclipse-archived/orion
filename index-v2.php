@@ -25,7 +25,7 @@
 
 </head>
 
-<body>
+<body class="v2">
 
   <div id="container">
     <header>

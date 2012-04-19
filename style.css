@@ -46,7 +46,7 @@ footer ul li { float:left; padding-right:30px; }
 .newsfeed tr td.content { border-top:1px solid rgba(255,255,255,0.3) }
 .yellow { color:#ffd900; }
 .bold { font-weight:bold; }
-
+.v2 #signup, .v2 #social{padding-top:68px;}
 
 /* Community Tags */
 #jctagline { padding-left:90px; padding-top:50px; padding-bottom:20px;}
@@ -83,7 +83,7 @@ footer ul li { float:left; padding-right:30px; }
 #thankyou a { font-size:14px; }
 #error, #queue { padding-left:10px;  font-weight:bold; }
 #error {display:none; }
-#signup { float:left; width:550px;  padding-left:80px; }
+#signup { float:left; width:550px;   padding-left:80px; }
 #signup form { padding-top:15px; }
 #signupemail { background:transparent url('images/signupform.png') no-repeat; border:0px; width:255px; height:45px; margin-right:-10px; padding-left:10px; font-size:18px; float:left;}
 .empty { color:#c7c8ca; }
