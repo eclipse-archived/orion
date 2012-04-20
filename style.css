@@ -39,15 +39,18 @@ footer ul li { float:left; padding-right:30px; }
 #editorDiv { color:#000; height:411px; }
 #social { float:left; width:260px; }
 #social img { padding-bottom:5px; }
-#social > span { font-size:18px; position:relative; left:5px; top:-15px;}
+#social span { font-size:18px; position:relative; left:5px; top:-15px;}
 .newsfeed { width:100%; display:none;}
 .newsfeed tr td { padding:10px 5px; }
 .newsfeed tr td.date {font-weight:bold; vertical-align:top; font-size:10px; text-align:center;}
 .newsfeed tr td.content { border-top:1px solid rgba(255,255,255,0.3) }
 .yellow { color:#ffd900; }
 .bold { font-weight:bold; }
-.v2 #signup, .v2 #social{padding-top:68px;}
-
+.v2 #signup{margin:auto;float: none; padding:120px 0 145px 0;width: 390px;text-align: center;}
+.v2 #social{width: 950px;}
+.v2 #social div{width: 50%;float:left;}
+.v2 #social #rss{text-align: right;}
+#google_plus{position:absolute;top:12px;}
 /* Community Tags */
 #jctagline { padding-left:90px; padding-top:50px; padding-bottom:20px;}
 #communitycontent { width:800px; padding-left:80px; }

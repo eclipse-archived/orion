@@ -28,8 +28,10 @@
 <body class="v2">
 
   <div id="container">
+  <div id="google_plus"><g:plusone></g:plusone></div>
     <header>
 		<ul>
+			<li><a href="getstarted.php">Get Started</a></li>
 			<li><a href="community.php">Join the Community</a></li>
 			<li>Already Using Orion? <a href="http://orionhub.org" class="yellow bold">Sign In</a></li>
 		</ul>
@@ -38,7 +40,7 @@
     <div id="main" role="main">
 		<hr class="clear"/>
 		<a href="index.php"><img id="tagline" src="images/tagline.png"/></a>
-		<div id="navblock">
+		<!-- <div id="navblock">
 			<div id="tryit" class="roundedbox"><a class="bold">Try it</a></div>
 			<div id="watchit" class="roundedbox">
 				<a class="bold">Watch it</a>
@@ -51,10 +53,10 @@
 				<!--<div class="videowindow">
 					<img src="images/videowindow.png" title="Server Side Integration" rel="#video3"/>
 				</div> -->
-			</div>
+			<!--</div>
 			<div id="getstarted" class="roundedbox"><a class="bold" href="getstarted.php"/>Get Started</a></div>
 			<div id="arrow"><img src="images/arrow.png"></div>
-		</div>
+		</div> -->
 		<hr class="clear"/>
 		<!-- <div id="editorcontainer">
 			<div id="editorNav">
@@ -80,10 +82,10 @@
 			<p id="error" class="yellow">Please enter a valid email address.</p>
 			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
 		</div>
-		<div id="social">
-			<img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orionhub">Follow us on Twitter</a></span><br/>
-			<img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span><br/>
-		    <g:plusone></g:plusone>
+		   <div id="social">
+			<div id="google_twitter"><img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orionhub">Follow us on Twitter</a></span></div>
+			<div id="rss"><img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span></div>
+		    
 		</div>
 		<hr class="clear"/>				
     </div>
@@ -108,6 +110,8 @@
 		</ul>
 		<span id="copyright">Copyright &copy; 2011 The Eclipse Foundation. All Rights Reserved.</span>
     </footer>
+    
+ 
   </div> <!--! end of #container -->
 
 
