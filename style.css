@@ -8,7 +8,7 @@ body { 	background: #1397a8 url('images/bg.png') repeat-x;
 }
 a { color:#FFF; text-decoration:none;}
 #tagline { padding-left:40px; padding-top:30px; }
-#container { width:960px; margin:0 auto; }
+#container { width:960px; margin:0 auto; position: relative;}
 
 header { padding-top:10px;float:right; font-style:italic; }
 header ul li { float:left; padding-left:30px; }
@@ -47,13 +47,28 @@ footer ul li { float:left; padding-right:30px; }
 .newsfeed tr td.content { border-top:1px solid rgba(255,255,255,0.3) }
 .yellow { color:#ffd900; }
 .bold { font-weight:bold; }
+.v2 #copyright{padding-right: 0}
+.v2 #gplus{padding-left:65px;padding-top: 4px;}
+.v2 footer ul{width: 960px;margin: auto;display: block;border-top:1px #4fa7b2 solid;padding-top:8px;}
+.v2 #social{clear:both;padding:45px 0 40px 95px;}
+.v2 #signup{
+  width: 390px;
+  height: 95px;
+  position:fixed;
+  left: 50%;
+  top:40%;
+  margin-left: -195px;
 
-.v2 #signup{margin:auto;float: none; padding:90px 0 55px 0;width: 390px;text-align: center;}
-.v2 #tagline{padding-left:0;margin:auto;display:block;}
-.v2 #social > div{width: 50%;float:left;}
-.middle_container, .v2 #social{margin:auto;float:none; width: 390px}
+  padding: 0;
+  float: none;
+  text-align: center;
+}
+.v2 footer{position:absolute;bottom: 5%;width: 100%;}
+.v2 #tagline{padding:0;margin:auto;display:block;left:57px;top:5%;   left: 50%; position:fixed;  margin-left: -423px;}
+
+
 .addthis_toolbox{clear:both;;float:left;margin:auto;text-align: center;padding-left:19%;padding-top:10px;padding-bottom:100px;}
-.v2 #social #rss{text-align: right;}
+
 .v2 #social #google_plus{width: 100%;clear:both;margin-top:15px;display: block}
 
 /* Community Tags */

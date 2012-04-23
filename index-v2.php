@@ -28,7 +28,7 @@
 <body class="v2">
 
   <div id="container">
- 
+  
     <header>
 		<ul>
 			<li><a href="getstarted.php">Get Started</a></li>
@@ -37,6 +37,8 @@
 		</ul>
 
     </header>
+    
+    
     <div id="main" role="main">
 		<hr class="clear"/>
 		<a href="index.php"><img id="tagline" src="images/tagline2.png"/></a>
@@ -57,7 +59,7 @@
 			<div id="getstarted" class="roundedbox"><a class="bold" href="getstarted.php"/>Get Started</a></div>
 			<div id="arrow"><img src="images/arrow.png"></div>
 		</div> -->
-		<hr class="clear"/>
+	
 		<!-- <div id="editorcontainer">
 			<div id="editorNav">
 				<div class="left">
@@ -81,19 +83,14 @@
 			</form><hr class="clear"/>
 			<p id="error" class="yellow">Please enter a valid email address.</p>
 			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
-		</div>
-		   <div id="social" class="middle_container">
-			<div id="google_twitter"><img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orionhub">Follow us on Twitter</a></span></div>
-			<div id="rss"><img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span></div>		 
-		</div>
-		<div class="middle_container">
-		    <!-- AddThis Button BEGIN -->
-			<div class="addthis_toolbox addthis_default_style addthis_32x32_style">
-				<a class="addthis_button_preferred_1"></a><a class="addthis_button_preferred_2"></a><a class="addthis_button_preferred_3"></a><a class="addthis_button_preferred_4"></a><a class="addthis_button_compact"></a><a class="addthis_counter addthis_bubble_style"></a>
+			<div id="social">
+				<div id="twitter"><img src="images/twitter.png"><span><a href="http://twitter.com/#%21/orionhub">Follow us on Twitter</a></span></div>
+				<div id="rss"><img src="images/rss.png"><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span></div>	
+				<div id="gplus"><g:plusone></g:plusone></div>
 			</div>
-			<script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid=ra-4f0a6769141fbf14"></script>
-			<!-- AddThis Button END -->
 		</div>
+		 
+		
 		<hr class="clear"/>				
     </div>
     <div class="simple_overlay" id="video1">
@@ -106,7 +103,12 @@
 		<iframe title="YouTube video player" width="480" height="390" src="http://www.youtube.com/embed/uAHhZjfdetU" frameborder="0" allowfullscreen></iframe>
     </div>
  -->        
-    <footer>
+   
+    
+ 
+  </div> <!--! end of #container -->
+
+ <footer>
 		<ul>
 			<li><a href="/">Home</a></li>
 			<li><a href="/legal/privacy.php">Privacy Policy</a></li>
@@ -114,14 +116,9 @@
 			<li><a href="/legal/copyright.php">Copyright Agent</a></li>
 			<li><a href="/legal/">Legal</a></li>
 			<li><a href="/org/foundation/contact.php">Contact Us</a></li>
+			<li id="copyright">Copyright &copy; 2011 The Eclipse Foundation. All Rights Reserved.</li>
 		</ul>
-		<span id="copyright">Copyright &copy; 2011 The Eclipse Foundation. All Rights Reserved.</span>
     </footer>
-    
- 
-  </div> <!--! end of #container -->
-
-
   <!-- JavaScript at the bottom for fast page loading -->
 
   <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if necessary -->
