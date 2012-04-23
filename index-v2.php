@@ -28,7 +28,7 @@
 <body class="v2">
 
   <div id="container">
-  <div id="google_plus"><g:plusone></g:plusone></div>
+ 
     <header>
 		<ul>
 			<li><a href="getstarted.php">Get Started</a></li>
@@ -39,7 +39,7 @@
     </header>
     <div id="main" role="main">
 		<hr class="clear"/>
-		<a href="index.php"><img id="tagline" src="images/tagline.png"/></a>
+		<a href="index.php"><img id="tagline" src="images/tagline2.png"/></a>
 		<!-- <div id="navblock">
 			<div id="tryit" class="roundedbox"><a class="bold">Try it</a></div>
 			<div id="watchit" class="roundedbox">
@@ -82,10 +82,17 @@
 			<p id="error" class="yellow">Please enter a valid email address.</p>
 			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
 		</div>
-		   <div id="social">
+		   <div id="social" class="middle_container">
 			<div id="google_twitter"><img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orionhub">Follow us on Twitter</a></span></div>
-			<div id="rss"><img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span></div>
-		    
+			<div id="rss"><img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span></div>		 
+		</div>
+		<div class="middle_container">
+		    <!-- AddThis Button BEGIN -->
+			<div class="addthis_toolbox addthis_default_style addthis_32x32_style">
+				<a class="addthis_button_preferred_1"></a><a class="addthis_button_preferred_2"></a><a class="addthis_button_preferred_3"></a><a class="addthis_button_preferred_4"></a><a class="addthis_button_compact"></a><a class="addthis_counter addthis_bubble_style"></a>
+			</div>
+			<script type="text/javascript" src="http://s7.addthis.com/js/250/addthis_widget.js#pubid=ra-4f0a6769141fbf14"></script>
+			<!-- AddThis Button END -->
 		</div>
 		<hr class="clear"/>				
     </div>
