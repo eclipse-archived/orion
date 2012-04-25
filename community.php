@@ -29,6 +29,7 @@
   <div id="container">
     <header>
 		<ul>
+			<li><a href="getstarted.php">Get Started</a></li>
 			<li><a href="community.php">Join the Community</a></li>
 			<li>Already Using Orion? <a href="http://orionhub.org" class="yellow bold">Sign In</a></li>
 		</ul>
