@@ -25,20 +25,24 @@
 
 </head>
 
-<body>
+<body class="v2">
 
   <div id="container">
+  
     <header>
 		<ul>
+			<li><a href="getstarted.php">Get Started</a></li>
 			<li><a href="community.php">Join the Community</a></li>
 			<li>Already Using Orion? <a href="http://orionhub.org" class="yellow bold">Sign In</a></li>
 		</ul>
 
     </header>
+    
+    
     <div id="main" role="main">
 		<hr class="clear"/>
-		<a href="index.php"><img id="tagline" src="images/tagline.png"/></a>
-		<div id="navblock">
+		<a href="index.php"><img id="tagline" src="images/tagline2.png"/></a>
+		<!-- <div id="navblock">
 			<div id="tryit" class="roundedbox"><a class="bold">Try it</a></div>
 			<div id="watchit" class="roundedbox">
 				<a class="bold">Watch it</a>
@@ -51,12 +55,12 @@
 				<!--<div class="videowindow">
 					<img src="images/videowindow.png" title="Server Side Integration" rel="#video3"/>
 				</div> -->
-			</div>
+			<!--</div>
 			<div id="getstarted" class="roundedbox"><a class="bold" href="getstarted.php"/>Get Started</a></div>
 			<div id="arrow"><img src="images/arrow.png"></div>
-		</div>
-		<hr class="clear"/>
-		<div id="editorcontainer">
+		</div> -->
+	
+		<!-- <div id="editorcontainer">
 			<div id="editorNav">
 				<div class="left">
 					<img id="logosmall" src="images/logosmall.png"/>
@@ -69,22 +73,24 @@
 				</div>
 			</div>
 			<div id="editorDiv"></div>
-		</div>
+		</div> -->
 		<hr class="clear"/>
 		<div id="signup">
-			<img src="images/signup.png"/>
+			<img src="images/signup2.png"/>
 			<form id="signupform" method="post" action="signup.php">
 				<input id="signupemail" class="empty" type="text" name="email" value="email address"/>
 				<input id="signupsubmit" <?php if ($queue) print 'class="queue"'; ?> type="submit" name="submit" value=""/>
 			</form><hr class="clear"/>
 			<p id="error" class="yellow">Please enter a valid email address.</p>
 			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
+			<div id="social">
+				<div id="twitter"><img src="images/twitter.png"><span><a href="http://twitter.com/#%21/orionhub">Follow us on Twitter</a></span></div>
+				<div id="rss"><img src="images/rss.png"><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span></div>	
+				<div id="gplus"><g:plusone></g:plusone></div>
+			</div>
 		</div>
-		<div id="social">
-			<img src="images/twitter.png"/><span><a href="http://twitter.com/#!/orionhub">Follow us on Twitter</a></span><br/>
-			<img src="images/rss.png"/><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span><br/>
-		    <g:plusone></g:plusone>
-		</div>
+		 
+		
 		<hr class="clear"/>				
     </div>
     <div class="simple_overlay" id="video1">
@@ -97,7 +103,12 @@
 		<iframe title="YouTube video player" width="480" height="390" src="http://www.youtube.com/embed/uAHhZjfdetU" frameborder="0" allowfullscreen></iframe>
     </div>
  -->        
-    <footer>
+   
+    
+ 
+  </div> <!--! end of #container -->
+
+ <footer>
 		<ul>
 			<li><a href="/">Home</a></li>
 			<li><a href="/legal/privacy.php">Privacy Policy</a></li>
@@ -105,12 +116,9 @@
 			<li><a href="/legal/copyright.php">Copyright Agent</a></li>
 			<li><a href="/legal/">Legal</a></li>
 			<li><a href="/org/foundation/contact.php">Contact Us</a></li>
+			<li id="copyright">Copyright &copy; 2011 The Eclipse Foundation. All Rights Reserved.</li>
 		</ul>
-		<span id="copyright">Copyright &copy; 2011 The Eclipse Foundation. All Rights Reserved.</span>
     </footer>
-  </div> <!--! end of #container -->
-
-
   <!-- JavaScript at the bottom for fast page loading -->
 
   <!-- Grab Google CDN's jQuery, with a protocol relative URL; fall back to local if necessary -->
