@@ -15,7 +15,7 @@
 <p:introduction>
 <div>
 <p>
-Last revised 17:00 ET March 8, 2012.
+Last revised 13:00 ET June 21, 2012.
 </p>
 <p><i>Please send comments about this plan to the</i> <a href="mailto:orion-dev@eclipse.org">orion-dev@eclipse.org</a> <i>developer
   mailing list.</i>
@@ -352,21 +352,22 @@ community feedback. Each plan item covers a feature or API that is
 </p:description>
 
 <p:proposed>
+  <p><i>None at this time.</i></p>
+</p:proposed>
+
+<p:committed>
 <ul>
 <li>
-	<strong>Need a JavaScript parser that can handle errors.</strong>
-	The current parser cannot continue after encountering errors. This limits the flexibility on
-	what can be done in the editor while the user is continually editing code.
-	Leverage work done to make the Esprima parser capable of error recovery.
-	[Client]
-</li>
-<li>
-
 	<strong>Esprima a component within Orion.</strong>
 	This is awaiting the results of an Eclipse Foundation CQ.  Use Esprima for JavaScript
 	tooling such as syntax highlighting, outline, content assist and syntax checking where possible.
 	[Client]
 </li>
+</ul>
+</p:committed>
+
+<p:deferred>
+<ul>
 <li>
 	<strong>Deeper integration between Orion editors and debug platform.</strong>
 	Provide a link between setting and clearing breakpoints within the Orion editor and transitioning from debugger to editor.
@@ -375,17 +376,18 @@ community feedback. Each plan item covers a feature or API that is
 <li>
 	<strong>CodeMirror a component within Orion.</strong>
 	This is awaiting the results of an Eclipse Foundation CQ. Used for syntax highlighting numerous languages.
+	<i>This has proven difficult to get a CQ for</i>
+	[Client]
+</li>
+<li>
+	<strong>Need a JavaScript parser that can handle errors.</strong>
+	The current parser cannot continue after encountering errors. This limits the flexibility on
+	what can be done in the editor while the user is continually editing code.
+	Leverage work done to make the Esprima parser capable of error recovery.
+	<i>Waiting on a newer version of Esprima before this code can be contributed into Orion</i>
 	[Client]
 </li>
 </ul>
-</p:proposed>
-
-<p:committed>
-  <p><i>None at this time.</i></p>dsfdsf
-</p:committed>
-
-<p:deferred>
-  <p><i>None at this time.</i></p>dsfdsf
 </p:deferred>
 
 </p:theme>
@@ -401,39 +403,36 @@ community feedback. Each plan item covers a feature or API that is
 
 <p:proposed>
 <ul>
-<li>
-	<strong>Update our 3rd party libraries including DoJo, JSDoc and Solr</strong>
+</ul>
 
-	[Client]
-</li>
+</p:proposed>
+
+<p:committed>
+<ul>
 <li>
 	<strong>Authentication integration with service registry</strong>
 	Deferred from 0.4.
 	[Client]
 </li>
 <li>
-	<strong>Accessibility</strong>
-	Finalize the sweep of accessibility testing and document how developers test accessibility
-	[Client]
-</li>
-
-<li>
-	<strong>Improved specification for Plugin Model</strong>
-	Plugin Model and Architecture for describing, identifying, discovering and installing.
-	Support plugin catalogs via a feed as well as page redirection
+	<strong>Cross Site and Cross Application visual elements</strong>
+	Work on the method to both consume visual components within the Orion look and 
+	feel and also how to provide Orion trim plugins to external appliations to maintain 
+	consistent functionality across sites. <i>This was worked on but can use more work</i>
 	[Client]
 </li>
 <li>
-	<strong>Improved infrastructure for preferences</strong>
-	Leverage the new settings page and layout to support additional preferences options for plugins.
-	[Client, Server]
+	<strong>Command Line Console</strong>
+	Investigate adding the GCLI command line framework, and using it for debug,
+	git, and deployment commands.
+	[Client]
 </li>
 <li>
-	<strong>Localization support</strong>
-
-	Continue the localization of the Orion components.  Utilize the work done within the Editor toward
-	other Orion areas.  Ensure there is a solution for localizing plugins.  Work on tooling to assist
-	developers in localizing their JavaScript applications.
+	<strong>Bidi support in Editor</strong>
+	[Client]
+</li>
+<li>
+	<strong>Update our 3rd party libraries including DoJo, JSDoc and Solr</strong>
 	[Client]
 </li>
 <li>
@@ -442,17 +441,36 @@ community feedback. Each plan item covers a feature or API that is
 	[Client]
 </li>
 <li>
-	<strong>Cross Site and Cross Application visual elements</strong>
-	Work on the method to both consume visual components within the Orion look and 
-	feel and also how to provide Orion trim plugins to external appliations to maintain 
-	consistent functionality across sites.
+	<strong>Localization support</strong>
+	Continue the localization of the Orion components.  Utilize the work done within the Editor toward
+	other Orion areas.  Ensure there is a solution for localizing plugins.  Work on tooling to assist
+	developers in localizing their JavaScript applications.
 	[Client]
 </li>
-
 <li>
-	<strong>Command Line Console</strong>
-	Investigate adding the GCLI command line framework, and using it for debug,
-	git, and deployment commands.
+	<strong>Improved infrastructure for preferences</strong>
+	Leverage the new settings page and layout to support additional preferences options for plugins.
+	[Client, Server]
+</li>
+<li>
+	<strong>Accessibility</strong>
+	Finalize the sweep of accessibility testing and document how developers test accessibility
+	[Client]
+</li>
+</ul>
+</p:committed>
+
+<p:deferred>
+<ul>
+<li>
+	<strong>Improve Task Support</strong>
+	Sequenced tasks and extending the existing support for login notification to have a wider range of capabilities.
+	[Client]
+</li>
+<li>
+	<strong>Improved specification for Plugin Model</strong>
+	Plugin Model and Architecture for describing, identifying, discovering and installing.
+	Support plugin catalogs via a feed as well as page redirection
 	[Client]
 </li>
 <li>
@@ -461,25 +479,7 @@ community feedback. Each plan item covers a feature or API that is
 	when files or the Git repository are modified on other pages.
 	[Client]
 </li>
-<li>
-	<strong>Improve Task Support</strong>
-	Sequenced tasks and extending the existing support for login notification to have a wider range of capabilities.
-	[Client]
-</li>
-<li>
-	<strong>Bidi support in Editor</strong>
-	[Client]
-</li>
 </ul>
-
-</p:proposed>
-<p:committed>
-  <p><i>None at this time.</i></p>
-
-</p:committed>
-
-<p:deferred>
-  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
@@ -494,13 +494,12 @@ continue, focussing on cross site integration.  In addition, several items were 
 </p:description>
 
 <p:proposed>
+  <p><i>None at this time.</i></p>
+</p:proposed>
+<p:committed>
 <ul>
 <li>
 	<strong>Improve workflow for accepting contributions from git repositories</strong>
-	[Client]
-</li>
-<li>
-	<strong>Investigate Gerrit review flow</strong>
 	[Client]
 </li>
 
@@ -520,23 +519,25 @@ continue, focussing on cross site integration.  In addition, several items were 
 	[Client][Server]
 </li>
 <li>
-	<strong>Add support and UI for Git Stash, submodule support</strong>
-	[Client][Server]
-</li>
-<li>
 	<strong>Searching improvements</strong>
 	Advanced search (attributes, size, etc), phrase search and case insensitive file name search.
 	[Client][Server]
 </li>
 
 </ul>
-</p:proposed>
-<p:committed>
-  <p><i>None at this time.</i></p>
 </p:committed>
 
 <p:deferred>
-  <p><i>None at this time.</i></p>
+<ul>
+<li>
+	<strong>Investigate Gerrit review flow</strong>
+	[Client]
+</li>
+<li>
+	<strong>Add support and UI for Git Stash, submodule support</strong>
+	[Client][Server]
+</li>
+</ul>
 </p:deferred>
 
 </p:theme>
@@ -553,6 +554,10 @@ continue, focussing on cross site integration.  In addition, several items were 
   <p><i>None at this time.</i></p>
 </p:committed>
 <p:proposed>
+  <p><i>None at this time.</i></p>
+</p:proposed>
+
+<p:deferred>
 <ul>
 <li>
 	<strong>Improve the test coverage and capabilities.</strong> Investigate JavaScript code coverage tools to see if there
@@ -560,10 +565,6 @@ continue, focussing on cross site integration.  In addition, several items were 
 	[Releng]
 </li>
 </ul>
-</p:proposed>
-
-<p:deferred>
-  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
