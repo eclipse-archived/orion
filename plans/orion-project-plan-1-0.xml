@@ -15,7 +15,7 @@
 <p:introduction>
 <div>
 <p>
-Last revised 10:00 ET July 12, 2012.
+Last revised 10:00 ET July 17, 2012.
 </p>
 <p><i>Please send comments about this plan to the</i> <a href="mailto:orion-dev@eclipse.org">orion-dev@eclipse.org</a> <i>developer
   mailing list.</i>
@@ -395,39 +395,43 @@ for 1.0.
 </li>
 <li>
 	<strong>Plugin Packages</strong>
-	Provide a means to install a group of plugins together.
+	Provide a means to install a group of plugins together[Client]
 </li>
 <li>
 	<strong>Finalize i18N support</strong>
-	Also provide examples on how to integrate with new plugins and how to use the NLS tool
+	Also provide examples on how to integrate with new plugins and how to use the NLS tool [Client]
 </li>
 <li>
 	<strong>Default Crawling Search for File Implementations</strong>
-	Provide a default crawling search engine for new file system implementations.  At a minimum supporting files for Ctrl-F
+	Provide a default crawling search engine for new file system implementations.  At a minimum supporting files for Ctrl-F [Client]
 </li>
 <li>
 	<strong>Word Wrap support in Editor</strong>
-	This is a requirement for many projects
+	This is a requirement for many projects [Client]
 </li>
 <li>
 	<strong>Variable line hight in editor</strong>
-	This is desirable for many usecases
+	This is desirable for many usecases [Client]
 </li>
 <li>
 	<strong>Persona login capabilities</strong>
-	Provide the capability to login via a Persona ID
+	Provide the capability to login via a Persona ID [Client][Server]
 </li>
 <li>
 	<strong>Improve Workspace naming conventions</strong>
-	Currently the displayed names look like garbled text vs. User IDs
+	Currently the displayed names look like garbled text vs. User IDs [Client][Server]
 </li>
 <li>
 	<strong>Offline modes</strong>
-	Investigate solutions to migrating to an offline mode to continue development while disconnected
+	Investigate solutions to migrating to an offline mode to continue development while disconnected [Client]
 </li>
 <li>
 	<strong>Syncronize settings</strong>
-	Syncronize local storage and user preferences
+	Syncronize local storage and user preferences [Client][Server]
+</li>
+<li>
+	<strong>REST API for Git Command Line</strong>
+	Add Git support to the Orion Console. In order to do this Orion needs REST APIs for Git.[Client][Git][Server]
 </li>
 </ul>
 </p:proposed>
@@ -456,43 +460,43 @@ This will be finalized before 1.0 ships. In addition the team will look at how t
 <li>
 	<strong>Add Themeing Capabilities</strong>
 	Investigate streamlining our style sheets and potentially provide styling capabilities through the use of <i>less</i>.
-	Also provide default styles and a style picker to allow the use to control the look of certain Orion elements.
+	Also provide default styles and a style picker to allow the use to control the look of certain Orion elements.[Client]
 </li>
 <li>
 	<strong>Vector Based font for Icons</strong>
-	Create and replace existing bitmap fonts with a Vector based design.  This improved rendering on newer high resolution displays.
+	Create and replace existing bitmap fonts with a Vector based design.  This improved rendering on newer high resolution displays.[Client]
 </li>
 <li>
 	<strong>Move plugin service display to console</strong>
 	Move service descriptions from plugins page to the console.  For developers to have a look at the services
-	for a particular plugin.  The plugins page is more for end users.
+	for a particular plugin.  The plugins page is more for end users.[Client]
 </li>
 <li>
 	<strong>Improved Git Squash and Pull support</strong>
-	Support for Git squash and better pull support for fixes
+	Support for Git squash and better pull support for fixes[Client][Git][Server]
 </li>
 <li>
-	<strong>Analyze and improve Git page performance</strong>
+	<strong>Analyze and improve Git page performance</strong>[Client][Git][Server]
 </li>
 <li>
 	<strong>Finalize on Orion UI Consistency</strong>
-	Finalize on consistency of page layout, section, selection throughout default Orion pages
+	Finalize on consistency of page layout, section, selection throughout default Orion pages.[Client]
 </li>
 <li>
 	<strong>Universal Client side diff</strong>
-	Provide universal diff for any two files using client side code only
+	Provide universal diff for any two files using client side code only [Client]
 </li>
 <li>
 	<strong>Local credential caching</strong>
-	Provide credential caching for current page to aid in Git authentication
+	Provide credential caching for current page to aid in Git authentication [Client]
 </li>
 <li>
 	<strong>Navigator in Editor outline view</strong>
-	Investigate a navigator within the outline view for the Editor
+	Investigate a navigator within the outline view for the Editor [Client]
 </li>
 <li>
 	<strong>Improved Admin page</strong>
-	The current Admin page takes too long to load
+	The current Admin page takes too long to load [Client][Server]
 </li>
 </ul>
 
@@ -544,11 +548,11 @@ This will be finalized before 1.0 ships. In addition the team will look at how t
 <li>
 	<strong>Finalize User Accounts</strong>
 	Finalize on user account information required and authentication methods.
-	Provide a backup method of retrieving old OrionHub accounts and data before purging for a 1.0 release
+	Provide a backup method of retrieving old OrionHub accounts and data before purging for a 1.0 release [Client][Server]
 </li>
 <li>
 	<strong>Dynamic System messages</strong>
-	Provide an easy method for displaying system messages or information on the server without requiring a server restart
+	Provide an easy method for displaying system messages or information on the server without requiring a server restart. [Client][Server]
 </li>
 <li>
 	<strong>Source Maps for Debugging</strong>
