@@ -353,16 +353,16 @@ for 1.0.
 </p:description>
 
 <p:proposed>
+  <p><i>None at this time.</i></p>
+</p:proposed>
+
+<p:committed>
 	<ul>
 	<li>
 		<strong>Improved error recovery in JavaScript Parsing</strong>
 		Leverage work done to make the Esprima parser capable of error recovery. Waiting on a newer version of Esprima before this code can be contributed into Orion [Client]
 	</li>
 	</ul>
-</p:proposed>
-
-<p:committed>
-  <p><i>None at this time.</i></p>
 </p:committed>
 
 <p:deferred>
@@ -402,10 +402,6 @@ for 1.0.
 	Also provide examples on how to integrate with new plugins and how to use the NLS tool [Client]
 </li>
 <li>
-	<strong>Default Crawling Search for File Implementations</strong>
-	Provide a default crawling search engine for new file system implementations.  At a minimum supporting files for Ctrl-F [Client]
-</li>
-<li>
 	<strong>Word Wrap support in Editor</strong>
 	This is a requirement for many projects [Client]
 </li>
@@ -416,10 +412,6 @@ for 1.0.
 <li>
 	<strong>Persona login capabilities</strong>
 	Provide the capability to login via a Persona ID [Client][Server]
-</li>
-<li>
-	<strong>Improve Workspace naming conventions</strong>
-	Currently the displayed names look like garbled text vs. User IDs [Client][Server]
 </li>
 <li>
 	<strong>Offline modes</strong>
@@ -437,6 +429,16 @@ for 1.0.
 </p:proposed>
 
 <p:committed>
+<ul>
+<li>
+	<strong>Default Crawling Search for File Implementations</strong>
+	Provide a default crawling search engine for new file system implementations.  At a minimum supporting files for Ctrl-F [Client]
+</li>
+<li>
+	<strong>Improve Workspace naming conventions</strong>
+	Currently the displayed names look like garbled text vs. User IDs [Client][Server]
+</li>
+</ul>
   <p><i>None at this time.</i></p>
 </p:committed>
 
@@ -458,11 +460,6 @@ This will be finalized before 1.0 ships. In addition the team will look at how t
 <p:proposed>
 <ul>
 <li>
-	<strong>Add Themeing Capabilities</strong>
-	Investigate streamlining our style sheets and potentially provide styling capabilities through the use of <i>less</i>.
-	Also provide default styles and a style picker to allow the use to control the look of certain Orion elements.[Client]
-</li>
-<li>
 	<strong>Vector Based font for Icons</strong>
 	Create and replace existing bitmap fonts with a Vector based design.  This improved rendering on newer high resolution displays.[Client]
 </li>
@@ -483,10 +480,6 @@ This will be finalized before 1.0 ships. In addition the team will look at how t
 	Finalize on consistency of page layout, section, selection throughout default Orion pages.[Client]
 </li>
 <li>
-	<strong>Universal Client side diff</strong>
-	Provide universal diff for any two files using client side code only [Client]
-</li>
-<li>
 	<strong>Local credential caching</strong>
 	Provide credential caching for current page to aid in Git authentication [Client]
 </li>
@@ -494,17 +487,27 @@ This will be finalized before 1.0 ships. In addition the team will look at how t
 	<strong>Navigator in Editor outline view</strong>
 	Investigate a navigator within the outline view for the Editor [Client]
 </li>
-<li>
-	<strong>Improved Admin page</strong>
-	The current Admin page takes too long to load [Client][Server]
-</li>
 </ul>
 
   <p><i>None at this time.</i></p>
 </p:proposed>
 
 <p:committed>
-  <p><i>None at this time.</i></p>
+<ul>
+<li>
+	<strong>Universal Client side diff</strong>
+	Provide universal diff for any two files using client side code only [Client]
+</li>
+<li>
+	<strong>Improved Admin page</strong>
+	The current Admin page takes too long to load [Client][Server]
+</li>
+<li>
+	<strong>Add Themeing Capabilities</strong>
+	Investigate streamlining our style sheets and potentially provide styling capabilities through the use of <i>less</i>.
+	Also provide default styles and a style picker to allow the use to control the look of certain Orion elements.[Client]
+</li>
+</ul>
 </p:committed>
 
 <p:deferred>
@@ -521,12 +524,18 @@ This will be finalized before 1.0 ships. In addition the team will look at how t
 </p:description>
 
 <p:committed>
-  <p><i>None at this time.</i></p>
+<ul>
+<li>
+	<strong>Dynamic System messages</strong>
+	Provide an easy method for displaying system messages or information on the server without requiring a server restart. [Client][Server]
+</li>
+</ul>
 </p:committed>
 <p:proposed>
 <ul>
 <li>
-	<strong>Improve the test coverage and capabilities.</strong> Investigate JavaScript code coverage tools to see if there
+	<strong>Improve the test coverage and capabilities.</strong>
+	Investigate JavaScript code coverage tools to see if there
 	are ways to report on the completeness of the current testing.
 	[Releng]
 </li>
@@ -550,19 +559,16 @@ This will be finalized before 1.0 ships. In addition the team will look at how t
 	Finalize on user account information required and authentication methods.
 	Provide a backup method of retrieving old OrionHub accounts and data before purging for a 1.0 release [Client][Server]
 </li>
-<li>
-	<strong>Dynamic System messages</strong>
-	Provide an easy method for displaying system messages or information on the server without requiring a server restart. [Client][Server]
-</li>
+</ul>
+</p:proposed>
+
+<p:deferred>
+<ul>
 <li>
 	<strong>Source Maps for Debugging</strong>
 	Source maps debug support for our build.  Improves debugability for optimized pages.
 </li>
 </ul>
-</p:proposed>
-
-<p:deferred>
-  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
