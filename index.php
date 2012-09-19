@@ -84,7 +84,7 @@
 			<p id="error" class="yellow">Please enter a valid email address.</p>
 			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
 			<div id="social">
-				<div id="twitter"><img src="images/twitter.png"><span><a href="http://twitter.com/#%21/orionhub">Follow us on Twitter</a></span></div>
+				<div id="twitter"><img src="images/twitter.png"><span><a href="http://twitter.com/orionhub">Follow us on Twitter</a></span></div>
 				<div id="rss"><img src="images/rss.png"><span><a href="http://planetorion.org/news/feed/">Orion News Feed</a></span></div>	
 				<div id="gplus"><g:plusone></g:plusone></div>
 			</div>
