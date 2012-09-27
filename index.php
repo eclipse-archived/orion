@@ -1,5 +1,5 @@
 <?php if (file_exists('/home/data/httpd/writable/www.eclipse.org/orion/orion_stop.txt')) $queue = TRUE; else $queue = FALSE;?>
-<?php $queue = TRUE;?>
+<?php $queue = FALSE;?>
 <!doctype html>
 <html class="no-js" lang="en"> 
 <head>
