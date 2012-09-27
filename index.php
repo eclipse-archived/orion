@@ -80,10 +80,10 @@
 			<img src="images/signup2.png"/>
 			<form id="signupform" method="post" action="signup.php">
 				<input id="signupemail" class="empty" type="text" name="email" value="email address"/>
-				<input id="signupsubmit" <?php if ($queue) print 'class="queue"'; ?> type="submit" name="submit" value=""/>
+				<input id="signupsubmit" <?php if ($queue) print 'class="queue"'; ?> type="submit" name="submit" disabled="disabled" value=""/>
 			</form><hr class="clear"/>
 			<p id="error" class="yellow">Please enter a valid email address.</p>
-			<?php if ($queue) {?><p id="queue">We're currently reached our maximum, feel free to add your self to the next round.</p> <?php }?>
+			<?php if ($queue) {?><p id="queue">Registrations are currently disabled. Please check back around October 3rd</p> <?php }?>
 			<div id="social">
 				<div id="twitter"><a href="https://twitter.com/orionhub" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @orionhub</a>
 <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
