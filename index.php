@@ -83,7 +83,7 @@
 				<input id="signupsubmit" <?php if ($queue) print 'class="queue"'; ?> type="submit" name="submit" disabled="disabled" value=""/>
 			</form><hr class="clear"/>
 			<p id="error" class="yellow">Please enter a valid email address.</p>
-			<?php if (TRUE) {?><p id="queue">(October 4th, 2012) Registrations are currently disabled. A new registration system @ Orionhub.org will be deployed soon</p> <?php }?>
+			<?php if (TRUE) {?><p id="queue">(October 8th, 2012) You can now sign up directly at <a href="http://orionhub.org">OrionHub.org</a></p> <?php }?>
 			<div id="social">
 				<div id="twitter"><a href="https://twitter.com/orionhub" class="twitter-follow-button" data-show-count="false" data-size="large">Follow @orionhub</a>
 <script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="//platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
