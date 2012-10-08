@@ -47,7 +47,7 @@
     <header>
 		<ul>
 			<li><a href="community.php">Join the Community</a></li>
-			<li>Already Using Orion? <a href="http://orionhub.org" class="yellow bold">Sign In</a></li>
+			<li>You can sign up directly at <a href="http://orionhub.org" class="yellow bold">Sign In/Up</a></li>
 		</ul>
 
     </header>

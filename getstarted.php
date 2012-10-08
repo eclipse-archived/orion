@@ -32,7 +32,7 @@
 		<ul>
 			<li><a href="getstarted.php">Get Started</a></li>
 			<li><a href="community.php">Join the Community</a></li>
-			<li>Already Using Orion? <a href="http://orionhub.org" class="yellow bold">Sign In</a></li>
+			<li>Sign up directly at <a href="http://orionhub.org" class="yellow bold">Sign In/Up</a></li>
 		</ul>
 
     </header>
@@ -45,8 +45,8 @@
 			<div class="roundedbox short">
 				<div class="content">
 					<h3>Sign-Up for OrionHub</h3>
-					<p>OrionHub is our hosted Orion solution, currently in a limited beta stage. Sign-Up today to see what Orion is all about.</p>
-					<a rel="#signupoverlay" class="yellow bold linkcursor">Sign-Up Today</a>
+					<p>OrionHub is our hosted Orion solution. You can sign-up directly there. Sign-Up today to see what Orion is all about.</p>
+					<a href="http://orionhub.org" class="yellow bold">Sign-Up Today</a>
 				</div>
 				<div class="icon"><img src="images/gshost.png"/></div>
 			</div>
