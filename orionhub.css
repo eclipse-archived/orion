@@ -21,7 +21,7 @@
 }
 
 .orion-logo {
-	background: url("/images/orion-transparent-large.png") no-repeat;
+	background: url("images/orion-transparent-large.png") no-repeat;
 	height: 100px;
 	width: 118px;
 	display: inline-block;
