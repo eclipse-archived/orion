@@ -8,21 +8,21 @@
   xmlns:p="http://www.eclipse.org/project/plan" xmlns="http://www.w3.org/1999/xhtml"
   name="Orion Project">
 
-<p:release projectid="eclipse.orion" version="1.0"/>
+<p:release projectid="eclipse.orion" version="2.0"/>
 
 <!-- ============================================== -->
 
 <p:introduction>
 <div>
 <p>
-Last revised 11:00 ET November 9th, 2012.
+Last revised 14:00 ET November 12th, 2012.
 </p>
 <p><i>Please send comments about this plan to the</i> <a href="mailto:orion-dev@eclipse.org">orion-dev@eclipse.org</a> <i>developer
   mailing list.</i>
 
 </p>
 <p>This document lays out the feature and API set for the next feature release
-  of the Orion project after 0.5, designated release 1.0. 
+  of the Orion project after 1.0, designated release 2.0. 
 </p>
 
 <p>Plans do not materialize out of nowhere, nor are they entirely static. To
@@ -79,7 +79,7 @@ Last revised 11:00 ET November 9th, 2012.
 <p>The release deliverables have the same form as previous releases, namely: </p>
 <ul>
   <li>Source code release for all Orion project deliverables, available as
-    versions tagged &quot;R1_0&quot; in the Orion project <a href="http://wiki.eclipse.org/Orion/Getting_the_source">Git
+    versions tagged &quot;R2_0&quot; in the Orion project <a href="http://wiki.eclipse.org/Orion/Getting_the_source">Git
     repositories</a>.</li>
 
   <li>Packaged Orion server download for Windows, Mac, and Linux</li>
@@ -97,18 +97,18 @@ Last revised 11:00 ET November 9th, 2012.
   end-game consisting of three release candidates.</p>
 
 </p:preamble>
-<p:milestone date="08/10/2012" milestone="M1"><div>1.0M1</div></p:milestone>
-<p:milestone date="09/21/2012" milestone="M2"><div>1.0M2</div></p:milestone>
-<p:milestone date="10/05/2012" milestone="RC1"><div>1.0RC1</div></p:milestone>
-<p:milestone date="10/12/2012" milestone="RC2"><div>1.0RC2</div></p:milestone>
-<p:milestone date="10/19/2012" milestone="RC3"><div>1.0RC3</div></p:milestone>
+<p:milestone date="12/07/2012" milestone="M1"><div>2.0M1</div></p:milestone>
+<p:milestone date="01/25/2013" milestone="M2"><div>2.0M2</div></p:milestone>
+<p:milestone date="02/08/2013" milestone="RC1"><div>2.0RC1</div></p:milestone>
+<p:milestone date="02/15/2013" milestone="RC2"><div>2.0RC2</div></p:milestone>
+<p:milestone date="02/22/2013" milestone="RC3"><div>2.0RC3</div></p:milestone>
 <p:postamble>
 <div>
 <p>A more detailed, milestone-level plan for the Orion project can be found 
   on the <a href="http://wiki.eclipse.org/Orion/Milestone_Plan">Orion Milestone Plan</a>
   wiki page.</p>
 
-<p>Our target is to complete 1.0 in October 2012, in concert with the <a href="http://www.eclipsecon.org/europe2012/">EclipseCon Europe</a>.
+<p>Our target is to complete 2.0 by end of February 2013, in concert with the <a href="http://www.eclipsecon.org/2013/">EclipseCon North America 2013</a>.
   All release deliverables will be available for download as soon as the release has been
   tested and validated in the target operating configurations listed below.
  </p>
@@ -147,7 +147,7 @@ Last revised 11:00 ET November 9th, 2012.
  major browsers it supports. Due to the fast pace of development in the browser world,
  supporting older browser versions is not a priority for Orion at this early stage of its development.
 </p>
-<p>Orion 1.0 is tested and validated on the following reference <i>client target environments</i>:</p>
+<p>Orion 2.0 is tested and validated on the following reference <i>client target environments</i>:</p>
 
 <style type="text/css">
 	table.platforms {
@@ -195,7 +195,7 @@ Last revised 11:00 ET November 9th, 2012.
 			<td rowspan="1">Firefox</td>
 		</tr>
 		<tr class = "c0">
-			<td rowspan="1">Internet Explorer 9.0</td>
+			<td rowspan="1">Internet Explorer 10.0</td>
 		</tr>
 		<!-- ************ RHEL ************** -->
 		<tr class="c1">
@@ -211,8 +211,8 @@ Last revised 11:00 ET November 9th, 2012.
 		<!-- ************ Mac ************** -->
 		<tr class="c0">
 			<td rowspan="1">Apple Mac OS X</td>
-			<td rowspan="1">10.7.4</td>
-			<td rowspan="1">Safari 5.1.7</td>
+			<td rowspan="1">10.8.2</td>
+			<td rowspan="1">Safari 6.0.2</td>
 		</tr>
 	</table>
 
@@ -221,9 +221,12 @@ Last revised 11:00 ET November 9th, 2012.
   on the underlying operating system. The chief dependence is therefore on the
   Java Platform itself. Portions are targeted to specific classes of operating
   environments, requiring their source code to only reference facilities available
-  in particular class libraries (e.g. Java SE 5, Java SE 6, etc). In general, the 1.0 
+  in particular class libraries (e.g. Java SE 5, Java SE 6, etc). In general, the 2.0 
   release of the Orion server is developed and tested on Java SE 6.</p>
-<p>The Orion 1.0 server is tested and validated on the following reference <i>server target environments</i>:</p>
+<p>There is work underway to additionally support a purely Node.js based Orion environment.  The reference
+platform for this work has not yet been established but will be made by the end of the 2.0 release</p>
+
+<p>The Orion 2.0 Java server is tested and validated on the following reference <i>server target environments</i>:</p>
 <center>
 	<table class="platforms">
 		<tr>
@@ -252,7 +255,7 @@ Last revised 11:00 ET November 9th, 2012.
 			<td rowspan="2">Red Hat Enterprise Linux</td>
 			<td rowspan="2">6</td>
 			<td rowspan="1">x86 32-bit</td>
-			<td rowspan="2">Oracle Java 6 Update 29<br/>
+			<td rowspan="2">Oracle Java 6 Update 29 (needs to be updated)<br/>
 
 				IBM Java 6 SR9 FP2
 			</td>
@@ -264,9 +267,9 @@ Last revised 11:00 ET November 9th, 2012.
 		<tr class="c0">
 			<td rowspan="1">Apple Mac OS X</td>
 
-			<td rowspan="1">10.7</td>
+			<td rowspan="1">10.8.2</td>
 			<td rowspan="1">Universal 64-bit</td>
-			<td rowspan="1">Java for Mac OS X 10.7 Update 1</td>
+			<td rowspan="1">java version "1.6.0_37"</td>
 		</tr>
 	</table>
  </center>
@@ -282,7 +285,7 @@ Last revised 11:00 ET November 9th, 2012.
 There is an NLS Plugin to aid developers in creating an initial message catalog.  In addition, the
 folders, files and contents of the Orion Server have been verified to work with DBCS characters and the
 editor itself also supports BIDI.  Orion as provided via Eclipse downloads will only provide English
-strings in the 1.0 release.</p>
+strings in the 2.0 release.</p>
 </p:internationalization>
 
 </p:target_environments>
@@ -292,11 +295,12 @@ strings in the 1.0 release.</p>
 <p:compatibility_with_previous_releases>
 <div>
 
-<h3>Compatibility of Release 1.0 with 0.5</h3>
-<p>Orion 1.0 guarantees no formal compatibility with Orion 0.5. While some plugins
-designed for Orion 0.5 may continue to function when installed in Orion 1.0, there may
+<h3>Compatibility of Release 2.0 with 1.0</h3>
+<p>Orion 2.0 guarantees no formal compatibility with Orion 1.0. While most plugins
+designed for Orion 1.0 may continue to function when installed in Orion 2.0, there may
 be changes to APIs and library functions used by the plugin that have changed in incompatible
 ways that prevent it from installing or operating properly.</p>
+<p>The incompatibilities will be documented in the Orion help system and on the Wiki</p>
 
 </div>
 </p:compatibility_with_previous_releases>
@@ -341,28 +345,47 @@ community feedback. Each plan item covers a feature or API that is
 
 <!-- ============================================== -->
 
-<p:theme name="Language Tooling">
+<p:theme name="Consumability">
 
 <p:description>
 <p>
-In Orion 0.5 several plugins utilized the Esprima parsing framework.  This framework is included now as part
-of Orion however more recent versions are required to finalize on committing a more complete error tolerant version.
-There may be investigation on server side assisted content assist but this will not be made a committed item
-for 1.0.
+Orion needs to have no roadblocks for projects to consume Orion components. As such, there needs to be effort to reduce some of our 3rd party dependencies.
+In addition, the Orion core needs to be compartmentalized to allow projects or products to consume only the pieces they need to build a web site or platform.
+Other changes in Consumability are there for improved uptake of Orion features including the Editor.
 </p>
 </p:description>
 
 <p:proposed>
-  <p><i>None at this time.</i></p>
-</p:proposed>
-
-<p:committed>
 	<ul>
 	<li>
-		<strong>Improved error recovery in JavaScript Parsing</strong>
-		Leverage work done to make the Esprima parser capable of error recovery. Waiting on a newer version of Esprima before this code can be contributed into Orion [Client]
+		<strong>Reduce 3rd party depenencies</strong>
+		At the moment there are dependencies which can limit Orion adoption.  These dependencies will be removed.
+		[Client]
 	</li>
+	<li>
+		<strong>Improve Editor Capabilities</strong>
+		There have been requests to increase the capabilities of the editor (multi-column editing support, content assist changes, additional extension points).
+		The support for DBCS and BIDI will continue to be improved upon as well.
+		[Client]
+	</li>
+	<li>
+		<strong>Concrete Skinning Examples</strong>
+		Provide examples of both skinning Orion to match an existing project deployment and also how to integrate Orion style pages from a 3rd parting into the look
+		and feel of an Orion application.
+		[Client]
+	</li>
+	<li>
+		<strong>Concrete Delegated UI Examples</strong>
+		Feedback on 1.0 included the lack of extensibility for any User Interface components (say a picker from a text editor command). This item is both fixing/allowing
+		such extensions and providing concrete examples of how to do this for plugin writers.
+		[Client]
+	</li>
+
 	</ul>
+</p:proposed>
+
+<p:committed>
+  <p><i>None at this time.</i></p>
 </p:committed>
 
 <p:deferred>
@@ -373,206 +396,104 @@ for 1.0.
 
 <!-- ============================================== -->
 
-<p:theme name="Platform">
+<p:theme name="Deployment">
 <p:description>
-<p>This theme includes currency with the existing 3rd party libraries used and providing existing and new core features that
-  are modular.
+<p>
+In order to get adoption by web developers and site designers, there needs to be a focus on developer workflows.  This will start with introducing the notion of Projects
+in Orion, and then how to transform these projects into a deployable artifact to a web site, or a hosting service for example.
 </p>
 </p:description>
 
 <p:proposed>
-  <p><i>None at this time.</i></p>
+<ul>
+	<li>
+		<strong>Introducing Projects for Orion</strong>
+		Develop a container which represents the artifacts of a Project such as the source location, libraries it might require, and automated deployment workflows.
+		[Client][Server]
+	</li>
+	<li>
+		<strong>User interface changes for Project and Workflows</strong>
+		Create a new landing experience after login showing current projects or how to create a new project.  Create a sidebar for describing current projects,
+		drives (storage), libraries (3rd party), and Deployment steps.[Client]
+	</li>
+	<li>
+		<strong>Support actions for transforming project contents</strong>
+		Inevitably, any project under development needs some amount of transformation before actually being deployed to a hosting service. This item is to cover the
+		investigation and implementation of needed transformations such as copying, minifying, compiling, etc.[Client][Server]
+	</li>
+</ul>
 </p:proposed>
 
 <p:committed>
-<ul>
-<li>
-	<strong>Finalize i18N support</strong>
-	Also provide examples on how to integrate with new plugins and how to use the NLS tool [Client]
-</li>
-<li>
-	<strong>Word Wrap support in Editor</strong>
-	This is a requirement for many projects [Client]
-</li>
-<li>
-	<strong>Variable line hight in editor</strong>
-	This is desirable for many usecases [Client]
-</li>
-<li>
-	<strong>Persona login capabilities</strong>
-	Provide the capability to login via a Persona ID [Client][Server]
-</li><li>
-	<strong>Default Crawling Search for File Implementations</strong>
-	Provide a default crawling search engine for new file system implementations.  At a minimum supporting files for Ctrl-F [Client]
-</li>
-<li>
-	<strong>Improve Workspace naming conventions</strong>
-	Currently the displayed names look like garbled text vs. User IDs [Client][Server]
-</li>
-<li>
-	<strong>Improved specification for Plugin Model</strong>
-	Plugin Model and Architecture for describing, identifying, discovering and installing.
-	Support plugin catalogs via a feed as well as page redirection. Finalize the plugin
-	lifecycle and include the capability to disable a plugin without uninstalling it.
-	[Client]
-</li>
-</ul>
+  <p><i>None at this time.</i></p>
 </p:committed>
 
 <p:deferred>
-<ul>
-<li>
-	<strong>Plugin license agreements</strong>
-	Provide the ability to display and acknowledge plugin licenses [Client]
-</li>
-<li>
-	<strong>Plugin Packages</strong>
-	Provide a means to install a group of plugins together[Client]
-</li>
-<li>
-	<strong>Offline modes</strong>
-	Investigate solutions to migrating to an offline mode to continue development while disconnected [Client]
-</li>
-<li>
-	<strong>Syncronize settings</strong>
-	Syncronize local storage and user preferences [Client][Server]
-</li>
-<li>
-	<strong>REST API for Git Command Line</strong>
-	Add Git support to the Orion Console. In order to do this Orion needs REST APIs for Git.[Client][Git][Server]
-</li>
-</ul>
+  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
 
 <!-- ============================================== -->
 
-<p:theme name="User Experience">
+<p:theme name="Node Development">
 <p:description>
-<p>In 0.5 the Orion UX was a significant focus.  Alignment across pages on selection models, layout, etc is almost complete.
-This will be finalized before 1.0 ships. In addition the team will look at how theming can be accomplished.
-</p>
+While the main server for a full Orion install is based on Java, it is a goal to support a full JavaScript development environment self hosted in JavaScript.
+This Theme is around supporting a Node.js based server along with a file system and launching of Node applications.
 </p:description>
 
 <p:proposed>
-  <p><i>None at this time.</i></p>
+<ul>
+	<li>
+		<strong>Node based Orion file system client</strong>
+		Implement, using the Node.js file APIs a plugin to support browsing the filesystem on the Node.js host.  Security should be considered.
+		[Client][Node]
+	</li>
+	<li>
+		<strong>Node based single user Orion Server</strong>
+		Implement, using the Node.js a single user version of the Orion Server.  This includes providing the pages, javascript, html and CSS required to
+		render those components that can be supported by a node.js version of the server.  The server should be extensible to the point of allowing
+		3rd parties to extend the server provided they can install new libraries on the same server as the running Node.js version of Orion.
+		[Client][Node]
+	</li>
+	<li>
+		<strong>Node based application launching, debugging and npm support</strong>
+		Support for launching Node applications from within the Orion UI and providing support to assist in setting up debugging.  Additionally, provide features
+		to aid in npm function access.
+		[Client][Node]
+	</li>
+	<li>
+		<strong>scriptd investigation as Node side scripting based on events</strong>
+		Investigage scriptd as a method of providing scripting functionality based on events.
+		[Client][Node]
+	</li>
+	<li>
+		<strong>Look into how to support Node on standard Java server infrastructure (OrionHub.org)</strong>
+		The default application launching for Node applications for testing will be provided through a node.js Server implementation of Orion. However,
+		there should also be the option to self host at OrionHub.
+		[Client][Server]
+	</li>
+	<li>
+		<strong>Update the licensing terms for Orion to cover server code written in JavaScript</strong>
+		At the moment the dual licensing portion of Orion is described to be the client side of Orion vs. the server. Since a Node.js based version 
+		of an Orion server will be written in JavaScript it is desirable to have it dual licensed as well.
+	</li>
+
+
+</ul>
 </p:proposed>
 
 <p:committed>
 <ul>
-<li>
-	<strong>Local credential caching</strong>
-	Provide credential caching for current page to aid in Git authentication [Client]
-</li>
-<li>
-	<strong>Finalize on Orion UI Consistency</strong>
-	(This was not fully completed but much work was done in this area) Finalize on consistency of page layout, section, selection throughout default Orion pages.[Client]
-</li>
-<li>
-	<strong>Improved Git Squash and Pull support</strong>
-	Support for Git squash and better pull support for fixes[Client][Git][Server]
-</li>
-<li>
-	<strong>Universal Client side diff</strong>
-	Provide universal diff for any two files using client side code only [Client]
-</li>
-<li>
-	<strong>Improved Admin page</strong>
-	The current Admin page takes too long to load [Client][Server]
-</li>
 </ul>
 </p:committed>
 
 <p:deferred>
-<ul>
-<li>
-	<strong>Navigator in Editor outline view</strong>
-	Investigate a navigator within the outline view for the Editor [Client]
-</li>
-<li>
-	<strong>Add Themeing Capabilities</strong>
-	Investigate streamlining our style sheets and potentially provide styling capabilities through the use of <i>less</i>.
-	Also provide default styles and a style picker to allow the use to control the look of certain Orion elements.[Client]
-</li>
-<li>
-	<strong>Analyze and improve Git page performance</strong>[Client][Git][Server]
-</li>
-<li>
-	<strong>Vector Based font for Icons</strong>
-	Create and replace existing bitmap fonts with a Vector based design.  This improved rendering on newer high resolution displays.[Client]
-</li>
-<li>
-	<strong>Vector Based font for Icons</strong>
-	Create and replace existing bitmap fonts with a Vector based design.  This improved rendering on newer high resolution displays.[Client]
-</li>
-<li>
-	<strong>Move plugin service display to console</strong>
-	Move service descriptions from plugins page to the console.  For developers to have a look at the services
-	for a particular plugin.  The plugins page is more for end users.[Client]
-</li>
-</ul>
-</p:deferred>
-
-</p:theme>
-
-<p:theme name="Infrastructure">
-
-<p:description>
-<p>This theme describes build or infrastructure issues not really surfaced in the client but essential to a good platform.
-</p>
-</p:description>
-
-<p:committed>
-<ul>
-<li>
-	<strong>Dynamic System messages</strong>
-	Provide an easy method for displaying system messages or information on the server without requiring a server restart. [Client][Server]
-</li>
-<li>
-	<strong>Finalize User Accounts</strong>
-	Finalize on user account information required and authentication methods.
-	Provide a backup method of retrieving old OrionHub accounts and data before purging for a 1.0 release [Client][Server]
-</li>
-</ul>
-</p:committed>
-<p:proposed>
   <p><i>None at this time.</i></p>
-</p:proposed>
-
-<p:deferred>
-<ul>
-<li>
-	<strong>Improve the test coverage and capabilities.</strong>
-	Investigate JavaScript code coverage tools to see if there
-	are ways to report on the completeness of the current testing.
-	[Releng]
-</li>
-<li>
-	<strong>Finalize GetPlugins location</strong>
-	The Github location for the current plugins is convenient but doesn't show
-	association with OrionHub or Orion in general.  Should the plugins continue to exist there or moved to a location
-	with a deeper association to Orion.
-</li>
-<li>
-	<strong>JSLint Clean</strong>
-	Go through JavaScript code and ensure all files are JSLint clean.
-	Many files were authored in Eclipse which does not have the same JSLint capabilities as the Orion editor.
-</li>
-<li>
-	<strong>Clean up unused code and files</strong>
-	Finalize directory structure for 1.0 shape and remove any unused files and code fragments.
-</li>
-<li>
-	<strong>Source Maps for Debugging</strong>
-	Source maps debug support for our build.  Improves debugability for optimized pages.
-</li>
-</ul>
 </p:deferred>
 
 </p:theme>
 
-    
 </p:themes_and_priorities>
 
 <!-- ============================================== -->
