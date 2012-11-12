@@ -380,7 +380,11 @@ Other changes in Consumability are there for improved uptake of Orion features i
 		such extensions and providing concrete examples of how to do this for plugin writers.
 		[Client]
 	</li>
-
+	<li>
+		<strong>Deployment options from Orion source</strong>
+		Some project and/or products need the capability to create a deployment or consumption scenerio from the Orion source.  This task is to provide
+		a function to specify which portions of the Orion source are required and produce a new source or deployment sub-tree.
+		[Client][Server][Node]
 	</ul>
 </p:proposed>
 
