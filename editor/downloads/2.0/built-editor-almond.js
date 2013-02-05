@@ -5587,6 +5587,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/editor/keyBind
 			index = index === undefined || index < 0 || index > length ? length : index;
 			var cell = row.insertCell(index);
 			cell.vAlign = "top"; //$NON-NLS-0$
+			cell.style.verticalAlign = "top";
 			cell.style.borderWidth = "0px"; //$NON-NLS-0$
 			cell.style.margin = "0px"; //$NON-NLS-0$
 			cell.style.padding = "0px"; //$NON-NLS-0$
