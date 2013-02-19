@@ -1899,6 +1899,9 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/editor/keyBind
 			}
 		}
 	};
+	
+	/* There is no way of getting the overlay scroll bar width */
+	var overlayScrollWidth = 15;
 
 	/**
 	 * @class This object describes the options for the text view.
@@ -4110,6 +4113,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/editor/keyBind
 			var oldX = this._hScroll;
 			var oldY = this._vScroll;
 			if (oldX !== scroll.x || oldY !== scroll.y) {
+				this._checkOverlayScroll();
 				this._hScroll = scroll.x;
 				this._vScroll = scroll.y;
 				this._commitIME();
@@ -4935,6 +4939,24 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/editor/keyBind
 			};
 			return {lineHeight: lineHeight, largestFontStyle: style, lineTrim: trim, viewPadding: pad, scrollWidth: scrollWidth, invalid: invalid};
 		},
+		_checkOverlayScroll: function() {
+			if (!util.isMac) { return; }
+			var that = this;
+			var window = this._getWindow();
+			if (this._overlayScrollTimer) {
+				window.clearTimeout(this._overlayScrollTimer);
+			}
+			var check = function() {
+				var over = that._isOverOverlayScroll();
+				if (over.vertical || over.horizontal) {
+					that._overlayScrollTimer = window.setTimeout(check, 200);
+				} else {
+					that._overlayScrollTimer = undefined;
+					that._update();
+				}
+			};
+			this._overlayScrollTimer = window.setTimeout(check, 200);
+		},
 		_clearSelection: function (direction) {
 			var selection = this._getSelection();
 			if (selection.isEmpty()) { return false; }
@@ -5183,7 +5205,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/editor/keyBind
 			index = index === undefined || index < 0 || index > length ? length : index;
 			var cell = row.insertCell(index);
 			cell.vAlign = "top"; //$NON-NLS-0$
-			cell.style.verticalAlign = "top";
+			cell.style.verticalAlign = "top"; //$NON-NLS-0$
 			cell.style.borderWidth = "0px"; //$NON-NLS-0$
 			cell.style.margin = "0px"; //$NON-NLS-0$
 			cell.style.padding = "0px"; //$NON-NLS-0$
@@ -5978,6 +6000,18 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/editor/keyBind
 			/* Create elements */
 			this._createActions();
 			this._createView();
+		},
+		_isOverOverlayScroll: function() {
+			if (!util.isMac) {
+				return {};
+			}
+			var rect = this._viewDiv.getBoundingClientRect();
+			var x = this._lastMouseMoveX;
+			var y = this._lastMouseMoveY;
+			return {
+				vertical: rect.top <= y && y < rect.bottom && rect.right - overlayScrollWidth <= x && x < rect.right,
+				horizontal: rect.bottom - overlayScrollWidth <= y && y < rect.bottom && rect.left <= x && x < rect.right
+			};
 		},
 		_modifyContent: function(e, updateCaret) {
 			if (this._readonly && !e._code) {
@@ -7064,8 +7098,9 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/editor/keyBind
 				}
 				clipDiv.style.left = clipLeft + "px"; //$NON-NLS-0$
 				clipDiv.style.top = clipTop + "px"; //$NON-NLS-0$
-				clipDiv.style.right = (parentWidth - clipWidth - clipLeft) + "px"; //$NON-NLS-0$
-				clipDiv.style.bottom = (parentHeight - clipHeight - clipTop) + "px"; //$NON-NLS-0$
+				var over = this._isOverOverlayScroll();
+				clipDiv.style.right = (parentWidth - clipWidth - clipLeft + (this._overlayScrollTimer && over.vertical ? overlayScrollWidth : 0)) + "px"; //$NON-NLS-0$
+				clipDiv.style.bottom = (parentHeight - clipHeight - clipTop + (this._overlayScrollTimer && over.horizontal ? overlayScrollWidth : 0)) + "px"; //$NON-NLS-0$
 				clientDiv.style.left = clientLeft + "px"; //$NON-NLS-0$
 				clientDiv.style.top = clientTop + "px"; //$NON-NLS-0$
 				clientDiv.style.width = scrollWidth + "px"; //$NON-NLS-0$
@@ -12741,7 +12776,7 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 
 (function(root, factory) { // UMD
 	if (typeof define === "function" && define.amd) { //$NON-NLS-0$
-		define('orion/editor/Deferred',factory);
+		define('orion/Deferred',factory);
 	} else if (typeof exports === "object") { //$NON-NLS-0$
 		module.exports = factory();
 	} else {
@@ -12749,53 +12784,28 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 		root.orion.Deferred = factory();
 	}
 }(this, function() {
-	var head, tail, remainingHead, remainingTail, running = false;
+	var syncQueue = [],
+		asyncQueue = [],
+		running = false;
 
-	function run(fn) {
-		while (fn) {
+	function run() {
+		var fn;
+		while ((fn = syncQueue.shift() || asyncQueue.shift())) { //empty the sync queue first!!
 			fn();
-			if (remainingHead) {
-				if (!head) {
-					head = remainingHead;
-				} else {
-					tail.next = remainingHead;
-				}
-				tail = remainingTail;
-			}
-			if (head) {
-				remainingHead = head.next;
-				remainingTail = tail;
-				fn = head.fn;
-				head = tail = null;
-			} else {
-				fn = null;
-			}
 		}
 		running = false;
 	}
 
-	function enqueue(fn, runAsync) {
-		if (running) {
-			if (!head) {
-				head = {
-					fn: fn,
-					next: null
-				};
-				tail = head;
+	function enqueue(fn, async) {
+		var queue = async ? asyncQueue : syncQueue;
+		queue.push(fn);
+		if (!running) {
+			running = true;
+			if (async) {
+				setTimeout(run, 0);
 			} else {
-				tail.next = {
-					fn: fn,
-					next: null
-				};
-				tail = tail.next;
+				run();
 			}
-			return;
-		}
-		running = true;
-		if (runAsync) {
-			setTimeout(run.bind(null, fn), 0);
-		} else {
-			run(fn);
 		}
 	}
 
@@ -12844,44 +12854,12 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 	 * interface to callers.</p>
 	 */
 	function Deferred() {
-		var result, state, head, tail, _this = this;
-
-		function attach(listener) {
-			if (head) {
-				tail.next = listener;
-			} else {
-				head = listener;
-			}
-			tail = listener;
-		}
-
-		function detach(listener) {
-			if (head === listener) {
-				head = listener.next || null;
-				if (head === null) {
-					tail = null;
-				}
-				return;
-			}
-			var current = head;
-			while (current.next) {
-				if (current.next === listener) {
-					if (listener.next) {
-						current.next = listener.next;
-					} else {
-						current.next = null;
-						tail = current;
-					}
-					return;
-				}
-				current = current.next;
-			}
-		}
+		var result, state, listeners = [],
+			_this = this;
 
 		function notify() {
-			while (head) {
-				var listener = head;
-				head = head.next;
+			var listener;
+			while ((listener = listeners.shift())) {
 				var deferred = listener.deferred;
 				var methodName = state === "resolved" ? "resolve" : "reject"; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
 				if (typeof listener[methodName] === "function") { //$NON-NLS-0$
@@ -12900,7 +12878,6 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 					deferred[methodName](result);
 				}
 			}
-			head = tail = null;
 		}
 
 		/**
@@ -12915,7 +12892,7 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			if (!state) {
 				state = "rejected"; //$NON-NLS-0$
 				result = error;
-				if (head) {
+				if (listeners.length) {
 					enqueue(notify);
 				}
 			}
@@ -12934,7 +12911,7 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			if (!state) {
 				state = "resolved"; //$NON-NLS-0$
 				result = value;
-				if (head) {
+				if (listeners.length) {
 					enqueue(notify);
 				}
 			}
@@ -12951,13 +12928,11 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 		 */
 		this.progress = function(update, strict) {
 			if (!state) {
-				var listener = head;
-				while (listener) {
+				listeners.forEach(function(listener) {
 					if (listener.progress) {
 						listener.progress(update);
 					}
-					listener = listener.next;
-				}
+				});
 			}
 			return _this.promise;
 		};
@@ -12985,15 +12960,19 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			};
 			var deferred = listener.deferred;
 			var thisCancel = this.cancel.bind(this);
-			deferred.cancel = function() {
-				enqueue(thisCancel, true);
+			var propagateCancel = function() {
+				enqueue(function() {
+					var cancel = deferred.cancel === propagateCancel ? thisCancel : deferred.cancel;
+					cancel();
+				}, true);
 			};
+			deferred.cancel = propagateCancel;
 			var promise = deferred.promise;
-			promise.cancel = function(reason) {
-				deferred.cancel(reason); // require indirection since deferred.cancel will be assigned if a promise is returned by onResolve/onReject
+			promise.cancel = function() {
+				deferred.cancel(); // require indirection since deferred.cancel will be assigned if a promise is returned by onResolve/onReject
 			};
 
-			attach(listener);
+			listeners.push(listener);
 			if (state) {
 				enqueue(notify, true); //runAsync
 			}
@@ -13121,7 +13100,7 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 /*global define */
 /*jslint maxerr:150 browser:true devel:true */
 
-define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/editor/keyBinding', 'orion/editor/eventTarget', 'orion/editor/Deferred', 'orion/editor/util'], function(messages, mKeyBinding, mEventTarget, Deferred, util) {
+define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/editor/keyBinding', 'orion/editor/eventTarget', 'orion/Deferred', 'orion/editor/util'], function(messages, mKeyBinding, mEventTarget, Deferred, util) {
 	/**
 	 * @name orion.editor.ContentAssistProvider
 	 * @class Interface defining a provider of content assist proposals.
