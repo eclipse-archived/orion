@@ -1380,7 +1380,7 @@ input {
 	z-index: 150;
 }
 .commandSprite {
-   background: url(../images/core_sprites.png) no-repeat top left;
+   background: url(./images/core_sprites.png) no-repeat top left;
    vertical-align: middle;
    display: inline-block;
 }
