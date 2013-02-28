@@ -353,28 +353,15 @@ Other changes in Consumability are there for improved uptake of Orion features i
 </p:description>
 
 <p:proposed>
-	<ul>
+  <p><i>None at this time.</i></p>
+</p:proposed>
+
+<p:committed>
+  <p><i>None at this time.</i></p>
+  	<ul>
 	<li>
 		<strong>Reduce 3rd party depenencies</strong>
 		At the moment there are dependencies which can limit Orion adoption.  These dependencies will be removed.
-		[Client]
-	</li>
-	<li>
-		<strong>Improve Editor Capabilities</strong>
-		There have been requests to increase the capabilities of the editor (multi-column editing support, content assist changes, additional extension points).
-		The support for DBCS and BIDI will continue to be improved upon as well.
-		[Client]
-	</li>
-	<li>
-		<strong>Concrete Skinning Examples</strong>
-		Provide examples of both skinning Orion to match an existing project deployment and also how to integrate Orion style pages from a 3rd parting into the look
-		and feel of an Orion application.
-		[Client]
-	</li>
-	<li>
-		<strong>Concrete Delegated UI Examples</strong>
-		Feedback on 1.0 included the lack of extensibility for any User Interface components (say a picker from a text editor command). This item is both fixing/allowing
-		such extensions and providing concrete examples of how to do this for plugin writers.
 		[Client]
 	</li>
 	<li>
@@ -384,15 +371,31 @@ Other changes in Consumability are there for improved uptake of Orion features i
 		[Client][Server][Node]
 	
 	</li>
-	</ul>
-</p:proposed>
-
-<p:committed>
-  <p><i>None at this time.</i></p>
+	<li>
+		<strong>Concrete Delegated UI Examples</strong>
+		Feedback on 1.0 included the lack of extensibility for any User Interface components (say a picker from a text editor command). This item is both fixing/allowing
+		such extensions and providing concrete examples of how to do this for plugin writers.
+		[Client]
+	</li>
+	<li>
+		<strong>Improve Editor Capabilities</strong>
+		There have been requests to increase the capabilities of the editor (multi-column editing support, content assist changes, additional extension points).
+		The support for DBCS and BIDI will continue to be improved upon as well. <i>Some of this was done for 2.0 including builds for the editor but additional
+		items will be added to the 3.0 plan.</i>
+		[Client]
+	</li>
+	<ul>
 </p:committed>
 
 <p:deferred>
-  <p><i>None at this time.</i></p>
+	<ul>
+		<li>
+		<strong>Concrete Skinning Examples</strong>
+		Provide examples of both skinning Orion to match an existing project deployment and also how to integrate Orion style pages from a 3rd parting into the look
+		and feel of an Orion application.
+		[Client]
+	</li>
+	</ul>
 </p:deferred>
 
 </p:theme>
@@ -408,12 +411,22 @@ in Orion, and then how to transform these projects into a deployable artifact to
 </p:description>
 
 <p:proposed>
+  <p><i>None at this time.</i></p>
+</p:proposed>
+
+<p:committed>
 <ul>
 	<li>
 		<strong>Introducing Projects for Orion</strong>
 		Develop a container which represents the artifacts of a Project such as the source location, libraries it might require, and automated deployment workflows.
+		<i>Projects made progress however they will be continued on the 3.0 release plan</i>
 		[Client][Server]
 	</li>
+</ul>
+</p:committed>
+
+<p:deferred>
+<ul>
 	<li>
 		<strong>User interface changes for Project and Workflows</strong>
 		Create a new landing experience after login showing current projects or how to create a new project.  Create a sidebar for describing current projects,
@@ -425,14 +438,6 @@ in Orion, and then how to transform these projects into a deployable artifact to
 		investigation and implementation of needed transformations such as copying, minifying, compiling, etc.[Client][Server]
 	</li>
 </ul>
-</p:proposed>
-
-<p:committed>
-  <p><i>None at this time.</i></p>
-</p:committed>
-
-<p:deferred>
-  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
@@ -446,6 +451,10 @@ This Theme is around supporting a Node.js based server along with a file system 
 </p:description>
 
 <p:proposed>
+  <p><i>None at this time.</i></p>
+</p:proposed>
+
+<p:committed>
 <ul>
 	<li>
 		<strong>Node based Orion file system client</strong>
@@ -466,6 +475,16 @@ This Theme is around supporting a Node.js based server along with a file system 
 		[Client][Node]
 	</li>
 	<li>
+		<strong>Update the licensing terms for Orion to cover server code written in JavaScript</strong>
+		At the moment the dual licensing portion of Orion is described to be the client side of Orion vs. the server. Since a Node.js based version 
+		of an Orion server will be written in JavaScript it is desirable to have it dual licensed as well.
+	</li>
+</ul>
+</p:committed>
+
+<p:deferred>
+<ul>
+	<li>
 		<strong>scriptd investigation as Node side scripting based on events</strong>
 		Investigage scriptd as a method of providing scripting functionality based on events.
 		[Client][Node]
@@ -476,23 +495,7 @@ This Theme is around supporting a Node.js based server along with a file system 
 		there should also be the option to self host at OrionHub.
 		[Client][Server]
 	</li>
-	<li>
-		<strong>Update the licensing terms for Orion to cover server code written in JavaScript</strong>
-		At the moment the dual licensing portion of Orion is described to be the client side of Orion vs. the server. Since a Node.js based version 
-		of an Orion server will be written in JavaScript it is desirable to have it dual licensed as well.
-	</li>
-
-
 </ul>
-</p:proposed>
-
-<p:committed>
-<ul>
-</ul>
-</p:committed>
-
-<p:deferred>
-  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
