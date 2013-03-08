@@ -178,9 +178,10 @@ splitVerticalThumbLayout {
 	margin-right: 4px;
 }
 .commandMargins {
-	margin-left: 4px;
-	margin-right: 4px;
+	margin-left: 4px !important;
+	margin-right: 4px !important;
 }
+
 .orionPage {
 	background-color: #fdfdfd;
 	width: 100%;
@@ -308,25 +309,22 @@ a.currentLocation:hover {
 	color: white;
 	outline:none;
 }
+   
+.orionButton {
+	border: 1px solid transparent;
+	text-align: center;
+	vertical-align: baseline;
+    display: inline-block;
+    padding: 2px 6px 3px;
+    border-radius:1px;
+    line-height: 12px;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;  
+	margin: 0;  
+}
 .commandButton {
 	color: #222;
 	border: 1px solid #dedede;
 	background-color: #efefef;
-	text-align: center;
-	vertical-align: baseline;
-    cursor: pointer;
-    display: inline-block;
-    padding:6px;
-    padding-top: 4px; 
-    border-radius:1px;
-    line-height: 12px;
-    font-size:8pt;
-	-webkit-touch-callout: none;
-	-webkit-user-select: none;
-	-khtml-user-select: none;
-	-moz-user-select: none;
-	-ms-user-select: none;
-	user-select: none;
 }
 .commandButton:hover, .commandButton:focus {
 	background-color: #e6e6e6;
@@ -466,7 +464,7 @@ a.currentLocation:hover {
 .dropdownMenuItem, .dropdownMenuItem a {
 	display: inline-block;
 	vertical-align: baseline;
-	color: #222;
+	color: #222 !important; 
 	-webkit-touch-callout: none;
 	-webkit-user-select: none;
 	-khtml-user-select: none;
@@ -705,53 +703,53 @@ h2 {
 	min-height: 30px;
 }
 .parameters {
-	color: #404040;
+	color: silver;
 	vertical-align: middle;
 }
 .parametersDismiss {
-	color: #404040;
+	color: silver;
 	vertical-align: middle;
 	font-weight: normal;
-	color: silver;
 	padding: 3px;
 	padding-bottom: 0;
 }
-.dismiss {
+.dismissButton {
 	border: 1px solid transparent;
-    border-radius: 2px;
-	cursor: pointer;
-	padding: 1px;
-	font-size: 8pt;
-	margin: 0;
-	margin-left: 8px;
+	background: transparent;
+	color: silver;
+    border-radius: 1px;
+	padding: 2px;
+	font: 8pt Lucida Sans Unicode,Lucida Grande,Verdana,Arial,Helvetica,Myriad,Tahoma,clean,sans-serif;  
+	margin: 0 4px 0;
 	vertical-align: middle;
+	min-height: 16px;
+	min-width: 16px;
 }
-.dismiss:hover {
-	background-color: #e6e6e6;
-	border: 1px solid #808080;
+.dismissButton:hover {
+	color: #fdfdfd;
+}
+.parameterInlineButton {
+	vertical-align: baseline;
 }
 label.parameterInput{
 	color: silver;
 	white-space: nowrap;
 }
 .parameterInput {
-	margin-right: 16px;
-	margin-bottom: 8px;
+	margin: 4px;
 	font-weight: normal;
 	vertical-align: baseline;
 	color:#333;
 }
-.parameterInputurl {
+input.parameterInput[type=url] {
 	width: 30em;
-	color:#333;
 }
-.parameterInputcheckbox {
+input.parameterInput[type=checkbox] {
 	width: auto;
 }
-.parameterInputtextarea {
+textarea.parameterInput {
 	vertical-align: top;
 	width: 50em;
-	color:#333;
 }
 .parameterPopup {
 	min-width: 15em;
@@ -1405,7 +1403,7 @@ input {
 }
 .core-sprite-check{ background-position: 0 0; width: 16px; height: 16px; } 
 .core-sprite-check_on{ background-position: 0 -18px; width: 16px; height: 16px; } 
-.core-sprite-close{ background-position: 0 -36px; width: 16px; height: 16px; } 
+.core-sprite-close{ background-position: 0 -36px; width: 12px; height: 12px; } 
 .core-sprite-closedarrow{ background-position: 0 -54px; width: 16px; height: 16px; } 
 .core-sprite-collapseAll{ background: url(../images/collapse.png) no-repeat top left; width: 16px; height: 16px; } 
 .core-sprite-delete{ background-position: 0 -90px; width: 16px; height: 16px; } 
@@ -1490,23 +1488,22 @@ input {
 }
 .textview {
 	background-color: white;
-	padding: 1px 2px;
-}
-.textviewContainer {
-	background-color: #eaeaea;
 	font-family: 'Lucida Sans Unicode', 'Lucida Grande', Verdana, Arial, Helvetica, Myriad, Tahoma, clean, sans-serif;
 	font-size: 10pt;
 	min-width: 50px;
 	min-height: 50px;
 }
+.textviewScroll {
+	padding: 1px 2px;
+}
 .textviewContent {
   cursor: auto;
 }
 .textviewLeftRuler {
-  border-right: 1px solid #eaeaea;
+	border-right: 1px solid #eaeaea;
 }
 .textviewRightRuler {
-  border-left: 1px solid #eaeaea;
+	border-left: 1px solid #eaeaea;
 }
 .ruler {
 }
@@ -1514,11 +1511,9 @@ input {
 	width: 16px;
 }
 .ruler.folding {
-	background-color: white;
 	width: 14px;
 }
 .ruler.lines {
-	background-color: white;
 	text-align: right;
 }
 .ruler.overview {
@@ -1723,9 +1718,11 @@ input {
 	background-color: #EAF2FE;
 }
 
-.tooltip .textview {
-	color: InfoText !important;
+.tooltip.textview {
 	background-color: InfoBackground !important;
+	color: InfoText !important;
+}
+.tooltip .textviewScroll {
 	padding: 0px;
 }
 .textviewTooltip {
@@ -1935,7 +1932,7 @@ a.token_singleline_comment, a.token_multiline_comment, a.token_doc_comment {
 }
 .compareCanvas {
 	background: #EEEEEE;
-	border: 0px;
+	border: 0;
 }
 .compareEditorParent {
 	clear: both;
