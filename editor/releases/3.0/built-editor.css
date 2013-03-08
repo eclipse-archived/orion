@@ -1,22 +1,21 @@
 .textview {
 	background-color: white;
-	padding: 1px 2px;
-}
-.textviewContainer {
-	background-color: #eaeaea;
 	font-family: 'Lucida Sans Unicode', 'Lucida Grande', Verdana, Arial, Helvetica, Myriad, Tahoma, clean, sans-serif;
 	font-size: 10pt;
 	min-width: 50px;
 	min-height: 50px;
 }
+.textviewScroll {
+	padding: 1px 2px;
+}
 .textviewContent {
   cursor: auto;
 }
 .textviewLeftRuler {
-  border-right: 1px solid #eaeaea;
+	border-right: 1px solid #eaeaea;
 }
 .textviewRightRuler {
-  border-left: 1px solid #eaeaea;
+	border-left: 1px solid #eaeaea;
 }
 .ruler {
 }
@@ -24,11 +23,9 @@
 	width: 16px;
 }
 .ruler.folding {
-	background-color: white;
 	width: 14px;
 }
 .ruler.lines {
-	background-color: white;
 	text-align: right;
 }
 .ruler.overview {
@@ -232,9 +229,11 @@
 .annotationLine.currentLine {
 	background-color: #EAF2FE;
 }
-.tooltip .textview {
-	color: InfoText !important;
+.tooltip.textview {
 	background-color: InfoBackground !important;
+	color: InfoText !important;
+}
+.tooltip .textviewScroll {
 	padding: 0px;
 }
 .textviewTooltip {
