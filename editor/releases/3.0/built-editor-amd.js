@@ -959,8 +959,8 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 			if (href.substring(href.length - extension.length) !== extension) {
 				href += extension;
 			}
-			if (/^https?:\/\//i.test(href)) {
-				this._createStyle(className, require.toUrl(href), callback, true);
+			if (/^\//.test(href) || /[a-zA-Z0-9]+:\/\//i.test(href) || !require.toUrl /* almond cannot load dynamically */) {
+				this._createStyle(className, href, callback, true);
 			} else {
 				var self = this;
 				require(["text!" + href], function(cssText) { //$NON-NLS-0$
@@ -18238,6 +18238,10 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 			var themeClass = options.theme; 
 			if (index !== -1) {
 				themeClass = themeClass.substring(index + 1);
+			}
+			var extension = ".css"; //$NON-NLS-0$
+			if (themeClass.substring(themeClass.length - extension.length) === extension) {
+				themeClass = themeClass.substring(0, themeClass.length - extension.length);
 			}
 			theme.setThemeClass(themeClass, {href: options.theme});
 			options.theme = theme;
