@@ -106,7 +106,7 @@ This document lays out the feature and API set for the next feature release
 <p:postamble>
 <div>
 
-<p>Our target is to complete 2.0 by end of February 2013, in concert with the <a href="http://www.eclipsecon.org/2013/">EclipseCon North America 2013</a>.
+<p>Our target is to complete 3.0 by end of June 2013, in concert with the Eclipse Keplar Release Train.
   All release deliverables will be available for download as soon as the release has been
   tested and validated in the target operating configurations listed below.
  </p>
@@ -145,7 +145,7 @@ This document lays out the feature and API set for the next feature release
  major browsers it supports. Due to the fast pace of development in the browser world,
  supporting older browser versions is not a priority for Orion at this early stage of its development.
 </p>
-<p>Orion 2.0 is tested and validated on the following reference <i>client target environments</i>:</p>
+<p>Orion 3.0 is tested and validated on the following reference <i>client target environments</i>:</p>
 
 <style type="text/css">
 	table.platforms {
@@ -195,17 +195,6 @@ This document lays out the feature and API set for the next feature release
 		<tr class = "c0">
 			<td rowspan="1">Internet Explorer 10.0</td>
 		</tr>
-		<!-- ************ RHEL ************** -->
-		<tr class="c1">
-
-			<td rowspan="2">Red Hat Enterprise Linux</td>
-			<td rowspan="2">6</td>
-			<td rowspan="1">Chrome</td>
-		</tr>
-		<tr class = "c1">
-			<td rowspan="1">Firefox</td>
-		</tr>
-
 		<!-- ************ Mac ************** -->
 		<tr class="c0">
 			<td rowspan="1">Apple Mac OS X</td>
@@ -220,11 +209,12 @@ This document lays out the feature and API set for the next feature release
   Java Platform itself. Portions are targeted to specific classes of operating
   environments, requiring their source code to only reference facilities available
   in particular class libraries (e.g. Java SE 5, Java SE 6, etc). In general, the 2.0 
-  release of the Orion server is developed and tested on Java SE 6.</p>
-<p>There is work underway to additionally support a purely Node.js based Orion environment.  The reference
-platform for this work has not yet been established but will be made by the end of the 2.0 release</p>
+  release of the Orion server is developed and tested on Java SE 6.</p> 
+<p>The Node.js version of the Orion server will target the latest version of the Node runtime until
+the platform hits 1.0.  Then, it's likely Orion will target stable releases from that point forward.
+</p>
 
-<p>The Orion 2.0 Java server is tested and validated on the following reference <i>server target environments</i>:</p>
+<p>The Orion 3.0 Java server is tested and validated on the following reference <i>server target environments</i>:</p>
 <center>
 	<table class="platforms">
 		<tr>
@@ -267,7 +257,7 @@ platform for this work has not yet been established but will be made by the end 
 
 			<td rowspan="1">10.8.2</td>
 			<td rowspan="1">Universal 64-bit</td>
-			<td rowspan="1">java version "1.6.0_37"</td>
+			<td rowspan="1">java version "1.6.0_43+"</td>
 		</tr>
 	</table>
  </center>
@@ -283,7 +273,7 @@ platform for this work has not yet been established but will be made by the end 
 There is an NLS Plugin to aid developers in creating an initial message catalog.  In addition, the
 folders, files and contents of the Orion Server have been verified to work with DBCS characters and the
 editor itself also supports BIDI.  Orion as provided via Eclipse downloads will only provide English
-strings in the 2.0 release.</p>
+strings in the 3.0 release.</p>
 </p:internationalization>
 
 </p:target_environments>
@@ -293,12 +283,10 @@ strings in the 2.0 release.</p>
 <p:compatibility_with_previous_releases>
 <div>
 
-<h3>Compatibility of Release 2.0 with 1.0</h3>
-<p>Orion 2.0 guarantees no formal compatibility with Orion 1.0. While most plugins
-designed for Orion 1.0 may continue to function when installed in Orion 2.0, there may
-be changes to APIs and library functions used by the plugin that have changed in incompatible
-ways that prevent it from installing or operating properly.</p>
-<p>The incompatibilities will be documented in the Orion help system and on the Wiki</p>
+<h3>Compatibility of Release 3.0 with 2.0</h3>
+<p>Orion 3.0 will guarantee plugins written against 2.0 APIS will continue to load and function. If there are
+changes required to APIs and library functions used by 2.0 plugins that make them incompatible then these
+changes will be well documented within the Orion documentation.</p>
 
 </div>
 </p:compatibility_with_previous_releases>
@@ -349,46 +337,10 @@ community feedback. Each plan item covers a feature or API that is
 <p>
 Orion needs to have no roadblocks for projects to consume Orion components. As such, there needs to be effort to reduce some of our 3rd party dependencies.
 In addition, the Orion core needs to be compartmentalized to allow projects or products to consume only the pieces they need to build a web site or platform.
-Other changes in Consumability are there for improved uptake of Orion features including the Editor.
 </p>
 </p:description>
 
 <p:proposed>
-  <p><i>None at this time.</i></p>
-</p:proposed>
-
-<p:committed>
-  <p><i>None at this time.</i></p>
-  	<ul>
-	<li>
-		<strong>Reduce 3rd party depenencies</strong>
-		At the moment there are dependencies which can limit Orion adoption.  These dependencies will be removed.
-		[Client]
-	</li>
-	<li>
-		<strong>Deployment options from Orion source</strong>
-		Some project and/or products need the capability to create a deployment or consumption scenerio from the Orion source.  This task is to provide
-		a function to specify which portions of the Orion source are required and produce a new source or deployment sub-tree.
-		[Client][Server][Node]
-	
-	</li>
-	<li>
-		<strong>Concrete Delegated UI Examples</strong>
-		Feedback on 1.0 included the lack of extensibility for any User Interface components (say a picker from a text editor command). This item is both fixing/allowing
-		such extensions and providing concrete examples of how to do this for plugin writers.
-		[Client]
-	</li>
-	<li>
-		<strong>Improve Editor Capabilities</strong>
-		There have been requests to increase the capabilities of the editor (multi-column editing support, content assist changes, additional extension points).
-		The support for DBCS and BIDI will continue to be improved upon as well. <i>Some of this was done for 2.0 including builds for the editor but additional
-		items will be added to the 3.0 plan.</i>
-		[Client]
-	</li>
-	</ul>
-</p:committed>
-
-<p:deferred>
 	<ul>
 		<li>
 		<strong>Concrete Skinning Examples</strong>
@@ -397,6 +349,14 @@ Other changes in Consumability are there for improved uptake of Orion features i
 		[Client]
 	</li>
 	</ul>
+</p:proposed>
+
+<p:committed>
+  <p><i>None at this time.</i></p>
+</p:committed>
+
+<p:deferred>
+  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
@@ -406,27 +366,12 @@ Other changes in Consumability are there for improved uptake of Orion features i
 <p:theme name="Deployment">
 <p:description>
 <p>
-In order to get adoption by web developers and site designers, there needs to be a focus on developer workflows.  This will start with introducing the notion of Projects
-in Orion, and then how to transform these projects into a deployable artifact to a web site, or a hosting service for example.
+In order to get adoption by web developers and site designers, there needs to be a focus on developer workflows.  Work will continue on Projects
+in Orion, and ways to transform these projects into a deployable artifact to a web site, or a hosting service.
 </p>
 </p:description>
 
 <p:proposed>
-  <p><i>None at this time.</i></p>
-</p:proposed>
-
-<p:committed>
-<ul>
-	<li>
-		<strong>Introducing Projects for Orion</strong>
-		Develop a container which represents the artifacts of a Project such as the source location, libraries it might require, and automated deployment workflows.
-		<i>Projects made progress however they will be continued on the 3.0 release plan</i>
-		[Client][Server]
-	</li>
-</ul>
-</p:committed>
-
-<p:deferred>
 <ul>
 	<li>
 		<strong>User interface changes for Project and Workflows</strong>
@@ -438,7 +383,20 @@ in Orion, and then how to transform these projects into a deployable artifact to
 		Inevitably, any project under development needs some amount of transformation before actually being deployed to a hosting service. This item is to cover the
 		investigation and implementation of needed transformations such as copying, minifying, compiling, etc.[Client][Server]
 	</li>
+	<li>
+		<strong>VMC Support for pushing applications to CloudFoundry</strong>
+		VMC is chosen because of the range of providers supporting the VMC APIs.  The goal is to support targetting, logging in, listing and pushing applications.
+		[Client][Server]
+	</li>
 </ul>
+</p:proposed>
+
+<p:committed>
+  <p><i>None at this time.</i></p>
+</p:committed>
+
+<p:deferred>
+  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
@@ -447,48 +405,17 @@ in Orion, and then how to transform these projects into a deployable artifact to
 
 <p:theme name="Node Development">
 <p:description>
-While the main server for a full Orion install is based on Java, it is a goal to support a full JavaScript development environment self hosted in JavaScript.
-This Theme is around supporting a Node.js based server along with a file system and launching of Node applications.
+The Orion Node.js server is now capable of running Orion and supporting development after installation.  The server is available via npm installation.  The capabilities
+of the server need to be expanded to support more features similar to the Java server.
 </p:description>
 
 <p:proposed>
-  <p><i>None at this time.</i></p>
-</p:proposed>
-
-<p:committed>
 <ul>
 	<li>
-		<strong>Node based Orion file system client</strong>
-		Implement, using the Node.js file APIs a plugin to support browsing the filesystem on the Node.js host.  Security should be considered.
-		[Client][Node]
-	</li>
-	<li>
-		<strong>Node based single user Orion Server</strong>
-		Implement, using the Node.js a single user version of the Orion Server.  This includes providing the pages, javascript, html and CSS required to
-		render those components that can be supported by a node.js version of the server.  The server should be extensible to the point of allowing
-		3rd parties to extend the server provided they can install new libraries on the same server as the running Node.js version of Orion.
-		[Client][Node]
-	</li>
-	<li>
-		<strong>Node based application launching, debugging and npm support</strong>
-		Support for launching Node applications from within the Orion UI and providing support to assist in setting up debugging.  Additionally, provide features
-		to aid in npm function access.
-		[Client][Node]
-	</li>
-	<li>
-		<strong>Update the licensing terms for Orion to cover server code written in JavaScript</strong>
-		At the moment the dual licensing portion of Orion is described to be the client side of Orion vs. the server. Since a Node.js based version 
-		of an Orion server will be written in JavaScript it is desirable to have it dual licensed as well.
-	</li>
-</ul>
-</p:committed>
-
-<p:deferred>
-<ul>
-	<li>
-		<strong>scriptd investigation as Node side scripting based on events</strong>
-		Investigage scriptd as a method of providing scripting functionality based on events.
-		[Client][Node]
+		<strong>Git Support</strong>
+		Investigage implementing both a Node.js git library and consuming this library within the Orion server and client. Currently this work is being investigated
+		by a student team at Warsaw University.
+		[Client][Server][Node]
 	</li>
 	<li>
 		<strong>Look into how to support Node on standard Java server infrastructure (OrionHub.org)</strong>
@@ -496,7 +423,21 @@ This Theme is around supporting a Node.js based server along with a file system 
 		there should also be the option to self host at OrionHub.
 		[Client][Server]
 	</li>
+	<li>
+		<strong>Support the Scripted file introspection for content assist</strong>
+		The Scripted editor supports a more capable introspection of the file system for artifacts and libraries related to the file you are editing and
+		provides more complete content assist.  This item is to integrate that approach into the Node.js Orion server.
+		[Client][Server][Node]
+	</li>
 </ul>
+</p:proposed>
+
+<p:committed>
+  <p><i>None at this time.</i></p>
+</p:committed>
+
+<p:deferred>
+  <p><i>None at this time.</i></p>
 </p:deferred>
 
 </p:theme>
