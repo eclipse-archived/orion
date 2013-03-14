@@ -208,7 +208,7 @@ This document lays out the feature and API set for the next feature release
   on the underlying operating system. The chief dependence is therefore on the
   Java Platform itself. Portions are targeted to specific classes of operating
   environments, requiring their source code to only reference facilities available
-  in particular class libraries (e.g. Java SE 5, Java SE 6, etc). In general, the 2.0 
+  in particular class libraries (e.g. Java SE 5, Java SE 6, etc). In general, the 3.0 
   release of the Orion server is developed and tested on Java SE 6.</p> 
 <p>The Node.js version of the Orion server will target the latest version of the Node runtime until
 the platform hits 1.0.  Then, it's likely Orion will target stable releases from that point forward.
