@@ -1922,6 +1922,70 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 		return trim;
 	}
 	
+	/**
+	 * @class
+	 * @private
+	 * @name orion.editor.Animation
+	 * @description Creates an animation.
+	 * @param {Object} options Options controlling the animation.
+	 * @param {Array} options.curve Array of 2 values giving the start and end points for the animation.
+	 * @param {Number} [options.duration=350] Duration of the animation, in milliseconds.
+	 * @param {Function} [options.easing]
+	 * @param {Function} [options.onAnimate]
+	 * @param {Function} [options.onEnd]
+	 * @param {Number} [options.rate=20] The time between frames, in milliseconds.
+	 */
+	var Animation = /** @ignore */ (function() {
+		function Animation(options) {
+			this.options = options;
+		}
+		/**
+		 * Plays this animation.
+		 * @methodOf orion.editor.Animation.prototype
+		 * @name play
+		 */
+		Animation.prototype.play = function() {
+			var duration = (typeof this.options.duration === "number") ? this.options.duration : 350, //$NON-NLS-0$
+			    rate = (typeof this.options.rate === "number") ? this.options.rate : 20, //$NON-NLS-0$
+			    easing = this.options.easing || this.defaultEasing,
+			    onAnimate = this.options.onAnimate || function() {},
+			    start = this.options.curve[0],
+			    end = this.options.curve[1],
+			    range = (end - start),
+			    startedAt = -1,
+				propertyValue,
+				self = this;
+
+			function onFrame() {
+				startedAt = (startedAt === -1) ? new Date().getTime() : startedAt;
+				var now = new Date().getTime(),
+				    percentDone = (now - startedAt) / duration;
+				if (percentDone < 1) {
+					var eased = easing(percentDone);
+					propertyValue = start + (eased * range);
+					onAnimate(propertyValue);
+				} else {
+					onAnimate(end);
+					self.stop();
+				}
+			}
+			this.interval = this.options.window.setInterval(onFrame, rate);
+		};
+		/**
+		 * Stops this animation.
+		 * @methodOf orion.editor.Animation.prototype
+		 */
+		Animation.prototype.stop = function() {
+			this.options.window.clearInterval(this.interval);
+		    var onEnd = this.options.onEnd || function () {};
+			onEnd();
+		};
+		Animation.prototype.defaultEasing = function(x) {
+			return Math.sin(x * (Math.PI / 2));
+		};
+		return Animation;
+	}());
+	
 	/** 
 	 * Constructs a new Selection object.
 	 * 
@@ -2692,16 +2756,24 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			var result = 0, range, length;
 			var lineOffset = model.getLineStart(lineIndex);
 			var document = child.ownerDocument;
+			var lineChild;
 			if (offset === model.getLineEnd(lineIndex)) {
+				lineChild = child.lastChild;
+				while (lineChild && lineChild.ignoreChars) {
+					lineChild = lineChild.previousSibling;
+				}
+				if (!lineChild) {
+					return lineOffset;
+				}
 				range = document.body.createTextRange();
-				range.moveToElementText(child.lastChild);
+				range.moveToElementText(lineChild);
 				length = range.text.length;
 				range.moveEnd(unit, direction);
 				result = offset + range.text.length - length;
 			} else if (offset === lineOffset && direction < 0) {
 				result = lineOffset;
 			} else {
-				var lineChild = child.firstChild;
+				lineChild = child.firstChild;
 				while (lineChild) {
 					var textNode = lineChild.firstChild;
 					var nodeLength = textNode.length;
@@ -2758,6 +2830,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 	 * @property {String} [themeClass] the CSS class for the view theming.
 	 * @property {Number} [tabSize=8] The number of spaces in a tab.
 	 * @property {Boolean} [wrapMode=false] whether or not the view wraps lines.
+	 * @property {Number} [scrollAnimation=0] the time duration in miliseconds for scrolling animation. <code>0</code> means no animation.
 	 */
 	/**
 	 * Constructs a new text view.
@@ -2830,8 +2903,8 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				clientDiv.style.width = clientWidth;
 			}
 			var viewPadding = this._getViewPadding();
-			w += viewPadding.right + viewPadding.left;
-			h += viewPadding.bottom + viewPadding.top;
+			w += viewPadding.right + viewPadding.left + this._metrics.scrollWidth;
+			h += viewPadding.bottom + viewPadding.top + this._metrics.scrollWidth;
 			return {width: w, height: h};
 		},
 		/**
@@ -3889,17 +3962,23 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 		 * Sets the caret offset relative to the start of the document.
 		 *
 		 * @param {Number} caret the caret offset relative to the start of the document.
-		 * @param {Boolean} [show=true] if <code>true</code>, the view will scroll if needed to show the caret location.
+		 * @param {Boolean|Number} [show=true] if <code>true</code>, the view will scroll the minimum amount necessary to show the caret location. If
+		 *					<code>show</code> is a <code>Number</code>, the view will scroll the minimum amount necessary to show the caret location plus a
+		 *					percentage of the client area height. The parameter is clamped to the [0,1] range.  In either case, the view will only scroll
+		 *					if the new caret location is visible already.
+		 * @param {Function} [callback] if callback is specified and <code>scrollAnimation</code> is not zero, view scrolling is animated and
+		 *					the callback is called when the animation is done. Otherwise, callback is callback right away. The callback is not
+		 *					if the view does not scroll.
 		 *
 		 * @see #getCaretOffset
 		 * @see #setSelection
 		 * @see #getSelection
 		 */
-		setCaretOffset: function(offset, show) {
+		setCaretOffset: function(offset, show, callback) {
 			var charCount = this._model.getCharCount();
 			offset = Math.max(0, Math.min (offset, charCount));
 			var selection = new Selection(offset, offset, false);
-			this._setSelection (selection, show === undefined || show);
+			this._setSelection (selection, show === undefined || show, true, callback);
 		},
 		/**
 		 * Sets the horizontal pixel.
@@ -4021,11 +4100,17 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 		 * 
 		 * @param {Number} start the start offset of the selection
 		 * @param {Number} end the end offset of the selection
-		 * @param {Boolean} [show=true] if <code>true</code>, the view will scroll if needed to show the caret location.
+		 * @param {Boolean|Number} [show=true] if <code>true</code>, the view will scroll the minimum amount necessary to show the caret location. If
+		 *					<code>show</code> is a <code>Number</code>, the view will scroll the minimum amount necessary to show the caret location plus a
+		 *					percentage of the client area height. The parameter is clamped to the [0,1] range.  In either case, the view will only scroll
+		 *					if the new caret location is visible already.
+		 * @param {Function} [callback] if callback is specified and <code>scrollAnimation</code> is not zero, view scrolling is animated and
+		 *					the callback is called when the animation is done. Otherwise, callback is callback right away. The callback is not
+		 *					if the view does not scroll.
 		 *
 		 * @see #getSelection
 		 */
-		setSelection: function (start, end, show) {
+		setSelection: function (start, end, show, callback) {
 			var caret = start > end;
 			if (caret) {
 				var tmp = start;
@@ -4036,7 +4121,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			start = Math.max(0, Math.min (start, charCount));
 			end = Math.max(0, Math.min (end, charCount));
 			var selection = new Selection(start, end, caret);
-			this._setSelection(selection, show === undefined || show);
+			this._setSelection(selection, show === undefined || show, true, callback);
 		},
 		/**
 		 * Replaces the text in the given range with the given text.
@@ -4632,16 +4717,19 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 		},
 		_handleMouseOver: function (e) {
+			if (this._animation) { return; }
 			if (this.isListening("MouseOver")) { //$NON-NLS-0$
 				this.onMouseOver(this._createMouseEvent("MouseOver", e)); //$NON-NLS-0$
 			}
 		},
 		_handleMouseOut: function (e) {
+			if (this._animation) { return; }
 			if (this.isListening("MouseOut")) { //$NON-NLS-0$
 				this.onMouseOut(this._createMouseEvent("MouseOut", e)); //$NON-NLS-0$
 			}
 		},
 		_handleMouseMove: function (e) {
+			if (this._animation) { return; }
 			var inClient = this._isClientDiv(e);
 			if (this.isListening("MouseMove")) { //$NON-NLS-0$
 				if (inClient){
@@ -4946,7 +5034,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 		},
 		_handleScroll: function () {
-			var scroll = this._getScroll();
+			var scroll = this._getScroll(false);
 			var oldX = this._hScroll;
 			var oldY = this._vScroll;
 			if (oldX !== scroll.x || oldY !== scroll.y) {
@@ -5179,6 +5267,9 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 									} else {
 										return false;
 									}
+								} else {
+									// Firefox feature. without this else branch execution goes into the else branch above 
+									// and defaults are *not* prevented
 								}
 							} else if (action.defaultHandler) {
 								return typeof(action.defaultHandler()) === "boolean"; //$NON-NLS-0$
@@ -5304,8 +5395,10 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 		_doEnd: function (args) {
 			var selection = this._getSelection();
 			var model = this._model;
+			var callback;
 			if (args.ctrl) {
 				selection.extend(model.getCharCount());
+				callback = function() {};
 			} else {
 				var offset = selection.getCaret();
 				var lineIndex = model.getLineAtOffset(offset);
@@ -5324,7 +5417,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				selection.extend(offset);
 			}
 			if (!args.select) { selection.collapse(); }
-			this._setSelection(selection, true);
+			this._setSelection(selection, true, true, callback);
 			return true;
 		},
 		_doEnter: function (args) {
@@ -5333,15 +5426,17 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			this._doContent(model.getLineDelimiter()); 
 			if (args && args.noCursor) {
 				selection.end = selection.start;
-				this._setSelection(selection);
+				this._setSelection(selection, true);
 			}
 			return true;
 		},
 		_doHome: function (args) {
 			var selection = this._getSelection();
 			var model = this._model;
+			var callback;
 			if (args.ctrl) {
 				selection.extend(0);
+				callback = function() {};
 			} else {
 				var offset = selection.getCaret();
 				var lineIndex = model.getLineAtOffset(offset);
@@ -5356,7 +5451,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				selection.extend(offset); 
 			}
 			if (!args.select) { selection.collapse(); }
-			this._setSelection(selection, true);
+			this._setSelection(selection, true, true, callback);
 			return true;
 		},
 		_doLineDown: function (args) {
@@ -5433,6 +5528,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			return true;
 		},
 		_doPageDown: function (args) {
+			var self = this;
 			var model = this._model;
 			var selection = this._getSelection();
 			var caret = selection.getCaret();
@@ -5455,8 +5551,9 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				line.destroy();
 				selection.extend(caret);
 				if (!args.select) { selection.collapse(); }
-				this._setSelection(selection, true, true, rect.top + linePixel - caretRect.top);
-				this._columnX = x;
+				this._setSelection(selection, true, true, function() {
+					self._columnX = x;
+				}, rect.top + linePixel - caretRect.top);
 				return true;
 			}
 			if (caretLine < lineCount - 1) {
@@ -5479,12 +5576,14 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				if (scrollOffset + clientHeight > verticalMaximum) {
 					scrollOffset = verticalMaximum - clientHeight;
 				}
-				this._setSelection(selection, true, true, scrollOffset - scroll.y);
-				this._columnX = x;
+				this._setSelection(selection, true, true, function() {
+					self._columnX = x;
+				}, scrollOffset - scroll.y);
 			}
 			return true;
 		},
 		_doPageUp: function (args) {
+			var self = this;
 			var model = this._model;
 			var selection = this._getSelection();
 			var caret = selection.getCaret();
@@ -5506,8 +5605,9 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				line.destroy();
 				selection.extend(caret);
 				if (!args.select) { selection.collapse(); }
-				this._setSelection(selection, true, true, rect.top + linePixel - caretRect.top);
-				this._columnX = x;
+				this._setSelection(selection, true, true, function() {
+					self._columnX = x;
+				}, rect.top + linePixel - caretRect.top);
 				return true;
 			}
 			if (caretLine > 0) {
@@ -5525,8 +5625,9 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				line.destroy();
 				if (!args.select) { selection.collapse(); }
 				var scrollOffset = Math.max(0, scroll.y - scrollLines * lineHeight);
-				this._setSelection(selection, true, true, scrollOffset - scroll.y);
-				this._columnX = x;
+				this._setSelection(selection, true, true, function() {
+					self._columnX = x;
+				}, scrollOffset - scroll.y);
 			}
 			return true;
 		},
@@ -5559,6 +5660,8 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				case "textEnd": pixel = verticalMaximum - clientHeight; break; //$NON-NLS-0$
 				case "pageDown": pixel = verticalScrollOffset + clientHeight; break; //$NON-NLS-0$
 				case "pageUp": pixel = verticalScrollOffset - clientHeight; break; //$NON-NLS-0$
+				case "lineDown": pixel = verticalScrollOffset + lineHeight; break; //$NON-NLS-0$
+				case "lineUp": pixel = verticalScrollOffset - lineHeight; break; //$NON-NLS-0$
 				case "centerLine": //$NON-NLS-0$
 					var selection = this._getSelection();
 					var lineStart = model.getLineAtOffset(selection.start);
@@ -5569,7 +5672,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 			if (pixel !== undefined) {
 				pixel = Math.min(Math.max(0, pixel), verticalMaximum - clientHeight);
-				this._scrollView(0, pixel - verticalScrollOffset);
+				this._scrollViewAnimated(0, pixel - verticalScrollOffset, function() {});
 			}
 			return true;
 		},
@@ -5775,6 +5878,12 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			};
 			return {lineHeight: lineHeight, largestFontStyle: style, lineTrim: trim, viewPadding: pad, scrollWidth: scrollWidth, invalid: invalid};
 		},
+		_cancelAnimation: function() {
+			if (this._animation) {
+				this._animation.stop();
+				this._animation = null;
+			}
+		},
 		_clearSelection: function (direction) {
 			var selection = this._getSelection();
 			if (selection.isEmpty()) { return false; }
@@ -5850,6 +5959,10 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			if (util.isFirefox && util.isLinux) {
 				bindings.push({actionID: "lineUp",		keyBinding: new KeyBinding(38, true), predefined: true}); //$NON-NLS-0$
 				bindings.push({actionID: "lineDown",	keyBinding: new KeyBinding(40, true), predefined: true}); //$NON-NLS-0$
+			}
+			if (util.isWindows) {
+				bindings.push({actionID: "scrollLineUp",	keyBinding: new KeyBinding(38, true), predefined: true}); //$NON-NLS-0$
+				bindings.push({actionID: "scrollLineDown",	keyBinding: new KeyBinding(40, true), predefined: true}); //$NON-NLS-0$
 			}
 
 			// Select Cursor Navigation
@@ -5967,6 +6080,8 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				"pageDown": {defaultHandler: function() {return self._doPageDown({select: false});}}, //$NON-NLS-0$
 				"scrollPageUp": {defaultHandler: function() {return self._doScroll({type: "pageUp"});}}, //$NON-NLS-1$ //$NON-NLS-0$
 				"scrollPageDown": {defaultHandler: function() {return self._doScroll({type: "pageDown"});}}, //$NON-NLS-1$ //$NON-NLS-0$
+				"scrollLineUp": {defaultHandler: function() {return self._doScroll({type: "lineUp"});}}, //$NON-NLS-1$ //$NON-NLS-0$
+				"scrollLineDown": {defaultHandler: function() {return self._doScroll({type: "lineDown"});}}, //$NON-NLS-1$ //$NON-NLS-0$
 				"wordPrevious": {defaultHandler: function() {return self._doCursorPrevious({select: false, unit:"word"});}}, //$NON-NLS-1$ //$NON-NLS-0$
 				"wordNext": {defaultHandler: function() {return self._doCursorNext({select: false, unit:"word"});}}, //$NON-NLS-1$ //$NON-NLS-0$
 				"textStart": {defaultHandler: function() {return self._doHome({select: false, ctrl:true});}}, //$NON-NLS-0$
@@ -6018,7 +6133,8 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			div._ruler = ruler;
 			div.rulerChanged = true;
 			div.style.position = "relative"; //$NON-NLS-0$
-			div.style["float"] = "left"; //$NON-NLS-1$ //$NON-NLS-0$
+			div.style.cssFloat = "left"; //$NON-NLS-0$
+			div.style.styleFloat = "left"; //$NON-NLS-0$
 			div.style.borderWidth = "0px"; //$NON-NLS-0$
 			div.style.margin = "0px"; //$NON-NLS-0$
 			div.style.padding = "0px"; //$NON-NLS-0$
@@ -6207,22 +6323,6 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			this._setReadOnly(this._readonly);
 			this._setThemeClass(this._themeClass, true);
 			this._setTabSize(this._tabSize, true);
-			if (!document.getElementById("_textviewStyle")) { //$NON-NLS-0$
-				var styleText = "";
-				if (util.isWebkit && this._metrics.scrollWidth > 0) {
-					styleText += "\n.textview ::-webkit-scrollbar-corner {background: #eeeeee;}"; //$NON-NLS-0$
-				}
-				if (util.isFirefox && util.isMac && this._highlightRGB && this._highlightRGB !== "Highlight") { //$NON-NLS-0$
-					styleText += "\n.textview ::-moz-selection {background: " + this._highlightRGB + ";}"; //$NON-NLS-1$ //$NON-NLS-0$
-				}
-				if (styleText) {
-					var stylesheet = util.createElement(document, "style"); //$NON-NLS-0$
-					stylesheet.id = "_textviewStyle"; //$NON-NLS-0$
-					var head = document.getElementsByTagName("head")[0] || document.documentElement; //$NON-NLS-0$
-					stylesheet.appendChild(document.createTextNode(styleText));
-					head.insertBefore(stylesheet, head.firstChild);
-				}
-			}
 			this._hookEvents();
 			var rulers = this._rulers;
 			for (var i=0; i<rulers.length; i++) {
@@ -6234,6 +6334,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			return {
 				parent: {value: undefined, update: null},
 				model: {value: undefined, update: this.setModel},
+				scrollAnimation: {value: 0, update: null},
 				readonly: {value: false, update: this._setReadOnly},
 				fullSelection: {value: true, update: this._setFullSelection},
 				tabMode: { value: true, update: null },
@@ -6616,7 +6717,10 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 			return Math.max(0, Math.min(lineCount - 1, lineIndex));
 		},
-		_getScroll: function() {
+		_getScroll: function(cancelAnimation) {
+			if (cancelAnimation === undefined || cancelAnimation) {
+				this._cancelAnimation();
+			}
 			var viewDiv = this._viewDiv;
 			return {x: viewDiv.scrollLeft, y: viewDiv.scrollTop};
 		},
@@ -6960,6 +7064,34 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				}
 			}
 		},
+		_scrollViewAnimated: function (pixelX, pixelY, callback) {
+			if (callback && this._scrollAnimation) {
+				var self = this;
+				this._animation = new Animation({
+					window: this._getWindow(),
+					duration: this._scrollAnimation,
+					curve: [pixelY, 0],
+					onAnimate: function(x) {
+						var deltaY = pixelY - Math.floor(x);
+						self._scrollView (0, deltaY);
+						pixelY -= deltaY;
+					},
+					onEnd: function() {
+						self._animation = null;
+						self._scrollView (pixelX, pixelY);
+						if (callback) {
+							callback();
+						}
+					}
+				});
+				this._animation.play();
+			} else {
+				this._scrollView (pixelX, pixelY);
+				if (callback) {
+					callback();
+				}
+			}
+		}, 
 		_scrollView: function (pixelX, pixelY) {
 			/*
 			* Always set _ensureCaretVisible to false so that the view does not scroll
@@ -7250,7 +7382,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				line = this._getLineNext(line);
 			}
 		},
-		_setSelection: function (selection, scroll, update, pageScroll) {
+		_setSelection: function (selection, scroll, update, callback, pageScroll) {
 			if (selection) {
 				this._columnX = -1;
 				if (update === undefined) { update = true; }
@@ -7263,7 +7395,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				* keyboard navigation when the selection does not chanage. For example, line down
 				* when the caret is already at the last line.
 				*/
-				if (scroll) { /*update = !*/this._showCaret(false, pageScroll); }
+				if (scroll !== false) { /*update = !*/this._showCaret(false, callback, scroll, pageScroll); }
 				
 				/* 
 				* Sometimes the browser changes the selection 
@@ -7495,7 +7627,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 			this._resetLineHeight();
 		},
-		_showCaret: function (allSelection, pageScroll) {
+		_showCaret: function (allSelection, callback, scrollAlign, pageScroll) {
 			if (!this._clientDiv) { return; }
 			var model = this._model;
 			var selection = this._getSelection();
@@ -7554,7 +7686,12 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				}
 			}
 			if (pixelX !== 0 || pixelY !== 0) {
-				this._scrollView (pixelX, pixelY);
+				if (pixelY !== 0 && typeof scrollAlign === "number") { //$NON-NLS-0$
+					if (scrollAlign < 0) { scrollAlign = 0; }
+					if (scrollAlign > 1) { scrollAlign = 1; }
+					pixelY += Math.floor(pixelY > 0 ? scrollAlign * clientHeight : -scrollAlign * clientHeight);
+				}
+				this._scrollViewAnimated(pixelX, pixelY, callback);
 				/*
 				* When the view scrolls it is possible that one of the scrollbars can show over the caret.
 				* Depending on the browser scrolling can be synchronous (Safari), in which case the change 
@@ -7648,7 +7785,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				this._ignoreQueueUpdate = false;
 			}
 			var model = this._model;
-			var scroll = this._getScroll();
+			var scroll = this._getScroll(false);
 			var viewPad = this._getViewPadding();
 			var lineCount = model.getLineCount();
 			var lineHeight = this._getLineHeight();
@@ -7860,7 +7997,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 					this._clipScrollDiv.style.width = width + "px"; //$NON-NLS-0$
 				}
 				/* Get the left scroll after setting the width of the scrollDiv as this can change the horizontal scroll offset. */
-				scroll = this._getScroll();
+				scroll = this._getScroll(false);
 			}
 			if (this._vScrollDiv) {
 				var trackHeight = clientHeight - 8;
@@ -8091,6 +8228,28 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				div = div.nextSibling;
 			}
 		},
+		_updateStyleSheet: function() {
+			var styleText = "";
+			if (util.isWebkit && this._metrics.scrollWidth > 0) {
+				styleText += "\n.textview ::-webkit-scrollbar-corner {background: #eeeeee;}"; //$NON-NLS-0$
+			}
+			if (util.isFirefox && util.isMac && this._highlightRGB && this._highlightRGB !== "Highlight") { //$NON-NLS-0$
+				styleText += "\n.textview ::-moz-selection {background: " + this._highlightRGB + ";}"; //$NON-NLS-1$ //$NON-NLS-0$
+			}
+			if (styleText) {
+				var node = document.getElementById("_textviewStyle"); //$NON-NLS-0$
+				if (!node) {
+					node = util.createElement(document, "style"); //$NON-NLS-0$
+					node.id = "_textviewStyle"; //$NON-NLS-0$
+					var head = document.getElementsByTagName("head")[0] || document.documentElement; //$NON-NLS-0$
+					node.appendChild(document.createTextNode(styleText));
+					head.insertBefore(node, head.firstChild);
+				} else {
+					node.removeChild(node.firstChild);
+					node.appendChild(document.createTextNode(styleText));
+				}
+			}
+		},
 		_updateStyle: function (init) {
 			if (!init && util.isIE) {
 				this._rootDiv.style.lineHeight = "normal"; //$NON-NLS-0$
@@ -8101,6 +8260,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			} else {
 				this._rootDiv.style.lineHeight = "normal"; //$NON-NLS-0$
 			}
+			this._updateStyleSheet();
 			if (!init) {
 				this.redraw();
 				this._resetLineWidth();
@@ -9381,7 +9541,7 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 				contentsView.addEventListener("LineStyle", listener.onLineStyle); //$NON-NLS-0$
 				contentsView.setModel(contents);
 				var size = contentsView.computeSize();
-				tooltipContents.style.width = (size.width + 20) + "px"; //$NON-NLS-0$
+				tooltipContents.style.width = size.width + "px"; //$NON-NLS-0$
 				tooltipContents.style.height = size.height + "px"; //$NON-NLS-0$
 				contentsView.resize();
 			} else {
@@ -9753,6 +9913,48 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		 * @param {DOMEvent} e the click event.
 		 */
 		onClick: function(lineIndex, e) {
+			if (lineIndex === undefined) { return; }
+			var view = this._view;
+			var model = view.getModel();
+			var baseModel = model;
+			var start = model.getLineStart(lineIndex);
+			var end = start;
+			var annotationModel = this._annotationModel;
+			if (annotationModel) {
+				var selection = view.getSelection();
+				var offset = Math.max(selection.start, selection.end);
+				end = model.getLineEnd(lineIndex, true);
+				if (start <= offset && offset < model.getLineEnd(lineIndex)) {
+					start = offset + 1;
+				}
+				if (model.getBaseModel) {
+					start = model.mapOffset(start);
+					end = model.mapOffset(end);
+					baseModel = model.getBaseModel();
+				}
+				var annotation, iter = annotationModel.getAnnotations(start, end);
+				while (!annotation && iter.hasNext()) {
+					var a = iter.next();
+					if (!this.isAnnotationTypeVisible(a.type)) { continue; }
+					annotation = a;
+				}
+				if (annotation && baseModel.getLineAtOffset(annotation.start) === baseModel.getLineAtOffset(start)) {
+					start = annotation.start;
+					end = annotation.end;
+				} else {
+					end = start;
+				}
+				
+				if (model.getBaseModel) {
+					start = model.mapOffset(start, true);
+					end = model.mapOffset(end, true);
+				}
+			}
+			var tooltip = mTooltip.Tooltip.getTooltip(this._view);
+			if (tooltip) {
+				tooltip.setTarget(null);
+			}
+			this._view.setSelection(end, start, 1/3, function(){});
 		},
 		/**
 		 * This event is sent when the user double clicks a line annotation.
@@ -10051,11 +10253,6 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		var result = {style: {lineHeight: "1px", fontSize: "1px"}}; //$NON-NLS-1$ //$NON-NLS-0$
 		result = this._mergeStyle(result, this._rulerStyle);
 		return result;
-	};
-	/** @ignore */	
-	OverviewRuler.prototype.onClick = function(lineIndex, e) {
-		if (lineIndex === undefined) { return; }
-		this._view.setTopIndex(lineIndex);
 	};
 	/** @ignore */
 	OverviewRuler.prototype._getTooltipContents = function(lineIndex, annotations) {
@@ -10729,7 +10926,6 @@ define("orion/editor/textDND", [], function() { //$NON-NLS-0$
  /*jslint maxerr:150 browser:true devel:true laxbreak:true regexp:false*/
 
 define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBinding', 'orion/editor/eventTarget', 'orion/editor/tooltip', 'orion/editor/annotations', 'orion/util'], function(messages, mKeyBinding, mEventTarget, mTooltip, mAnnotations, util) { //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-	var Animation;
 	
 	var HIGHLIGHT_ERROR_ANNOTATION = "orion.annotation.highlightError"; //$NON-NLS-0$
 
@@ -11013,14 +11209,14 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			}
 		},
 
-		setCaretOffset: function(caretOffset) {
+		setCaretOffset: function(caretOffset, show, callback) {
 			var textView = this._textView;
 			var model = textView.getModel();
 			if (model.getBaseModel) {
 				this._expandOffset(caretOffset);
 				caretOffset = model.mapOffset(caretOffset, true);
 			}
-			textView.setCaretOffset(caretOffset);
+			textView.setCaretOffset(caretOffset, show, callback);
 		},
 	
 		setText: function(text, start, end) {
@@ -11046,7 +11242,7 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 			this.setFoldingRulerVisible(enabled);
 		},
 		
-		setSelection: function(start, end, show) {
+		setSelection: function(start, end, show, callback) {
 			var textView = this._textView;
 			var model = textView.getModel();
 			if (model.getBaseModel) {
@@ -11055,55 +11251,28 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				start = model.mapOffset(start, true);
 				end = model.mapOffset(end, true);
 			}
-			textView.setSelection(start, end, show);
+			textView.setSelection(start, end, show, callback);
 		},
 				
 		/**
-		 * @param {orion.editor.TextView} textView
 		 * @param {Number} start
 		 * @param {Number} [end]
-		 * @param {function} callBack A call back function that is used after the move animation is done
+		 * @param {function} [callback] if callback is specified, scrolling to show the selection is animated and callback is called when the animation is done.
+		 * @param {Boolean} [focus=true] whether the text view should be focused when the selection is done.
 		 * @private
+		 * @deprecated use #setSelection instead
 		 */
-		moveSelection: function(start, end, callBack, focus) {
+		moveSelection: function(start, end, callback, focus) {
 			end = end || start;
 			var textView = this._textView;
-			this.setSelection(start, end, false);
-			var topPixel = textView.getTopPixel();
-			var bottomPixel = textView.getBottomPixel();
-			var model = this.getModel();
-			var line = model.getLineAtOffset(start);
-			var linePixel = textView.getLinePixel(line);
-			if (linePixel < topPixel || linePixel > bottomPixel) {
-				var height = bottomPixel - topPixel;
-				var target = Math.max(0, linePixel- Math.floor((linePixel<topPixel?3:1)*height / 4));
-				var a = new Animation({
-					node: textView,
-					duration: 300,
-					curve: [topPixel, target],
-					onAnimate: function(x){
-						textView.setTopPixel(Math.floor(x));
-					},
-					onEnd: function() {
-						textView.showSelection();
-						if (focus === undefined || focus) {
-							textView.focus();
-						}
-						if(callBack) {
-							callBack();
-						}
-					}
-				});
-				a.play();
-			} else {
-				textView.showSelection();
+			this.setSelection(start, end, 1 / 3, function() {
 				if (focus === undefined || focus) {
 					textView.focus();
 				}
-				if(callBack) {
-					callBack();
+				if (callback) {
+					callback();
 				}
-			}
+			});
 		},
 		
 		/** @private */
@@ -11351,23 +11520,6 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 				var rulers = this._annotationFactory.createAnnotationRulers(this._annotationModel);
 				var ruler = this._annotationRuler = rulers.annotationRuler;
 				if (ruler) {
-					ruler.onClick = function(lineIndex, e) {
-						if (lineIndex === undefined) { return; }
-						if (lineIndex === -1) { return; }
-						var view = this.getView();
-						var viewModel = view.getModel();
-						var annotationModel = this.getAnnotationModel();
-						var lineStart = editor.mapOffset(viewModel.getLineStart(lineIndex));
-						var lineEnd = editor.mapOffset(viewModel.getLineEnd(lineIndex));
-						var annotations = annotationModel.getAnnotations(lineStart, lineEnd);
-						while (annotations.hasNext()) {
-							var annotation = annotations.next();
-							if (!this.isAnnotationTypeVisible(annotation.type)) { continue; }
-							var model = editor.getModel();
-							editor.onGotoLine(model.getLineAtOffset(lineStart), annotation.start - lineStart, annotation.end - lineStart);
-							break;
-						}
-					};
 					ruler.onDblClick = addRemoveBookmark;
 					ruler.setMultiAnnotationOverlay({html: "<div class='annotationHTML overlay'></div>"}); //$NON-NLS-0$
 					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_ERROR);
@@ -11379,11 +11531,6 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 					
 				ruler = this._overviewRuler = rulers.overviewRuler;
 				if (ruler) {
-					ruler.onClick = function(lineIndex, e) {
-						if (lineIndex === undefined) { return; }
-						var offset = textView.getModel().getLineStart(lineIndex);
-						editor.moveSelection(editor.mapOffset(offset));
-					};
 					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_SEARCH);
 					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_MATCHING_SEARCH);
 					ruler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_ERROR);
@@ -11638,62 +11785,6 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 	mEventTarget.EventTarget.addMixin(Editor.prototype);
 
 	/**
-	 * @class
-	 * @private
-	 * @name orion.editor.Animation
-	 * @description Creates an animation.
-	 * @param {Object} options Options controlling the animation.
-	 * @param {Array} options.curve Array of 2 values giving the start and end points for the animation.
-	 * @param {Number} [options.duration=350] Duration of the animation, in milliseconds.
-	 * @param {Function} [options.easing]
-	 * @param {Function} [options.onAnimate]
-	 * @param {Function} [options.onEnd]
-	 * @param {Number} [options.rate=20] The time between frames, in milliseconds.
-	 */
-	Animation = /** @ignore */ (function() {
-		function Animation(options) {
-			this.options = options;
-		}
-		/**
-		 * Plays this animation.
-		 * @methodOf orion.editor.Animation.prototype
-		 * @name play
-		 */
-		Animation.prototype.play = function() {
-			var duration = (typeof this.options.duration === "number") ? this.options.duration : 350, //$NON-NLS-0$
-			    rate = (typeof this.options.rate === "number") ? this.options.rate : 20, //$NON-NLS-0$
-			    easing = this.options.easing || this.defaultEasing,
-			    onAnimate = this.options.onAnimate || function() {},
-			    onEnd = this.options.onEnd || function () {},
-			    start = this.options.curve[0],
-			    end = this.options.curve[1],
-			    range = (end - start);
-			var propertyValue,
-			    interval,
-			    startedAt = -1;
-
-			function onFrame() {
-				startedAt = (startedAt === -1) ? new Date().getTime() : startedAt;
-				var now = new Date().getTime(),
-				    percentDone = (now - startedAt) / duration;
-				if (percentDone < 1) {
-					var eased = easing(percentDone);
-					propertyValue = start + (eased * range);
-					onAnimate(propertyValue);
-				} else {
-					clearInterval(interval);
-					onEnd();
-				}
-			}
-			interval = setInterval(onFrame, rate);
-		};
-		Animation.prototype.defaultEasing = function(x) {
-			return Math.sin(x * (Math.PI / 2));
-		};
-		return Animation;
-	}());
-
-	/**
 	 * @private
 	 * @param context Value to be used as the returned function's <code>this</code> value.
 	 * @param [arg1, arg2, ...] Fixed argument values that will prepend any arguments passed to the returned function when it is invoked.
@@ -11792,12 +11883,19 @@ define("orion/editor/regex", [], function() {
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
-/*jslint maxerr:150 browser:true devel:true */
+/*global define prompt */
 
-define("orion/editor/editorFeatures", ['i18n!orion/editor/nls/messages', 'orion/editor/undoStack', 'orion/keyBinding', //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-	'orion/editor/rulers', 'orion/editor/annotations', 'orion/editor/tooltip', 'orion/editor/textDND', 'orion/editor/regex', 'orion/util'], //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTextDND, mRegex, util) {
+define("orion/editor/editorFeatures", [ //$NON-NLS-0$
+	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
+	'orion/editor/undoStack', //$NON-NLS-0$
+	'orion/keyBinding', //$NON-NLS-0$
+	'orion/editor/rulers', //$NON-NLS-0$
+	'orion/editor/annotations', //$NON-NLS-0$
+	'orion/editor/tooltip', //$NON-NLS-0$
+	'orion/editor/textDND', //$NON-NLS-0$
+	'orion/editor/regex', //$NON-NLS-0$
+	'orion/util' //$NON-NLS-0$
+], function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTextDND, mRegex, util) {
 
 	function UndoFactory() {
 	}
@@ -11857,18 +11955,132 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			return new mTextDND.TextDND(editor.getTextView(), undoStack);
 		}
 	};
+	
+	function IncrementalFind(editor) {
+		this.editor = editor;
+		this._active = false;
+		this._success = true;
+		this._ignoreSelection = false;
+		this._prefix = "";
+		var self = this;
+		this._listener = {
+			onVerify: function(e){
+				var editor = self.editor;
+				var model = editor.getModel();
+				var start = editor.mapOffset(e.start), end = editor.mapOffset(e.end);
+				var txt = model.getText(start, end);
+				var prefix = self._prefix;
+				// TODO: mRegex is pulled in just for this one call so we can get case-insensitive search
+				// is it really necessary
+				var match = prefix.match(new RegExp("^" + mRegex.escape(txt), "i")); //$NON-NLS-1$ //$NON-NLS-0$
+				if (match && match.length > 0) {
+					prefix = self._prefix += e.text;
+					self._success = true;
+					self._status();
+					self.find(true);
+					e.text = null;
+				}
+			},
+			onSelection: function() {
+				if (!self._ignoreSelection) {
+					self.setActive(false);
+				}
+			}
+		};
+	}
+	IncrementalFind.prototype = {
+		backspace: function() {
+			if (!this.isActive()) {
+				return false;
+			}
+			var prefix = this._prefix;
+			prefix = this._prefix = prefix.substring(0, prefix.length-1);
+			if (prefix.length === 0) {
+				this._success = true;
+				this._ignoreSelection = true;
+				this.editor.setCaretOffset(this.editor.getSelection().start);
+				this._ignoreSelection = false;
+				this._status();
+				return true;
+			}
+			return this.find(false);
+		},
+		find: function(forward) {
+			if (!this.isActive()) {
+				return false;
+			}
+			var prefix = this._prefix;
+			if (prefix.length === 0) {
+				return false;
+			}
+			var editor = this.editor;
+			var model = editor.getModel();
+			var start;
+			if (forward) {
+				if (this._success) {
+					start = editor.getSelection().start + 1;
+				} else {
+					start = 0;
+				}
+			} else {
+				if (this._success) {
+					start = editor.getCaretOffset() - prefix.length - 1;
+				} else {
+					start = model.getCharCount() - 1;
+				}
+			}
+			var result = editor.getModel().find({
+				string: prefix,
+				start: start,
+				reverse: !forward,
+				caseInsensitive: prefix.toLowerCase() === prefix}).next();
+			if (result) {
+				this._success = true;
+				this._ignoreSelection = true;
+				editor.moveSelection(result.start, result.end);
+				this._ignoreSelection = false;
+			} else {
+				this._success = false;
+			}
+			this._status();
+			return true;
+		},
+		isActive: function() {
+			return this._active;
+		},
+		setActive: function(active) {
+			this._active = active;
+			this._prefix = "";
+			this._success = true;
+			var editor = this.editor;
+			var textView = editor.getTextView();
+			this.editor.setCaretOffset(this.editor.getCaretOffset());
+			if (this._active) {
+				textView.addEventListener("Verify", this._listener.onVerify); //$NON-NLS-0$
+				textView.addEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
+			} else {
+				textView.removeEventListener("Verify", this._listener.onVerify); //$NON-NLS-0$
+				textView.removeEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
+			}
+			this._status();
+		},
+		_status: function() {
+			if (!this.isActive()) {
+				this.editor.reportStatus("");
+				return;
+			}
+			var formattedMessage = util.formatMessage(this._success ? messages.incrementalFind : messages.incrementalFindNotFound, this._prefix);
+			this.editor.reportStatus(formattedMessage, this._success ? "" : "error"); //$NON-NLS-0$
+		}
+	};
 
 	/**
 	 * TextCommands connects common text editing keybindings onto an editor.
 	 */
 	function TextActions(editor, undoStack, searcher) {
 		this.editor = editor;
-		this.textView = editor.getTextView();
 		this.undoStack = undoStack;
-		this._incrementalFindActive = false;
-		this._incrementalFindSuccess = true;
-		this._incrementalFindIgnoreSelection = false;
-		this._incrementalFindPrefix = "";
+		this._incrementalFind = new IncrementalFind(editor);
 		this._searcher =  searcher;
 		this._lastEditLocation = null;
 		this.init();
@@ -11876,43 +12088,7 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 	TextActions.prototype = {
 		init: function() {
 			var self = this;
-			this._incrementalFindListener = {
-				onVerify: function(e){
-					var editor = self.editor;
-					var model = editor.getModel();
-					var start = editor.mapOffset(e.start), end = editor.mapOffset(e.end);
-					var txt = model.getText(start, end);
-					var prefix = self._incrementalFindPrefix;
-					// TODO: mRegex is pulled in just for this one call so we can get case-insensitive search
-					// is it really necessary
-					var match = prefix.match(new RegExp("^" + mRegex.escape(txt), "i")); //$NON-NLS-1$ //$NON-NLS-0$
-					if (match && match.length > 0) {
-						prefix = self._incrementalFindPrefix += e.text;
-						self.editor.reportStatus(util.formatMessage(messages.incrementalFind, prefix));
-						var searchStart = editor.getSelection().start;
-						var result = editor.getModel().find({
-							string: prefix,
-							start: searchStart,
-							caseInsensitive: prefix.toLowerCase() === prefix}).next();
-						if (result) {
-							self._incrementalFindSuccess = true;
-							self._incrementalFindIgnoreSelection = true;
-							editor.moveSelection(result.start, result.end);
-							self._incrementalFindIgnoreSelection = false;
-						} else {
-							editor.reportStatus(util.formatMessage(messages.incrementalFindNotFound, prefix), "error"); //$NON-NLS-0$
-							self._incrementalFindSuccess = false;
-						}
-						e.text = null;
-					} else {
-					}
-				},
-				onSelection: function() {
-					if (!self._incrementalFindIgnoreSelection) {
-						self.toggleIncrementalFind();
-					}
-				}
-			};
+			var textView = this.editor.getTextView();
 			
 			this._lastEditListener = {
 				onModelChanged: function(e) {
@@ -11921,14 +12097,14 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 					}
 				}
 			};
-			this.textView.addEventListener("ModelChanged", this._lastEditListener.onModelChanged); //$NON-NLS-0$
+			textView.addEventListener("ModelChanged", this._lastEditListener.onModelChanged); //$NON-NLS-0$
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true), "findNext"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("findNext", function() { //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true), "findNext"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("findNext", function() { //$NON-NLS-0$
 				if (this._searcher){
-					var selection = this.textView.getSelection();
+					var selection = textView.getSelection();
 					if(selection.start < selection.end) {
-						this._searcher.findNext(true, this.textView.getText(selection.start, selection.end));
+						this._searcher.findNext(true, textView.getText(selection.start, selection.end));
 					} else {
 						this._searcher.findNext(true);
 					}
@@ -11937,12 +12113,12 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return false;
 			}.bind(this), {name: messages.findNext});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true, true), "findPrevious"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("findPrevious", function() { //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true, true), "findPrevious"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("findPrevious", function() { //$NON-NLS-0$
 				if (this._searcher){
-					var selection = this.textView.getSelection();
+					var selection = textView.getSelection();
 					if(selection.start < selection.end) {
-						this._searcher.findNext(false, this.textView.getText(selection.start, selection.end));
+						this._searcher.findNext(false, textView.getText(selection.start, selection.end));
 					} else {
 						this._searcher.findNext(false);
 					}
@@ -11951,76 +12127,25 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return false;
 			}.bind(this), {name: messages.findPrevious});
 	
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("j", true), "incrementalFind"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("incrementalFind", function() { //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("j", true), "incrementalFind"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("incrementalFind", function() { //$NON-NLS-0$
 				if (this._searcher && this._searcher.visible()) {
 					return true;
 				}
-				var editor = this.editor;
-				if (!this._incrementalFindActive) {
-					editor.setCaretOffset(editor.getCaretOffset());
-					this.toggleIncrementalFind();
+				if (!this._incrementalFind.isActive()) {
+					this._incrementalFind.setActive(true);
 				} else {
-					var prefix = this._incrementalFindPrefix;
-					if (prefix.length !== 0) {
-						var result;
-						var searchStart = 0;
-						if (this._incrementalFindSuccess) {
-							searchStart = editor.getSelection().start + 1;
-						}
-						result = editor.getModel().find({
-							string: prefix,
-							start: searchStart,
-							caseInsensitive: prefix.toLowerCase() === prefix}).next();
-						if (result) {
-							this._incrementalFindSuccess = true;
-							this._incrementalFindIgnoreSelection = true;
-							editor.moveSelection(result.start, result.end);
-							this._incrementalFindIgnoreSelection = false;
-							editor.reportStatus(util.formatMessage(messages.incrementalFind, prefix));
-						} else {
-							editor.reportStatus(util.formatMessage(messages.incrementalFindNotFound, prefix), "error"); //$NON-NLS-0$
-							this._incrementalFindSuccess = false;
-						}
-					}
+					this._incrementalFind.find(true);
 				}
 				return true;
 			}.bind(this), {name: messages.incrementalFindKey});
-			this.textView.setAction("deletePrevious", function() { //$NON-NLS-0$
-				if (this._incrementalFindActive) {
-					var editor = this.editor;
-					var prefix = this._incrementalFindPrefix;
-					prefix = this._incrementalFindPrefix = prefix.substring(0, prefix.length-1);
-					if (prefix.length===0) {
-						this._incrementalFindSuccess = true;
-						this._incrementalFindIgnoreSelection = true;
-						editor.setCaretOffset(editor.getSelection().start);
-						this._incrementalFindIgnoreSelection = false;
-						this.toggleIncrementalFind();
-						return true;
-					}
-					editor.reportStatus(util.formatMessage(messages.incrementalFind, prefix));
-					var result = editor.getModel().find({
-						string: prefix,
-						start: editor.getCaretOffset() - prefix.length - 1,
-						reverse: true,
-						caseInsensitive: prefix.toLowerCase() === prefix}).next();
-					if (result) {
-						this._incrementalFindSuccess = true;
-						this._incrementalFindIgnoreSelection = true;
-						editor.moveSelection(result.start,result.end);
-						this._incrementalFindIgnoreSelection = false;
-					} else {
-						editor.reportStatus(util.formatMessage(messages.incrementalFindNotFound, prefix), "error"); //$NON-NLS-0$
-					}
-					return true;
-				}
-				return false;
+			textView.setAction("deletePrevious", function() { //$NON-NLS-0$
+				return this._incrementalFind.backspace();
 			}.bind(this));
 			
-			this.textView.setAction("tab", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
-				if(!this.textView.getOptions("tabMode")) { return; } //$NON-NLS-0$
+			textView.setAction("tab", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+				if(!textView.getOptions("tabMode")) { return; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12034,7 +12159,7 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 					}
 					var lineStart = model.getLineStart(firstLine);
 					var lineEnd = model.getLineEnd(lastLine, true);
-					var options = this.textView.getOptions("tabSize", "expandTab"); //$NON-NLS-1$ //$NON-NLS-0$
+					var options = textView.getOptions("tabSize", "expandTab"); //$NON-NLS-1$ //$NON-NLS-0$
 					var text = options.expandTab ? new Array(options.tabSize + 1).join(" ") : "\t"; //$NON-NLS-1$ //$NON-NLS-0$
 					editor.setText(lines.join(text), lineStart, lineEnd);
 					editor.setSelection(lineStart === selection.start ? selection.start : selection.start + text.length, selection.end + ((lastLine - firstLine + 1) * text.length));
@@ -12051,15 +12176,15 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return false;
 			}.bind(this));
 	
-			this.textView.setAction("shiftTab", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
-				if(!this.textView.getOptions("tabMode")) { return; } //$NON-NLS-0$
+			textView.setAction("shiftTab", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+				if(!textView.getOptions("tabMode")) { return; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
 				var firstLine = model.getLineAtOffset(selection.start);
 				var lastLine = model.getLineAtOffset(selection.end > selection.start ? selection.end - 1 : selection.end);
-				var tabSize = this.textView.getOptions("tabSize"); //$NON-NLS-0$
+				var tabSize = textView.getOptions("tabSize"); //$NON-NLS-0$
 				var spaceTab = new Array(tabSize + 1).join(" "); //$NON-NLS-0$
 				var lines = [], removeCount = 0, firstRemoveCount = 0;
 				for (var i = firstLine; i <= lastLine; i++) {
@@ -12090,9 +12215,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return true;
 			}.bind(this), {name: messages.unindentLines});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(38, false, false, true), "moveLinesUp"); //$NON-NLS-0$
-			this.textView.setAction("moveLinesUp", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(38, false, false, true), "moveLinesUp"); //$NON-NLS-0$
+			textView.setAction("moveLinesUp", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12123,9 +12248,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return true;
 			}.bind(this), {name: messages.moveLinesUp});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(40, false, false, true), "moveLinesDown"); //$NON-NLS-0$
-			this.textView.setAction("moveLinesDown", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(40, false, false, true), "moveLinesDown"); //$NON-NLS-0$
+			textView.setAction("moveLinesDown", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12155,9 +12280,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return true;
 			}.bind(this), {name: messages.moveLinesDown});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(38, true, false, true), "copyLinesUp"); //$NON-NLS-0$
-			this.textView.setAction("copyLinesUp", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(38, true, false, true), "copyLinesUp"); //$NON-NLS-0$
+			textView.setAction("copyLinesUp", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12177,9 +12302,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return true;
 			}.bind(this), {name: messages.copyLinesUp});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(40, true, false, true), "copyLinesDown"); //$NON-NLS-0$
-			this.textView.setAction("copyLinesDown", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(40, true, false, true), "copyLinesDown"); //$NON-NLS-0$
+			textView.setAction("copyLinesDown", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12199,9 +12324,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return true;
 			}.bind(this), {name: messages.copyLinesDown});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding('d', true, false, false), "deleteLines"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("deleteLines", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding('d', true, false, false), "deleteLines"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("deleteLines", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var selection = editor.getSelection();
 				var model = editor.getModel();
@@ -12214,8 +12339,8 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			}.bind(this), {name: messages.deleteLines});
 			
 			// Go To Line action
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("l", true), "gotoLine"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("gotoLine", function() { //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("l", true), "gotoLine"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("gotoLine", function() { //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var line = model.getLineAtOffset(editor.getCaretOffset());
@@ -12227,191 +12352,157 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return true;
 			}.bind(this), {name: messages.gotoLine});
 			
-			function nextAnnotation(forward) {
-				var editor = self.editor;
-				var annotationModel = editor.getAnnotationModel();
-				if(!annotationModel) { return true; }
-				var model = editor.getModel();
-				var currentOffset = editor.getCaretOffset();
-				var annotations = annotationModel.getAnnotations(forward ? currentOffset : 0, forward ? model.getCharCount() : currentOffset);
-				var foundAnnotation = null;
-				while (annotations.hasNext()) {
-					var annotation = annotations.next();
-					if (forward) {
-						if (annotation.start <= currentOffset) { continue; }
-					} else {
-						if (annotation.start >= currentOffset) { continue; }
-					}
-					switch (annotation.type) {
-						case mAnnotations.AnnotationType.ANNOTATION_ERROR:
-						case mAnnotations.AnnotationType.ANNOTATION_WARNING:
-						case mAnnotations.AnnotationType.ANNOTATION_TASK:
-						case mAnnotations.AnnotationType.ANNOTATION_BOOKMARK:
-							break;
-						default:
-							continue;
-					}
-					foundAnnotation = annotation;
-					if (forward) {
-						break;
-					}
-				}
-				if (foundAnnotation) {
-					var view = self.textView;
-					var nextLine = model.getLineAtOffset(foundAnnotation.start);
-					var tooltip = mTooltip.Tooltip.getTooltip(view);
-					if (!tooltip) {
-						editor.moveSelection(foundAnnotation.start);
-						return true;
-					}
-					editor.moveSelection(foundAnnotation.start, foundAnnotation.start, function() {
-						tooltip.setTarget({
-							getTooltipInfo: function() {
-								var tooltipCoords = view.convert({
-									x: view.getLocationAtOffset(foundAnnotation.start).x, 
-									y: view.getLocationAtOffset(model.getLineStart(nextLine)).y
-								}, "document", "page"); //$NON-NLS-1$ //$NON-NLS-0$
-								return {
-									contents: [foundAnnotation],
-									x: tooltipCoords.x,
-									y: tooltipCoords.y + Math.floor(view.getLineHeight(nextLine) * 1.33)
-								};
-							}
-						}, 0);
-					});
-				}
-				return true;
-			}
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(190, true), "nextAnnotation"); //$NON-NLS-0$
-			this.textView.setAction("nextAnnotation", function() { //$NON-NLS-0$
-				return nextAnnotation(true);
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(190, true), "nextAnnotation"); //$NON-NLS-0$
+			textView.setAction("nextAnnotation", function() { //$NON-NLS-0$
+				return this.nextAnnotation(true);
 			}.bind(this), {name: messages.nextAnnotation});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(188, true), "previousAnnotation"); //$NON-NLS-0$
-			this.textView.setAction("previousAnnotation", function() { //$NON-NLS-0$
-				return nextAnnotation(false);
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(188, true), "previousAnnotation"); //$NON-NLS-0$
+			textView.setAction("previousAnnotation", function() { //$NON-NLS-0$
+				return this.nextAnnotation(false);
 			}.bind(this), {name: messages.prevAnnotation});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("e", true, false, true, false), "expand"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("expand", function() { //$NON-NLS-0$
-				var editor = this.editor;
-				var annotationModel = editor.getAnnotationModel();
-				if(!annotationModel) { return true; }
-				var model = editor.getModel();
-				var currentOffset = editor.getCaretOffset();
-				var lineIndex = model.getLineAtOffset(currentOffset);
-				var start = model.getLineStart(lineIndex);
-				var end = model.getLineEnd(lineIndex, true);
-				if (model.getBaseModel) {
-					start = model.mapOffset(start);
-					end = model.mapOffset(end);
-					model = model.getBaseModel();
-				}
-				var annotation, iter = annotationModel.getAnnotations(start, end);
-				while (!annotation && iter.hasNext()) {
-					var a = iter.next();
-					if (a.type !== mAnnotations.AnnotationType.ANNOTATION_FOLDING) { continue; }
-					if (a.expanded) { continue; }
-					annotation = a;
-				}
-				if (annotation && !annotation.expanded) {
-					annotation.expand();
-					annotationModel.modifyAnnotation(annotation);
-				}
-				return true;
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("e", true, false, true, false), "expand"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("expand", function() { //$NON-NLS-0$
+				return this.expandAnnotation(true);
 			}.bind(this), {name: messages.expand});
 	
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("c", true, false, true, false), "collapse"); //$NON-NLS-1$ //$NON-NLS-0$
-				this.textView.setAction("collapse", function() { //$NON-NLS-0$
-				var editor = this.editor;
-				var annotationModel = editor.getAnnotationModel();
-				if(!annotationModel) { return true; }
-				var model = editor.getModel();
-				var currentOffset = editor.getCaretOffset();
-				var lineIndex = model.getLineAtOffset(currentOffset);
-				var start = model.getLineStart(lineIndex);
-				var end = model.getLineEnd(lineIndex, true);
-				if (model.getBaseModel) {
-					start = model.mapOffset(start);
-					end = model.mapOffset(end);
-					model = model.getBaseModel();
-				}
-				var annotation, iter = annotationModel.getAnnotations(start, end);
-				while (!annotation && iter.hasNext()) {
-					var a = iter.next();
-					if (a.type !== mAnnotations.AnnotationType.ANNOTATION_FOLDING) { continue; }
-					annotation = a;
-				}
-				if (annotation && annotation.expanded) {
-					editor.setCaretOffset(annotation.start);
-					annotation.collapse();
-					annotationModel.modifyAnnotation(annotation);
-				}
-				return true;
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("c", true, false, true, false), "collapse"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("collapse", function() { //$NON-NLS-0$
+				return this.expandAnnotation(false);
 			}.bind(this), {name: messages.collapse});
 	
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("e", true, true, true, false), "expandAll"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("expandAll", function() { //$NON-NLS-0$
-				var editor = this.editor;
-				var annotationModel = editor.getAnnotationModel();
-				if(!annotationModel) { return true; }
-				var model = editor.getModel();
-				var annotation, iter = annotationModel.getAnnotations(0, model.getCharCount());
-				this.textView.setRedraw(false);
-				while (iter.hasNext()) {
-					annotation = iter.next();
-					if (annotation.type !== mAnnotations.AnnotationType.ANNOTATION_FOLDING) { continue; }
-					if (!annotation.expanded) {
-						annotation.expand();
-						annotationModel.modifyAnnotation(annotation);
-					}
-				}
-				this.textView.setRedraw(true);
-				return true;
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("e", true, true, true, false), "expandAll"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("expandAll", function() { //$NON-NLS-0$
+				return this.expandAnnotations(true);
 			}.bind(this), {name: messages.expandAll});
 	
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("c", true, true, true, false), "collapseAll"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("collapseAll", function() { //$NON-NLS-0$
-				var editor = this.editor;
-				var annotationModel = editor.getAnnotationModel();
-				if(!annotationModel) { return true; }
-				var model = editor.getModel();
-				var annotation, iter = annotationModel.getAnnotations(0, model.getCharCount());
-				this.textView.setRedraw(false);
-				while (iter.hasNext()) {
-					annotation = iter.next();
-					if (annotation.type !== mAnnotations.AnnotationType.ANNOTATION_FOLDING) { continue; }
-					if (annotation.expanded) {
-						annotation.collapse();
-						annotationModel.modifyAnnotation(annotation);
-					}
-				}
-				this.textView.setRedraw(true);
-				return true;
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("c", true, true, true, false), "collapseAll"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("collapseAll", function() { //$NON-NLS-0$
+				return this.expandAnnotations(false);
 			}.bind(this), {name: messages.collapseAll});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding("q", !util.isMac, false, false, util.isMac), "lastEdit"); //$NON-NLS-1$ //$NON-NLS-0$
-			this.textView.setAction("lastEdit", function() { //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("q", !util.isMac, false, false, util.isMac), "lastEdit"); //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("lastEdit", function() { //$NON-NLS-0$
 				if (typeof this._lastEditLocation === "number")  { //$NON-NLS-0$
 					this.editor.showSelection(this._lastEditLocation);
 				}
 				return true;
 			}.bind(this), {name: messages.lastEdit});
 		},
-			
-		toggleIncrementalFind: function() {
-			this._incrementalFindActive = !this._incrementalFindActive;
-			if (this._incrementalFindActive) {
-				this.editor.reportStatus(util.formatMessage(messages.incrementalFind, this._incrementalFindPrefix));
-				this.textView.addEventListener("Verify", this._incrementalFindListener.onVerify); //$NON-NLS-0$
-				this.textView.addEventListener("Selection", this._incrementalFindListener.onSelection); //$NON-NLS-0$
-			} else {
-				this._incrementalFindPrefix = "";
-				this.editor.reportStatus("");
-				this.textView.removeEventListener("Verify", this._incrementalFindListener.onVerify); //$NON-NLS-0$
-				this.textView.removeEventListener("Selection", this._incrementalFindListener.onSelection); //$NON-NLS-0$
-				this.textView.setCaretOffset(this.textView.getCaretOffset());
+		
+		nextAnnotation: function (forward) {
+			var editor = this.editor;
+			var annotationModel = editor.getAnnotationModel();
+			if(!annotationModel) { return true; }
+			var model = editor.getModel();
+			var currentOffset = editor.getCaretOffset();
+			var annotations = annotationModel.getAnnotations(forward ? currentOffset : 0, forward ? model.getCharCount() : currentOffset);
+			var foundAnnotation = null;
+			while (annotations.hasNext()) {
+				var annotation = annotations.next();
+				if (forward) {
+					if (annotation.start <= currentOffset) { continue; }
+				} else {
+					if (annotation.start >= currentOffset) { continue; }
+				}
+				switch (annotation.type) {
+					case mAnnotations.AnnotationType.ANNOTATION_ERROR:
+					case mAnnotations.AnnotationType.ANNOTATION_WARNING:
+					case mAnnotations.AnnotationType.ANNOTATION_TASK:
+					case mAnnotations.AnnotationType.ANNOTATION_BOOKMARK:
+						break;
+					default:
+						continue;
+				}
+				foundAnnotation = annotation;
+				if (forward) {
+					break;
+				}
 			}
+			if (foundAnnotation) {
+				var view = editor.getTextView();
+				var nextLine = model.getLineAtOffset(foundAnnotation.start);
+				var tooltip = mTooltip.Tooltip.getTooltip(view);
+				if (!tooltip) {
+					editor.moveSelection(foundAnnotation.start);
+					return true;
+				}
+				editor.moveSelection(foundAnnotation.start, foundAnnotation.start, function() {
+					tooltip.setTarget({
+						getTooltipInfo: function() {
+							var tooltipCoords = view.convert({
+								x: view.getLocationAtOffset(foundAnnotation.start).x, 
+								y: view.getLocationAtOffset(model.getLineStart(nextLine)).y
+							}, "document", "page"); //$NON-NLS-1$ //$NON-NLS-0$
+							return {
+								contents: [foundAnnotation],
+								x: tooltipCoords.x,
+								y: tooltipCoords.y + Math.floor(view.getLineHeight(nextLine) * 1.33)
+							};
+						}
+					}, 0);
+				});
+			}
+			return true;
+		},
+		
+		expandAnnotation: function(expand) {
+			var editor = this.editor;
+			var annotationModel = editor.getAnnotationModel();
+			if(!annotationModel) { return true; }
+			var model = editor.getModel();
+			var currentOffset = editor.getCaretOffset();
+			var lineIndex = model.getLineAtOffset(currentOffset);
+			var start = model.getLineStart(lineIndex);
+			var end = model.getLineEnd(lineIndex, true);
+			if (model.getBaseModel) {
+				start = model.mapOffset(start);
+				end = model.mapOffset(end);
+				model = model.getBaseModel();
+			}
+			var annotation, iter = annotationModel.getAnnotations(start, end);
+			while (!annotation && iter.hasNext()) {
+				var a = iter.next();
+				if (a.type !== mAnnotations.AnnotationType.ANNOTATION_FOLDING) { continue; }
+				annotation = a;
+			}
+			if (annotation) {
+				if (expand !== annotation.expanded) {
+					if (expand) {
+						annotation.expand();
+					} else {
+						editor.setCaretOffset(annotation.start);
+						annotation.collapse();
+					}
+					annotationModel.modifyAnnotation(annotation);
+				}
+			}
+			return true;
+		},
+
+		expandAnnotations: function(expand) {
+			var editor = this.editor;
+			var textView = editor.getTextView();
+			var annotationModel = editor.getAnnotationModel();
+			if(!annotationModel) { return true; }
+			var model = editor.getModel();
+			var annotation, iter = annotationModel.getAnnotations(0, model.getCharCount());
+			textView.setRedraw(false);
+			while (iter.hasNext()) {
+				annotation = iter.next();
+				if (annotation.type !== mAnnotations.AnnotationType.ANNOTATION_FOLDING) { continue; }
+				if (expand !== annotation.expanded) {
+					if (expand) {
+						annotation.expand();
+					} else {
+						annotation.collapse();
+					}
+					annotationModel.modifyAnnotation(annotation);
+				}
+			}
+			textView.setRedraw(true);
+			return true;
 		},
 		
 		startUndo: function() {
@@ -12427,78 +12518,22 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 		}, 
 	
 		cancel: function() {
-			this.toggleIncrementalFind();
+			this._incrementalFind.setActive(false);
 		},
 		
 		isActive: function() {
-			return this._incrementalFindActive;
+			return this._incrementalFind.isActive();
 		},
 		
 		isStatusActive: function() {
-			return this._incrementalFindActive;
+			return this._incrementalFind.isActive();
 		},
 		
 		lineUp: function() {
-			if (this._incrementalFindActive) {
-				var prefix = this._incrementalFindPrefix;
-				if (prefix.length === 0) {
-					return false;
-				}
-				var editor = this.editor;
-				var model = editor.getModel();
-				var start;
-				if (this._incrementalFindSuccess) {
-					start = editor.getCaretOffset() - prefix.length - 1;
-				} else {
-					start = model.getCharCount() - 1;
-				}
-				var result = editor.getModel().find({
-					string: prefix,
-					start: start,
-					reverse: true,
-					caseInsensitive: prefix.toLowerCase() === prefix}).next();
-				if (result) {
-					this._incrementalFindSuccess = true;
-					this._incrementalFindIgnoreSelection = true;
-					editor.moveSelection(result.start, result.end);
-					this._incrementalFindIgnoreSelection = false;
-					editor.reportStatus(util.formatMessage(messages.incrementalFind, prefix));
-				} else {
-					editor.reportStatus(util.formatMessage(messages.incrementalFindNotFound, prefix), "error"); //$NON-NLS-0$
-					this._incrementalFindSuccess = false;
-				}
-				return true;
-			}
-			return false;
+			return this._incrementalFind.find(false);
 		},
 		lineDown: function() {	
-			if (this._incrementalFindActive) {
-				var prefix = this._incrementalFindPrefix;
-				if (prefix.length === 0) {
-					return false;
-				}
-				var editor = this.editor;
-				var start = 0;
-				if (this._incrementalFindSuccess) {
-					start = editor.getSelection().start + 1;
-				}
-				var result = editor.getModel().find({
-					string: prefix,
-					start: start,
-					caseInsensitive: prefix.toLowerCase() === prefix}).next();
-				if (result) {
-					this._incrementalFindSuccess = true;
-					this._incrementalFindIgnoreSelection = true;
-					editor.moveSelection(result.start, result.end);
-					this._incrementalFindIgnoreSelection = false;
-					editor.reportStatus(util.formatMessage(messages.incrementalFind, prefix));
-				} else {
-					editor.reportStatus(util.formatMessage(messages.incrementalFindNotFound, prefix), "error"); //$NON-NLS-0$
-					this._incrementalFindSuccess = false;
-				}
-				return true;
-			}
-			return false;
+			return this._incrementalFind.find(true);
 		},
 		enter: function() {
 			return false;
@@ -12513,7 +12548,6 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 	 */
 	function SourceCodeActions(editor, undoStack, contentAssist, linkedMode) {
 		this.editor = editor;
-		this.textView = editor.getTextView();
 		this.undoStack = undoStack;
 		this.contentAssist = contentAssist;
 		this.linkedMode = linkedMode;
@@ -12535,8 +12569,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			}
 		}, 
 		init: function() {
+			var textView = this.editor.getTextView();
 		
-			this.textView.setAction("lineStart", function() { //$NON-NLS-0$
+			textView.setAction("lineStart", function() { //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var caretOffset = editor.getCaretOffset();
@@ -12559,9 +12594,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			}.bind(this));
 		
 			// Block comment operations
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(191, true), "toggleLineComment"); //$NON-NLS-0$
-			this.textView.setAction("toggleLineComment", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(191, true), "toggleLineComment"); //$NON-NLS-0$
+			textView.setAction("toggleLineComment", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12643,9 +12678,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return {commentStart: commentStart, commentEnd: commentEnd};
 			}
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(191, true, !util.isMac, false, util.isMac), "addBlockComment"); //$NON-NLS-0$
-			this.textView.setAction("addBlockComment", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(191, true, !util.isMac, false, util.isMac), "addBlockComment"); //$NON-NLS-0$
+			textView.setAction("addBlockComment", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12668,9 +12703,9 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return true;
 			}.bind(this), {name: messages.addBlockComment});
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(220, true, !util.isMac, false, util.isMac), "removeBlockComment"); //$NON-NLS-0$
-			this.textView.setAction("removeBlockComment", function() { //$NON-NLS-0$
-				if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(220, true, !util.isMac, false, util.isMac), "removeBlockComment"); //$NON-NLS-0$
+			textView.setAction("removeBlockComment", function() { //$NON-NLS-0$
+				if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 				var editor = this.editor;
 				var model = editor.getModel();
 				var selection = editor.getSelection();
@@ -12751,7 +12786,8 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				this.linkedMode.enterLinkedMode(linkedModeModel);
 			} else if (proposal.escapePosition) {
 				//we don't want linked mode, but there is an escape position, so just set cursor position
-				this.textView.setCaretOffset(proposal.escapePosition);
+				var textView = this.editor.getTextView();
+				textView.setCaretOffset(proposal.escapePosition);
 			}
 			return true;
 		},
@@ -12773,7 +12809,8 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 		},
 		enter: function() {
 			// Auto indent
-			if (this.textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			var textView = this.editor.getTextView();
+			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
 			var editor = this.editor;
 			var selection = editor.getSelection();
 			if (selection.start === selection.end) {
@@ -12801,7 +12838,6 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 	
 	function LinkedMode(editor) {
 		this.editor = editor;
-		this.textView = editor.getTextView();
 		
 		/**
 		 * The variables used by the Linked Mode. The elements of linkedModePositions have following structure:
@@ -12886,18 +12922,19 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 			this.linkedModeCurrentPositionIndex = 0;
 			this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
 
-			this.textView.addEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
+			var textView = this.editor.getTextView();
+			textView.addEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
 
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "nextLinkedModePosition"); //$NON-NLS-0$
-			this.textView.setAction("nextLinkedModePosition", function() { //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "nextLinkedModePosition"); //$NON-NLS-0$
+			textView.setAction("nextLinkedModePosition", function() { //$NON-NLS-0$
 				// Switch to the next group on TAB key
 				this.linkedModeCurrentPositionIndex = ++this.linkedModeCurrentPositionIndex % this.linkedModePositions.length;
 				this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
 				return true;
 			}.bind(this));
 			
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "previousLinkedModePosition"); //$NON-NLS-0$
-			this.textView.setAction("previousLinkedModePosition", function() { //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "previousLinkedModePosition"); //$NON-NLS-0$
+			textView.setAction("previousLinkedModePosition", function() { //$NON-NLS-0$
 				this.linkedModeCurrentPositionIndex = this.linkedModeCurrentPositionIndex > 0 ? this.linkedModeCurrentPositionIndex-1 : this.linkedModePositions.length-1;
 				this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
 				return true;
@@ -12925,12 +12962,13 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 				return;
 			}
 			this.linkedModeActive = false;
-			this.textView.removeEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "tab"); //$NON-NLS-0$
-			this.textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "shiftTab"); //$NON-NLS-0$
+			var textView = this.editor.getTextView();
+			textView.removeEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "tab"); //$NON-NLS-0$
+			textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "shiftTab"); //$NON-NLS-0$
 			
 			if (!ignoreEscapePosition) {
-				this.textView.setCaretOffset(this.linkedModeEscapePosition, false);
+				textView.setCaretOffset(this.linkedModeEscapePosition, false);
 			}
 
 			this.editor.reportStatus(messages.linkedModeExited, null, true);
@@ -12946,7 +12984,8 @@ function(messages, mUndoStack, mKeyBinding, mRulers, mAnnotations, mTooltip, mTe
 		 * Updates the selection in the textView for given Linked Mode position.
 		 */
 		selectTextForLinkedModePosition: function(position) {
-			this.textView.setSelection(position.offset, position.offset + position.length);
+			var textView = this.editor.getTextView();
+			textView.setSelection(position.offset, position.offset + position.length);
 		}
 	};
 
@@ -13417,15 +13456,25 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			if (!proposal) {
 				return false;
 			}
-			var offset = this.textView.getCaretOffset();
+	
+			// now handle prefixes
+			// if there is a non-empty selection, then replace it,
+			// if overwrite is truthy, then also replace the prefix
+			var sel = this.textView.getSelection();
+			var start = Math.min(sel.start, sel.end);
+			var end = Math.max(sel.start, sel.end);
+			if (proposal.overwrite) {
+				start = this.getPrefixStart(start);
+			}
+
 			var data = {
 				proposal: proposal,
-				start: offset,
-				end: offset
+				start: start,
+				end: end
 			};
 			this.setState(State.INACTIVE);
 			var proposalText = proposal.proposal || proposal;
-			this.textView.setText(proposalText, offset, offset);
+			this.textView.setText(proposalText, start, end);
 			this.dispatchEvent({type: "ProposalApplied", data: data});
 			return true;
 		},
@@ -13687,7 +13736,9 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 				self.position();
 			}
 		};
-		document.addEventListener("scroll", this.scrollListener);
+		if (document.addEventListener) {
+			document.addEventListener("scroll", this.scrollListener);
+		}
 	}
 	ContentAssistWidget.prototype = /** @lends orion.editor.ContentAssistWidget.prototype */ {
 		/** @private */
