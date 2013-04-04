@@ -343,11 +343,51 @@ In addition, the Orion core needs to be compartmentalized to allow projects or p
 <p:proposed>
 	<ul>
 		<li>
-		<strong>Concrete Skinning Examples</strong>
-		Provide examples of both skinning Orion to match an existing project deployment and also how to integrate Orion style pages from a 3rd parting into the look
-		and feel of an Orion application.
-		[Client]
-	</li>
+			<strong>Concrete Skinning Examples</strong>
+			Provide examples of both skinning Orion to match an existing project deployment and also how to integrate Orion style pages from a 3rd parting into the look
+			and feel of an Orion application.
+			[Client]
+		</li>
+		<li>
+			<strong>KeyBinding Support in the Editor</strong>
+			Improve the key binding support in the editor so that modes such as "vi" and "emacs" could be implemented. Stretch goal is
+			to implement vi bindings.
+			[Client][Editor]
+		</li>
+		<li>
+			<strong>Mixed Mode styling</strong>
+			Allow the editor to specify ranges or blocks where a particular styling can be apply.
+			[Client][Editor]
+		</li>
+		<li>
+			<strong>Allow Embedded Editor to consume additional styling options</strong>
+			At the moment the embedded editor can support HTML, CSS and JavaScript styling. Should allow a plugable model to consume
+			the CodeMirror Modes available.
+			[Client][Editor]
+		</li>
+		<li>
+			<strong>Embedded Editor with Plugin Support</strong>
+			Allow the plugin architecture to work within the Embedded Editor
+			[Client][Editor]
+		</li>
+		<li>
+			<strong>Allow for file navigation on the editor page</strong>
+			There has been consistent demand from users and consumers of Orion to allow navigation on the left pane for the editor.
+			[Client]
+		</li>
+		<li>
+			<strong>Allow Orion to consume a new index file for content assist</strong>
+			There is work underway to determine a best of breed format for indexing JavaScript libraries and this item covers
+			how to enable Orion to consume these indexes for the purposes of Content Assist.
+			[Client]
+		</li>
+		<li>
+			<strong>Create a Stand Alone build for compare</strong>
+			Create a stand alone build similar to the editor that allows the consumption of the client side compare utilities by any
+			web application.  Provide examples and use cases.
+			[Client]
+		</li>
+		
 	</ul>
 </p:proposed>
 
@@ -386,7 +426,7 @@ in Orion, and ways to transform these projects into a deployable artifact to a w
 	<li>
 		<strong>VMC Support for pushing applications to CloudFoundry</strong>
 		VMC is chosen because of the range of providers supporting the VMC APIs.  The goal is to support targetting, logging in, listing and pushing applications.
-		[Client][Server]
+		[Client][Server][TimePermitting]
 	</li>
 </ul>
 </p:proposed>
@@ -430,6 +470,55 @@ of the server need to be expanded to support more features similar to the Java s
 		[Client][Server][Node]
 	</li>
 </ul>
+</p:proposed>
+
+<p:committed>
+  <p><i>None at this time.</i></p>
+</p:committed>
+
+<p:deferred>
+  <p><i>None at this time.</i></p>
+</p:deferred>
+
+</p:theme>
+
+<p:theme name="Scalability">
+
+<p:description>
+<p>
+The Orion Server was not initially implemented as a first class server however as adoption of Orion by vendors increases it is important
+to ensure the server can scale up to handle significant load and user base.
+</p>
+</p:description>
+
+<p:proposed>
+	<ul>
+		<li>
+			<strong>System and User Preferences</strong>
+			Improve how our System and User preferences are stored and accessed by they client.
+			[Client][Server]
+		</li>
+		<li>
+			<strong>Project Preferences</strong>
+			Defind how the preferences for a "Project" are stored and referenced. Goes along with the System and User Preferences work.
+			[Client][Server]
+		</li>
+		<li>
+			<strong></strong>
+			[Client]
+		</li>
+		<li>
+			<strong>Preferences for Node Server</strong>
+			The Node server does not currently have preferences stored for the one user.
+			[Client][Server][Node]
+		</li>
+		<li>
+			<strong>Switch to Common Build Infrastructure</strong>
+			While not specifically tied to Scalability it will allow easier adoption if consumers of the server want to add their
+			own extenstions and are required to build the server.
+			[Server]
+		</li>
+	</ul>
 </p:proposed>
 
 <p:committed>
