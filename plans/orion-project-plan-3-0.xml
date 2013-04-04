@@ -510,6 +510,11 @@ to ensure the server can scale up to handle significant load and user base.
 			[Client][Server][Node]
 		</li>
 		<li>
+			<strong>Clustering Support</strong>
+			Ability to support more than one Orion server handling requests. This means Orion server must be stateless.
+			[Client][Server]
+		</li>
+		<li>
 			<strong>Switch to Common Build Infrastructure</strong>
 			While not specifically tied to Scalability it will allow easier adoption if consumers of the server want to add their
 			own extenstions and are required to build the server.
