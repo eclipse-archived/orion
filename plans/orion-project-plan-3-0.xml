@@ -454,7 +454,8 @@ of the server need to be expanded to support more features similar to the Java s
 	<li>
 		<strong>Git Support</strong>
 		Investigage implementing both a Node.js git library and consuming this library within the Orion server and client. Currently this work is being investigated
-		by a student team at Warsaw University.
+		by a student team at Warsaw University. Additionally there was a KickStarter project for client side Git that could be leveraged depending
+		on when the work starts and completes.
 		[Client][Server][Node]
 	</li>
 	<li>
@@ -502,10 +503,6 @@ to ensure the server can scale up to handle significant load and user base.
 			<strong>Project Preferences</strong>
 			Defind how the preferences for a "Project" are stored and referenced. Goes along with the System and User Preferences work.
 			[Client][Server]
-		</li>
-		<li>
-			<strong></strong>
-			[Client]
 		</li>
 		<li>
 			<strong>Preferences for Node Server</strong>
