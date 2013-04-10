@@ -472,293 +472,337 @@ define('orion/webui/dropdown',['require', 'orion/webui/littlelib'], function(req
 	return {Dropdown: Dropdown};
 });
 /**
- * @license RequireJS text 1.0.7 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS text 2.0.5 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
+ * see: http://github.com/requirejs/text for details
  */
-/*jslint regexp: false, nomen: false, plusplus: false, strict: false */
+/*jslint regexp: true */
 /*global require: false, XMLHttpRequest: false, ActiveXObject: false,
   define: false, window: false, process: false, Packages: false,
   java: false, location: false */
 
-(function () {
-    var progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],
+define('text',['module'], function (module) {
+    
+
+    var text, fs,
+        progIds = ['Msxml2.XMLHTTP', 'Microsoft.XMLHTTP', 'Msxml2.XMLHTTP.4.0'],
         xmlRegExp = /^\s*<\?xml(\s)+version=[\'\"](\d)*.(\d)*[\'\"](\s)*\?>/im,
         bodyRegExp = /<body[^>]*>\s*([\s\S]+)\s*<\/body>/im,
         hasLocation = typeof location !== 'undefined' && location.href,
         defaultProtocol = hasLocation && location.protocol && location.protocol.replace(/\:/, ''),
         defaultHostName = hasLocation && location.hostname,
         defaultPort = hasLocation && (location.port || undefined),
-        buildMap = [];
+        buildMap = [],
+        masterConfig = (module.config && module.config()) || {};
 
-    define('text',[],function () {
-        var text, get, fs;
+    text = {
+        version: '2.0.5',
 
-        if (typeof window !== "undefined" && window.navigator && window.document) {
-            get = function (url, callback) {
-                var xhr = text.createXhr();
-                xhr.open('GET', url, true);
-                xhr.onreadystatechange = function (evt) {
-                    //Do not explicitly handle errors, those should be
-                    //visible via console output in the browser.
-                    if (xhr.readyState === 4) {
+        strip: function (content) {
+            //Strips <?xml ...?> declarations so that external SVG and XML
+            //documents can be added to a document without worry. Also, if the string
+            //is an HTML document, only the part inside the body tag is returned.
+            if (content) {
+                content = content.replace(xmlRegExp, "");
+                var matches = content.match(bodyRegExp);
+                if (matches) {
+                    content = matches[1];
+                }
+            } else {
+                content = "";
+            }
+            return content;
+        },
+
+        jsEscape: function (content) {
+            return content.replace(/(['\\])/g, '\\$1')
+                .replace(/[\f]/g, "\\f")
+                .replace(/[\b]/g, "\\b")
+                .replace(/[\n]/g, "\\n")
+                .replace(/[\t]/g, "\\t")
+                .replace(/[\r]/g, "\\r")
+                .replace(/[\u2028]/g, "\\u2028")
+                .replace(/[\u2029]/g, "\\u2029");
+        },
+
+        createXhr: masterConfig.createXhr || function () {
+            //Would love to dump the ActiveX crap in here. Need IE 6 to die first.
+            var xhr, i, progId;
+            if (typeof XMLHttpRequest !== "undefined") {
+                return new XMLHttpRequest();
+            } else if (typeof ActiveXObject !== "undefined") {
+                for (i = 0; i < 3; i += 1) {
+                    progId = progIds[i];
+                    try {
+                        xhr = new ActiveXObject(progId);
+                    } catch (e) {}
+
+                    if (xhr) {
+                        progIds = [progId];  // so faster next time
+                        break;
+                    }
+                }
+            }
+
+            return xhr;
+        },
+
+        /**
+         * Parses a resource name into its component parts. Resource names
+         * look like: module/name.ext!strip, where the !strip part is
+         * optional.
+         * @param {String} name the resource name
+         * @returns {Object} with properties "moduleName", "ext" and "strip"
+         * where strip is a boolean.
+         */
+        parseName: function (name) {
+            var modName, ext, temp,
+                strip = false,
+                index = name.indexOf("."),
+                isRelative = name.indexOf('./') === 0 ||
+                             name.indexOf('../') === 0;
+
+            if (index !== -1 && (!isRelative || index > 1)) {
+                modName = name.substring(0, index);
+                ext = name.substring(index + 1, name.length);
+            } else {
+                modName = name;
+            }
+
+            temp = ext || modName;
+            index = temp.indexOf("!");
+            if (index !== -1) {
+                //Pull off the strip arg.
+                strip = temp.substring(index + 1) === "strip";
+                temp = temp.substring(0, index);
+                if (ext) {
+                    ext = temp;
+                } else {
+                    modName = temp;
+                }
+            }
+
+            return {
+                moduleName: modName,
+                ext: ext,
+                strip: strip
+            };
+        },
+
+        xdRegExp: /^((\w+)\:)?\/\/([^\/\\]+)/,
+
+        /**
+         * Is an URL on another domain. Only works for browser use, returns
+         * false in non-browser environments. Only used to know if an
+         * optimized .js version of a text resource should be loaded
+         * instead.
+         * @param {String} url
+         * @returns Boolean
+         */
+        useXhr: function (url, protocol, hostname, port) {
+            var uProtocol, uHostName, uPort,
+                match = text.xdRegExp.exec(url);
+            if (!match) {
+                return true;
+            }
+            uProtocol = match[2];
+            uHostName = match[3];
+
+            uHostName = uHostName.split(':');
+            uPort = uHostName[1];
+            uHostName = uHostName[0];
+
+            return (!uProtocol || uProtocol === protocol) &&
+                   (!uHostName || uHostName.toLowerCase() === hostname.toLowerCase()) &&
+                   ((!uPort && !uHostName) || uPort === port);
+        },
+
+        finishLoad: function (name, strip, content, onLoad) {
+            content = strip ? text.strip(content) : content;
+            if (masterConfig.isBuild) {
+                buildMap[name] = content;
+            }
+            onLoad(content);
+        },
+
+        load: function (name, req, onLoad, config) {
+            //Name has format: some.module.filext!strip
+            //The strip part is optional.
+            //if strip is present, then that means only get the string contents
+            //inside a body tag in an HTML string. For XML/SVG content it means
+            //removing the <?xml ...?> declarations so the content can be inserted
+            //into the current doc without problems.
+
+            // Do not bother with the work if a build and text will
+            // not be inlined.
+            if (config.isBuild && !config.inlineText) {
+                onLoad();
+                return;
+            }
+
+            masterConfig.isBuild = config.isBuild;
+
+            var parsed = text.parseName(name),
+                nonStripName = parsed.moduleName +
+                    (parsed.ext ? '.' + parsed.ext : ''),
+                url = req.toUrl(nonStripName),
+                useXhr = (masterConfig.useXhr) ||
+                         text.useXhr;
+
+            //Load the text. Use XHR if possible and in a browser.
+            if (!hasLocation || useXhr(url, defaultProtocol, defaultHostName, defaultPort)) {
+                text.get(url, function (content) {
+                    text.finishLoad(name, parsed.strip, content, onLoad);
+                }, function (err) {
+                    if (onLoad.error) {
+                        onLoad.error(err);
+                    }
+                });
+            } else {
+                //Need to fetch the resource across domains. Assume
+                //the resource has been optimized into a JS module. Fetch
+                //by the module name + extension, but do not include the
+                //!strip part to avoid file system issues.
+                req([nonStripName], function (content) {
+                    text.finishLoad(parsed.moduleName + '.' + parsed.ext,
+                                    parsed.strip, content, onLoad);
+                });
+            }
+        },
+
+        write: function (pluginName, moduleName, write, config) {
+            if (buildMap.hasOwnProperty(moduleName)) {
+                var content = text.jsEscape(buildMap[moduleName]);
+                write.asModule(pluginName + "!" + moduleName,
+                               "define(function () { return '" +
+                                   content +
+                               "';});\n");
+            }
+        },
+
+        writeFile: function (pluginName, moduleName, req, write, config) {
+            var parsed = text.parseName(moduleName),
+                extPart = parsed.ext ? '.' + parsed.ext : '',
+                nonStripName = parsed.moduleName + extPart,
+                //Use a '.js' file name so that it indicates it is a
+                //script that can be loaded across domains.
+                fileName = req.toUrl(parsed.moduleName + extPart) + '.js';
+
+            //Leverage own load() method to load plugin value, but only
+            //write out values that do not have the strip argument,
+            //to avoid any potential issues with ! in file names.
+            text.load(nonStripName, req, function (value) {
+                //Use own write() method to construct full module value.
+                //But need to create shell that translates writeFile's
+                //write() to the right interface.
+                var textWrite = function (contents) {
+                    return write(fileName, contents);
+                };
+                textWrite.asModule = function (moduleName, contents) {
+                    return write.asModule(moduleName, fileName, contents);
+                };
+
+                text.write(pluginName, nonStripName, textWrite, config);
+            }, config);
+        }
+    };
+
+    if (masterConfig.env === 'node' || (!masterConfig.env &&
+            typeof process !== "undefined" &&
+            process.versions &&
+            !!process.versions.node)) {
+        //Using special require.nodeRequire, something added by r.js.
+        fs = require.nodeRequire('fs');
+
+        text.get = function (url, callback) {
+            var file = fs.readFileSync(url, 'utf8');
+            //Remove BOM (Byte Mark Order) from utf8 files if it is there.
+            if (file.indexOf('\uFEFF') === 0) {
+                file = file.substring(1);
+            }
+            callback(file);
+        };
+    } else if (masterConfig.env === 'xhr' || (!masterConfig.env &&
+            text.createXhr())) {
+        text.get = function (url, callback, errback, headers) {
+            var xhr = text.createXhr(), header;
+            xhr.open('GET', url, true);
+
+            //Allow plugins direct access to xhr headers
+            if (headers) {
+                for (header in headers) {
+                    if (headers.hasOwnProperty(header)) {
+                        xhr.setRequestHeader(header.toLowerCase(), headers[header]);
+                    }
+                }
+            }
+
+            //Allow overrides specified in config
+            if (masterConfig.onXhr) {
+                masterConfig.onXhr(xhr, url);
+            }
+
+            xhr.onreadystatechange = function (evt) {
+                var status, err;
+                //Do not explicitly handle errors, those should be
+                //visible via console output in the browser.
+                if (xhr.readyState === 4) {
+                    status = xhr.status;
+                    if (status > 399 && status < 600) {
+                        //An http 4xx or 5xx error. Signal an error.
+                        err = new Error(url + ' HTTP status: ' + status);
+                        err.xhr = xhr;
+                        errback(err);
+                    } else {
                         callback(xhr.responseText);
                     }
-                };
-                xhr.send(null);
+                }
             };
-        } else if (typeof process !== "undefined" &&
-                 process.versions &&
-                 !!process.versions.node) {
-            //Using special require.nodeRequire, something added by r.js.
-            fs = require.nodeRequire('fs');
-
-            get = function (url, callback) {
-                var file = fs.readFileSync(url, 'utf8');
-                //Remove BOM (Byte Mark Order) from utf8 files if it is there.
-                if (file.indexOf('\uFEFF') === 0) {
-                    file = file.substring(1);
-                }
-                callback(file);
-            };
-        } else if (typeof Packages !== 'undefined') {
-            //Why Java, why is this so awkward?
-            get = function (url, callback) {
-                var encoding = "utf-8",
-                    file = new java.io.File(url),
-                    lineSeparator = java.lang.System.getProperty("line.separator"),
-                    input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file), encoding)),
-                    stringBuffer, line,
-                    content = '';
-                try {
-                    stringBuffer = new java.lang.StringBuffer();
-                    line = input.readLine();
-
-                    // Byte Order Mark (BOM) - The Unicode Standard, version 3.0, page 324
-                    // http://www.unicode.org/faq/utf_bom.html
-
-                    // Note that when we use utf-8, the BOM should appear as "EF BB BF", but it doesn't due to this bug in the JDK:
-                    // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4508058
-                    if (line && line.length() && line.charAt(0) === 0xfeff) {
-                        // Eat the BOM, since we've already found the encoding on this file,
-                        // and we plan to concatenating this buffer with others; the BOM should
-                        // only appear at the top of a file.
-                        line = line.substring(1);
-                    }
-
-                    stringBuffer.append(line);
-
-                    while ((line = input.readLine()) !== null) {
-                        stringBuffer.append(lineSeparator);
-                        stringBuffer.append(line);
-                    }
-                    //Make sure we return a JavaScript string and not a Java string.
-                    content = String(stringBuffer.toString()); //String
-                } finally {
-                    input.close();
-                }
-                callback(content);
-            };
-        }
-
-        text = {
-            version: '1.0.7',
-
-            strip: function (content) {
-                //Strips <?xml ...?> declarations so that external SVG and XML
-                //documents can be added to a document without worry. Also, if the string
-                //is an HTML document, only the part inside the body tag is returned.
-                if (content) {
-                    content = content.replace(xmlRegExp, "");
-                    var matches = content.match(bodyRegExp);
-                    if (matches) {
-                        content = matches[1];
-                    }
-                } else {
-                    content = "";
-                }
-                return content;
-            },
-
-            jsEscape: function (content) {
-                return content.replace(/(['\\])/g, '\\$1')
-                    .replace(/[\f]/g, "\\f")
-                    .replace(/[\b]/g, "\\b")
-                    .replace(/[\n]/g, "\\n")
-                    .replace(/[\t]/g, "\\t")
-                    .replace(/[\r]/g, "\\r");
-            },
-
-            createXhr: function () {
-                //Would love to dump the ActiveX crap in here. Need IE 6 to die first.
-                var xhr, i, progId;
-                if (typeof XMLHttpRequest !== "undefined") {
-                    return new XMLHttpRequest();
-                } else {
-                    for (i = 0; i < 3; i++) {
-                        progId = progIds[i];
-                        try {
-                            xhr = new ActiveXObject(progId);
-                        } catch (e) {}
-
-                        if (xhr) {
-                            progIds = [progId];  // so faster next time
-                            break;
-                        }
-                    }
-                }
-
-                if (!xhr) {
-                    throw new Error("createXhr(): XMLHttpRequest not available");
-                }
-
-                return xhr;
-            },
-
-            get: get,
-
-            /**
-             * Parses a resource name into its component parts. Resource names
-             * look like: module/name.ext!strip, where the !strip part is
-             * optional.
-             * @param {String} name the resource name
-             * @returns {Object} with properties "moduleName", "ext" and "strip"
-             * where strip is a boolean.
-             */
-            parseName: function (name) {
-                var strip = false, index = name.indexOf("."),
-                    modName = name.substring(0, index),
-                    ext = name.substring(index + 1, name.length);
-
-                index = ext.indexOf("!");
-                if (index !== -1) {
-                    //Pull off the strip arg.
-                    strip = ext.substring(index + 1, ext.length);
-                    strip = strip === "strip";
-                    ext = ext.substring(0, index);
-                }
-
-                return {
-                    moduleName: modName,
-                    ext: ext,
-                    strip: strip
-                };
-            },
-
-            xdRegExp: /^((\w+)\:)?\/\/([^\/\\]+)/,
-
-            /**
-             * Is an URL on another domain. Only works for browser use, returns
-             * false in non-browser environments. Only used to know if an
-             * optimized .js version of a text resource should be loaded
-             * instead.
-             * @param {String} url
-             * @returns Boolean
-             */
-            useXhr: function (url, protocol, hostname, port) {
-                var match = text.xdRegExp.exec(url),
-                    uProtocol, uHostName, uPort;
-                if (!match) {
-                    return true;
-                }
-                uProtocol = match[2];
-                uHostName = match[3];
-
-                uHostName = uHostName.split(':');
-                uPort = uHostName[1];
-                uHostName = uHostName[0];
-
-                return (!uProtocol || uProtocol === protocol) &&
-                       (!uHostName || uHostName === hostname) &&
-                       ((!uPort && !uHostName) || uPort === port);
-            },
-
-            finishLoad: function (name, strip, content, onLoad, config) {
-                content = strip ? text.strip(content) : content;
-                if (config.isBuild) {
-                    buildMap[name] = content;
-                }
-                onLoad(content);
-            },
-
-            load: function (name, req, onLoad, config) {
-                //Name has format: some.module.filext!strip
-                //The strip part is optional.
-                //if strip is present, then that means only get the string contents
-                //inside a body tag in an HTML string. For XML/SVG content it means
-                //removing the <?xml ...?> declarations so the content can be inserted
-                //into the current doc without problems.
-
-                // Do not bother with the work if a build and text will
-                // not be inlined.
-                if (config.isBuild && !config.inlineText) {
-                    onLoad();
-                    return;
-                }
-
-                var parsed = text.parseName(name),
-                    nonStripName = parsed.moduleName + '.' + parsed.ext,
-                    url = req.toUrl(nonStripName),
-                    useXhr = (config && config.text && config.text.useXhr) ||
-                             text.useXhr;
-
-                //Load the text. Use XHR if possible and in a browser.
-                if (!hasLocation || useXhr(url, defaultProtocol, defaultHostName, defaultPort)) {
-                    text.get(url, function (content) {
-                        text.finishLoad(name, parsed.strip, content, onLoad, config);
-                    });
-                } else {
-                    //Need to fetch the resource across domains. Assume
-                    //the resource has been optimized into a JS module. Fetch
-                    //by the module name + extension, but do not include the
-                    //!strip part to avoid file system issues.
-                    req([nonStripName], function (content) {
-                        text.finishLoad(parsed.moduleName + '.' + parsed.ext,
-                                        parsed.strip, content, onLoad, config);
-                    });
-                }
-            },
-
-            write: function (pluginName, moduleName, write, config) {
-                if (moduleName in buildMap) {
-                    var content = text.jsEscape(buildMap[moduleName]);
-                    write.asModule(pluginName + "!" + moduleName,
-                                   "define(function () { return '" +
-                                       content +
-                                   "';});\n");
-                }
-            },
-
-            writeFile: function (pluginName, moduleName, req, write, config) {
-                var parsed = text.parseName(moduleName),
-                    nonStripName = parsed.moduleName + '.' + parsed.ext,
-                    //Use a '.js' file name so that it indicates it is a
-                    //script that can be loaded across domains.
-                    fileName = req.toUrl(parsed.moduleName + '.' +
-                                         parsed.ext) + '.js';
-
-                //Leverage own load() method to load plugin value, but only
-                //write out values that do not have the strip argument,
-                //to avoid any potential issues with ! in file names.
-                text.load(nonStripName, req, function (value) {
-                    //Use own write() method to construct full module value.
-                    //But need to create shell that translates writeFile's
-                    //write() to the right interface.
-                    var textWrite = function (contents) {
-                        return write(fileName, contents);
-                    };
-                    textWrite.asModule = function (moduleName, contents) {
-                        return write.asModule(moduleName, fileName, contents);
-                    };
-
-                    text.write(pluginName, nonStripName, textWrite, config);
-                }, config);
-            }
+            xhr.send(null);
         };
+    } else if (masterConfig.env === 'rhino' || (!masterConfig.env &&
+            typeof Packages !== 'undefined' && typeof java !== 'undefined')) {
+        //Why Java, why is this so awkward?
+        text.get = function (url, callback) {
+            var stringBuffer, line,
+                encoding = "utf-8",
+                file = new java.io.File(url),
+                lineSeparator = java.lang.System.getProperty("line.separator"),
+                input = new java.io.BufferedReader(new java.io.InputStreamReader(new java.io.FileInputStream(file), encoding)),
+                content = '';
+            try {
+                stringBuffer = new java.lang.StringBuffer();
+                line = input.readLine();
 
-        return text;
-    });
-}());
+                // Byte Order Mark (BOM) - The Unicode Standard, version 3.0, page 324
+                // http://www.unicode.org/faq/utf_bom.html
+
+                // Note that when we use utf-8, the BOM should appear as "EF BB BF", but it doesn't due to this bug in the JDK:
+                // http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=4508058
+                if (line && line.length() && line.charAt(0) === 0xfeff) {
+                    // Eat the BOM, since we've already found the encoding on this file,
+                    // and we plan to concatenating this buffer with others; the BOM should
+                    // only appear at the top of a file.
+                    line = line.substring(1);
+                }
+
+                stringBuffer.append(line);
+
+                while ((line = input.readLine()) !== null) {
+                    stringBuffer.append(lineSeparator);
+                    stringBuffer.append(line);
+                }
+                //Make sure we return a JavaScript string and not a Java string.
+                content = String(stringBuffer.toString()); //String
+            } finally {
+                input.close();
+            }
+            callback(content);
+        };
+    }
+
+    return text;
+});
 
 define('text!orion/webui/dropdowntriggerbutton.html',[],function () { return '<button class="dropdownTrigger">${ButtonText}<span class="dropdownArrowDown"></span></button><ul class="dropdownMenu"></ul>';});
 
@@ -1600,11 +1644,11 @@ define('orion/commands',['require', 'orion/util', 'orion/webui/littlelib', 'orio
 	};
 });
 /**
- * @license RequireJS i18n 1.0.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS i18n 2.0.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
+ * see: http://github.com/requirejs/i18n for details
  */
-/*jslint regexp: false, nomen: false, plusplus: false, strict: false */
+/*jslint regexp: true */
 /*global require: false, navigator: false, define: false */
 
 /**
@@ -1636,14 +1680,15 @@ define('orion/commands',['require', 'orion/util', 'orion/webui/littlelib', 'orio
  * for the nls/fr-fr/colors bundle to be that mixed in locale.
  */
 (function () {
+    
+
     //regexp for reconstructing the master bundle name from parts of the regexp match
     //nlsRegExp.exec("foo/bar/baz/nls/en-ca/foo") gives:
     //["foo/bar/baz/nls/en-ca/foo", "foo/bar/baz/nls/", "/", "/", "en-ca", "foo"]
     //nlsRegExp.exec("foo/bar/baz/nls/foo") gives:
     //["foo/bar/baz/nls/foo", "foo/bar/baz/nls/", "/", "/", "foo", ""]
     //so, if match[5] is blank, it means this is the top bundle definition.
-    var nlsRegExp = /(^.*(^|\/)nls(\/|$))([^\/]*)\/?([^\/]*)/,
-        empty = {};
+    var nlsRegExp = /(^.*(^|\/)nls(\/|$))([^\/]*)\/?([^\/]*)/;
 
     //Helper function to avoid repeating code. Lots of arguments in the
     //desire to stay functional and support RequireJS contexts without having
@@ -1659,7 +1704,7 @@ define('orion/commands',['require', 'orion/util', 'orion/webui/littlelib', 'orio
 
     function addIfExists(req, locale, toLoad, prefix, suffix) {
         var fullName = prefix + locale + '/' + suffix;
-        if (require._fileExists(req.toUrl(fullName))) {
+        if (require._fileExists(req.toUrl(fullName + '.js'))) {
             toLoad.push(fullName);
         }
     }
@@ -1672,92 +1717,110 @@ define('orion/commands',['require', 'orion/util', 'orion/webui/littlelib', 'orio
      * trigger a problem related to that.
      */
     function mixin(target, source, force) {
-        for (var prop in source) {
-            if (!(prop in empty) && (!(prop in target) || force)) {
+        var prop;
+        for (prop in source) {
+            if (source.hasOwnProperty(prop) && (!target.hasOwnProperty(prop) || force)) {
                 target[prop] = source[prop];
+            } else if (typeof source[prop] === 'object') {
+                mixin(target[prop], source[prop], force);
             }
         }
     }
 
-    define('i18n',{
-        version: '1.0.0',
-        /**
-         * Called when a dependency needs to be loaded.
-         */
-        load: function (name, req, onLoad, config) {
-            config = config || {};
+    define('i18n',['module'], function (module) {
+        var masterConfig = module.config ? module.config() : {};
 
-            var masterName,
-                match = nlsRegExp.exec(name),
-                prefix = match[1],
-                locale = match[4],
-                suffix = match[5],
-                parts = locale.split("-"),
-                toLoad = [],
-                value = {},
-                i, part, current = "";
+        return {
+            version: '2.0.1+',
+            /**
+             * Called when a dependency needs to be loaded.
+             */
+            load: function (name, req, onLoad, config) {
+                config = config || {};
 
-            //If match[5] is blank, it means this is the top bundle definition,
-            //so it does not have to be handled. Locale-specific requests
-            //will have a match[4] value but no match[5]
-            if (match[5]) {
-                //locale-specific bundle
-                prefix = match[1];
-                masterName = prefix + suffix;
-            } else {
-                //Top-level bundle.
-                masterName = name;
-                suffix = match[4];
-                locale = config.locale || (config.locale =
-                        typeof navigator === "undefined" ? "root" :
-                        (navigator.language ||
-                         navigator.userLanguage || "root").toLowerCase());
-                parts = locale.split("-");
-            }
-
-            if (config.isBuild) {
-                //Check for existence of all locale possible files and
-                //require them if exist.
-                toLoad.push(masterName);
-                addIfExists(req, "root", toLoad, prefix, suffix);
-                for (i = 0; (part = parts[i]); i++) {
-                    current += (current ? "-" : "") + part;
-                    addIfExists(req, current, toLoad, prefix, suffix);
+                if (config.locale) {
+                    masterConfig.locale = config.locale;
                 }
 
-                req(toLoad, function () {
-                    onLoad();
-                });
-            } else {
-                //First, fetch the master bundle, it knows what locales are available.
-                req([masterName], function (master) {
-                    //Figure out the best fit
-                    var needed = [];
+                var masterName,
+                    match = nlsRegExp.exec(name),
+                    prefix = match[1],
+                    locale = match[4],
+                    suffix = match[5],
+                    parts = locale.split("-"),
+                    toLoad = [],
+                    value = {},
+                    i, part, current = "";
 
-                    //Always allow for root, then do the rest of the locale parts.
-                    addPart("root", master, needed, toLoad, prefix, suffix);
-                    for (i = 0; (part = parts[i]); i++) {
+                //If match[5] is blank, it means this is the top bundle definition,
+                //so it does not have to be handled. Locale-specific requests
+                //will have a match[4] value but no match[5]
+                if (match[5]) {
+                    //locale-specific bundle
+                    prefix = match[1];
+                    masterName = prefix + suffix;
+                } else {
+                    //Top-level bundle.
+                    masterName = name;
+                    suffix = match[4];
+                    locale = masterConfig.locale;
+                    if (!locale) {
+                        locale = masterConfig.locale =
+                            typeof navigator === "undefined" ? "root" :
+                            (navigator.language ||
+                             navigator.userLanguage || "root").toLowerCase();
+                    }
+                    parts = locale.split("-");
+                }
+
+                if (config.isBuild) {
+                    //Check for existence of all locale possible files and
+                    //require them if exist.
+                    toLoad.push(masterName);
+                    addIfExists(req, "root", toLoad, prefix, suffix);
+                    for (i = 0; i < parts.length; i++) {
+                        part = parts[i];
                         current += (current ? "-" : "") + part;
-                        addPart(current, master, needed, toLoad, prefix, suffix);
+                        addIfExists(req, current, toLoad, prefix, suffix);
                     }
 
-                    //Load all the parts missing.
                     req(toLoad, function () {
-                        var i, partBundle;
-                        for (i = needed.length - 1; i > -1 && (part = needed[i]); i--) {
-                            partBundle = master[part];
-                            if (partBundle === true || partBundle === 1) {
-                                partBundle = req(prefix + part + '/' + suffix);
-                            }
-                            mixin(value, partBundle);
+                        onLoad();
+                    });
+                } else {
+                    //First, fetch the master bundle, it knows what locales are available.
+                    req([masterName], function (master) {
+                        //Figure out the best fit
+                        var needed = [],
+                            part;
+
+                        //Always allow for root, then do the rest of the locale parts.
+                        addPart("root", master, needed, toLoad, prefix, suffix);
+                        for (i = 0; i < parts.length; i++) {
+                            part = parts[i];
+                            current += (current ? "-" : "") + part;
+                            addPart(current, master, needed, toLoad, prefix, suffix);
                         }
 
-                        //All done, notify the loader.
-                        onLoad(value);
+                        //Load all the parts missing.
+                        req(toLoad, function () {
+                            var i, partBundle, part;
+                            for (i = needed.length - 1; i > -1 && needed[i]; i--) {
+                                part = needed[i];
+                                partBundle = master[part];
+                                if (partBundle === true || partBundle === 1) {
+                                    partBundle = req(prefix + part + '/' + suffix);
+                                }
+                                mixin(value, partBundle);
+                            }
+
+                            //All done, notify the loader.
+                            onLoad(value);
+                        });
                     });
-                });
+                }
             }
-        }
+        };
     });
 }());
 
@@ -3421,9 +3484,9 @@ define('orion/commandRegistry',['require', 'orion/commands', 'orion/uiUtils', 'o
 	 * @class Interface representing an eventual value.
 	 * @description Promise is an interface that represents an eventual value returned from the single completion of an operation.
 	 *
-	 * <p>For a concrete class that provides Promise-based APIs, see {@link orion.Deferred}.</p>
-	 * @see orion.Deferred#promise
+	 * <p>For a concrete class that implements Promise and provides additional API, see {@link orion.Deferred}.</p>
 	 * @see orion.Deferred
+	 * @see orion.Deferred#promise
 	 */
 	/**
 	 * @name then
@@ -3432,19 +3495,27 @@ define('orion/commandRegistry',['require', 'orion/commands', 'orion/uiUtils', 'o
 	 * @param {Function} [onResolve] Called when this promise is resolved.
 	 * @param {Function} [onReject] Called when this promise is rejected.
 	 * @param {Function} [onProgress] May be called to report progress events on this promise.
-	 * @returns {orion.Promise} A new promise that is fulfilled when the given onResolve or onReject callback is finished.
-	 * The callback's return value gives the fulfillment value of the returned promise.
+	 * @returns {orion.Promise} A new promise that is fulfilled when the given <code>onResolve</code> or <code>onReject</code>
+	 * callback is finished. The callback's return value gives the fulfillment value of the returned promise.
+	 */
+	/**
+	 * Cancels this promise.
+	 * @name cancel
+	 * @methodOf orion.Promise.prototype
+	 * @param {Object} reason The reason for canceling this promise.
+	 * @param {Boolean} [strict]
 	 */
 
 	/**
 	 * @name orion.Deferred
 	 * @borrows orion.Promise#then as #then
+	 * @borrows orion.Promise#cancel as #cancel
 	 * @class Provides abstraction over asynchronous operations.
 	 * @description Deferred provides abstraction over asynchronous operations.
 	 *
 	 * <p>Because Deferred implements the {@link orion.Promise} interface, a Deferred may be used anywhere a Promise is called for.
-	 * However, in most such cases it is recommended to use the Deferred's {@link #promise} field instead, which exposes a read-only
-	 * interface to callers.</p>
+	 * However, in most such cases it is recommended to use the Deferred's {@link #promise} field instead, which exposes a 
+	 * simplified, minimally <a href="https://github.com/promises-aplus/promises-spec">Promises/A+</a>-compliant interface to callers.</p>
 	 */
 	function Deferred() {
 		var result, state, listeners = [],
@@ -3530,13 +3601,6 @@ define('orion/commandRegistry',['require', 'orion/commands', 'orion/uiUtils', 'o
 			return _this.promise;
 		};
 
-		/**
-		 * Cancels this Deferred.
-		 * @name cancel
-		 * @methodOf orion.Deferred.prototype
-		 * @param {Object} reason The reason for canceling this Deferred.
-		 * @param {Boolean} [strict]
-		 */
 		this.cancel = function() {
 			if (!state) {
 				_this.reject(createCancelError());
@@ -3552,24 +3616,25 @@ define('orion/commandRegistry',['require', 'orion/commands', 'orion/uiUtils', 'o
 				deferred: new Deferred()
 			};
 			var deferred = listener.deferred;
-			var thisCancel = this.cancel.bind(this);
+			var propagated = false;
 			var propagateCancel = function() {
+				if (propagated) {
+					return;
+				}
+				propagated = true;
 				enqueue(function() {
-					var cancel = deferred.cancel === propagateCancel ? thisCancel : deferred.cancel;
-					cancel();
+					var cancel = deferred.cancel === propagateCancel ? _this.cancel : deferred.cancel;
+					if (typeof cancel === "function") {
+						cancel();
+					}
 				}, true);
 			};
 			deferred.cancel = propagateCancel;
-			var promise = deferred.promise;
-			promise.cancel = function() {
-				deferred.cancel(); // require indirection since deferred.cancel will be assigned if a promise is returned by onResolve/onReject
-			};
-
 			listeners.push(listener);
 			if (state) {
 				enqueue(notify, true); //runAsync
 			}
-			return promise;
+			return deferred.promise;
 		};
 
 		/**
@@ -3578,28 +3643,39 @@ define('orion/commandRegistry',['require', 'orion/commands', 'orion/uiUtils', 'o
 		 * @fieldOf orion.Deferred.prototype
 		 * @type orion.Promise
 		 */
-		this.promise = {
-			then: this.then,
-			cancel: this.cancel
-		};
+		this.promise = Object.create(Object.prototype, {
+			then: {
+				value: _this.then
+			},
+			cancel: {
+				get: function() {
+					return _this.cancel;
+				},
+				set: function(value) {
+					_this.cancel = value;
+				}
+			}
+		});
 	}
 
 	/**
-	 * Takes multiple promises and returns a new promise that represents the outcome of all the promises.
+	 * Returns a promise that represents the outcome of all the input promises.
 	 * <p>When <code>all</code> is called with a single parameter, the returned promise has <dfn>eager</dfn> semantics,
-	 * meaning if one of the input promises is rejected, the returned promise also rejects, without waiting for the 
-	 * rest of the promises to fulfill.</p>
+	 * meaning that if any input promise rejects, the returned promise immediately rejects, without waiting for the rest of the
+	 * input promises to fulfill.</p>
 	 *
-	 * To obtain <dfn>lazy</dfn> semantics (meaning the returned promise waits for all input promises to fulfill), pass the
+	 * To obtain <dfn>lazy</dfn> semantics (meaning the returned promise waits for every input promise to fulfill), pass the
 	 * optional parameter <code>optOnError</code>.
 	 * @name all
 	 * @methodOf orion.Deferred
 	 * @static
-	 * @param {orion.Promise[]} promises The promises.
-	 * @param {Function} [optOnError] Handles a rejected input promise. When invoked, <code>optOnError</code> is passed the reason 
-	 * the input promise was rejected. The return value of this <code>optOnError</code> call serves as the value of the rejected promise.
+	 * @param {orion.Promise[]} promises The input promises.
+	 * @param {Function} [optOnError] Handles a rejected input promise. <code>optOnError</code> is invoked for every rejected
+	 * input promise, and is passed the reason the input promise was rejected. <p><code>optOnError</code> can return a value, which
+	 * allows it to act as a transformer: the return value serves as the final fulfillment value of the rejected promise in the 
+	 * results array generated by <code>all</code>.
 	 * @returns {orion.Promise} A new promise. The returned promise is generally fulfilled to an <code>Array</code> whose elements
-	 * give the fulfillment values of the input promises. However if an input promise is rejected and eager semantics is used, the 
+	 * give the fulfillment values of the input promises. <p>However, if an input promise rejects and eager semantics is used, the 
 	 * returned promise will instead be fulfilled to a single error value.</p>
 	 */
 	Deferred.all = function(promises, optOnError) {
@@ -3751,7 +3827,7 @@ define('orion/compare/nls/messages',['orion/i18n!orion/compare/nls/messages', 'o
 /*global define document console prompt window*/
 /*jslint forin:true regexp:false sub:true*/
 
-define('orion/compare/diff-parser',[], function() {
+define('orion/compare/diffParser',[], function() {
 
 var orion = orion || {};
 
@@ -4379,7 +4455,7 @@ orion.compareUtils = orion.compareUtils || {};
 /**
  * Look up the mapper item by a given line index (zero based)
  * @static
- * @param {Array} mapper , the mapper generated by the  diff-parser
+ * @param {Array} mapper , the mapper generated by the  diffParser
  * @param {int} action , mapperColumnIndex , the column index of the mapper , should be 0 or 1
  * @param {int} lineIndex , the given line index
  * @return {Object} the object with two fields : the mapper index that collides with the lineIndex , the start line of the mapper
@@ -4604,7 +4680,7 @@ return orion.compareUtils;
 
 /*global define */
 
-define('orion/compare/compare-rulers',['orion/compare/compareUtils'], function(mCompareUtils) {
+define('orion/compare/compareRulers',['orion/compare/compareUtils'], function(mCompareUtils) {
 var orion = orion || {};
 
 orion.CompareRuler = (function() {
@@ -7985,6 +8061,50 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			return this.dispatchEvent(lineStyleEvent);
 		},
 		/**
+		 * @class This is the event sent for all keyboard events.
+		 * <p>
+		 * <b>See:</b><br/>
+		 * {@link orion.editor.TextView}<br/>
+		 * {@link orion.editor.TextView#event:onKeyDown}<br/>
+		 * {@link orion.editor.TextView#event:onKeyPress}<br/>
+		 * {@link orion.editor.TextView#event:onKeyUp}<br/>
+		 * </p>
+		 * @name orion.editor.KeyEvent
+		 * 
+		 * @property {String} type The type of event.
+		 * @property {DOMEvent} event The key DOM event.
+		 * @property {Boolean} defaultPrevented Determines whether the user agent context menu should be shown. It is shown by default.
+		 * @property {Function} preventDefault If called prevents the user agent context menu from showing.
+		 */
+		/**
+		 * This event is sent for key down events.
+		 *
+		 * @event
+		 * @param {orion.editor.KeyEvent} keyEvent the event
+		 */
+		onKeyDown: function(keyEvent) {
+			return this.dispatchEvent(keyEvent);
+		},
+		/**
+		 * This event is sent for key press events. Key press events are only sent
+		 * for printable characters.
+		 *
+		 * @event
+		 * @param {orion.editor.KeyEvent} keyEvent the event
+		 */
+		onKeyPress: function(keyEvent) {
+			return this.dispatchEvent(keyEvent);
+		},
+		/**
+		 * This event is sent for key up events.
+		 *
+		 * @event
+		 * @param {orion.editor.KeyEvent} keyEvent the event
+		 */
+		onKeyUp: function(keyEvent) {
+			return this.dispatchEvent(keyEvent);
+		},
+		/**
 		 * @class This is the event sent when the text in the model has changed.
 		 * <p>
 		 * <b>See:</b><br/>
@@ -8887,6 +9007,22 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 		},
 		_handleKeyDown: function (e) {
+			if (this.isListening("KeyDown")) { //$NON-NLS-0$
+				var keyEvent = this._createKeyEvent("KeyDown", e); //$NON-NLS-0$
+				this.onKeyDown(keyEvent); //$NON-NLS-0$
+				if (keyEvent.defaultPrevented) {
+					/*
+					* Feature in Firefox. Keypress events still happen even if the keydown event
+					* was prevented. The fix is to remember that keydown was prevented and prevent
+					* the keypress ourselves.
+					*/
+					if (util.isFirefox) {
+						this._keyDownPrevented = true;
+					}
+					e.preventDefault();
+					return;
+				}
+			}
 			var modifier = false;
 			switch (e.keyCode) {
 				case 16: /* Shift */
@@ -8954,6 +9090,19 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 		},
 		_handleKeyPress: function (e) {
 			/*
+			* Feature in Firefox. Keypress events still happen even if the keydown event
+			* was prevented. The fix is to remember that keydown was prevented and prevent
+			* the keypress ourselves.
+			*/
+			if (this._keyDownPrevented) { 
+				if (e.preventDefault) {
+					e.preventDefault(); 
+					e.stopPropagation(); 
+				} 
+				this._keyDownPrevented = undefined;
+				return;
+			}
+			/*
 			* Feature in Embedded WebKit.  Embedded WekKit on Mac runs in compatibility mode and
 			* generates key press events for these Unicode values (Function keys).  This does not
 			* happen in Safari or Chrome.  The fix is to ignore these key events.
@@ -8986,6 +9135,14 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 					}
 				}
 			}
+			if (this.isListening("KeyPress")) { //$NON-NLS-0$
+				var keyEvent = this._createKeyEvent("KeyPress", e); //$NON-NLS-0$
+				this.onKeyPress(keyEvent); //$NON-NLS-0$
+				if (keyEvent.defaultPrevented) {
+					e.preventDefault();
+					return;
+				}
+			}
 			var ignore = false;
 			if (util.isMac) {
 				if (e.ctrlKey || e.metaKey) { ignore = true; }
@@ -9008,6 +9165,14 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 		},
 		_handleKeyUp: function (e) {
+			if (this.isListening("KeyUp")) { //$NON-NLS-0$
+				var keyEvent = this._createKeyEvent("KeyUp", e); //$NON-NLS-0$
+				this.onKeyUp(keyEvent); //$NON-NLS-0$
+				if (keyEvent.defaultPrevented) {
+					e.preventDefault();
+					return;
+				}
+			}
 			var ctrlKey = util.isMac ? e.metaKey : e.ctrlKey;
 			if (!ctrlKey) {
 				this._setLinksVisible(false);
@@ -9225,6 +9390,15 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				temp = temp.parentNode;
 			}
 			return false;
+		},
+		_createKeyEvent: function(type, e) {
+			return {
+				type: type,
+				event: e,
+				preventDefault: function() {
+					this.defaultPrevented = true;
+				}
+			};
 		},
 		_createMouseEvent: function(type, e) {
 			var pt = this.convert({x: e.clientX, y: e.clientY}, "page", "document"); //$NON-NLS-1$ //$NON-NLS-0$
@@ -13678,6 +13852,21 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 	 * Write Occurrence annotation type.
 	 */
 	AnnotationType.ANNOTATION_WRITE_OCCURRENCE = "orion.annotation.writeOccurrence"; //$NON-NLS-0$
+
+	/**
+	 * Selected linked group annotation type.
+	 */
+	AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP = "orion.annotation.selectedLinkedGroup"; //$NON-NLS-0$
+
+	/**
+	 * Current linked group annotation type.
+	 */
+	AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP = "orion.annotation.currentLinkedGroup"; //$NON-NLS-0$
+
+	/**
+	 * Linked group annotation type.
+	 */
+	AnnotationType.ANNOTATION_LINKED_GROUP = "orion.annotation.linkedGroup"; //$NON-NLS-0$
 	
 	/** @private */
 	var annotationTypes = {};
@@ -13759,6 +13948,9 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 	registerType(AnnotationType.ANNOTATION_MATCHING_SEARCH);
 	registerType(AnnotationType.ANNOTATION_READ_OCCURRENCE);
 	registerType(AnnotationType.ANNOTATION_WRITE_OCCURRENCE);
+	registerType(AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP);
+	registerType(AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP);
+	registerType(AnnotationType.ANNOTATION_LINKED_GROUP);
 	registerType(AnnotationType.ANNOTATION_CURRENT_LINE, true);
 	AnnotationType.registerType(AnnotationType.ANNOTATION_FOLDING, FoldingAnnotation);
 	
@@ -14968,6 +15160,9 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINE);
 						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_READ_OCCURRENCE);
 						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_WRITE_OCCURRENCE);
+						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP);
+						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP);
+						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP);
 						styler.addAnnotationType(HIGHLIGHT_ERROR_ANNOTATION);
 					}
 				}
@@ -15336,7 +15531,7 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				if (mapOffset < 0) { return; }
 				offset = mapOffset;
 			}
-			view.setText(text, offset, offset + previousText.length);
+			model.setText(text, offset, offset + previousText.length);
 			if (select) {
 				view.setSelection(offset, offset + text.length);
 			}
@@ -15346,11 +15541,14 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 	/** 
 	 * Constructs a new CompoundChange object.
 	 * 
+	 * @param owner the owner of the compound change
+	 *
 	 * @class 
 	 * @name orion.editor.CompoundChange
 	 * @private
 	 */
-	function CompoundChange () {
+	function CompoundChange (owner) {
+		this.owner = owner;
 		this.changes = [];
 	}
 	CompoundChange.prototype = {
@@ -15362,6 +15560,10 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		end: function (view) {
 			this.endSelection = view.getSelection();
 			this.endCaret = view.getCaretOffset();
+			var owner = this.owner;
+			if (owner && owner.end) {
+				owner.end();
+			}
 		},
 		/** @ignore */
 		undo: function (view, select) {
@@ -15372,6 +15574,10 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				var start = this.startSelection.start;
 				var end = this.startSelection.end;
 				view.setSelection(this.startCaret ? start : end, this.startCaret ? end : start);
+			}
+			var owner = this.owner;
+			if (owner && owner.undo) {
+				owner.undo();
 			}
 		},
 		/** @ignore */
@@ -15384,11 +15590,19 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				var end = this.endSelection.end;
 				view.setSelection(this.endCaret ? start : end, this.endCaret ? end : start);
 			}
+			var owner = this.owner;
+			if (owner && owner.redo) {
+				owner.redo();
+			}
 		},
 		/** @ignore */
 		start: function (view) {
 			this.startSelection = view.getSelection();
 			this.startCaret = view.getCaretOffset();
+			var owner = this.owner;
+			if (owner && owner.start) {
+				owner.start();
+			}
 		}
 	};
 
@@ -15433,9 +15647,6 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 * Adds a change to the stack.
 		 * 
 		 * @param change the change to add.
-		 * @param {Number} change.offset the offset of the change
-		 * @param {String} change.text the new text of the change
-		 * @param {String} change.previousText the previous text of the change
 		 */
 		add: function (change) {
 			if (this.compoundChange) {
@@ -15593,14 +15804,19 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 * with one single call to undo() or redo().
 		 * </p>
 		 *
+		 * @param owner the owner of the compound change which is called for start, end, undo and redo.
+		 *		 
+		 * @return the compound change
+		 *
 		 * @see #endCompoundChange
 		 */
-		startCompoundChange: function() {
+		startCompoundChange: function(owner) {
 			this._commitUndo();
-			var change = new CompoundChange();
+			var change = new CompoundChange(owner);
 			this.add(change);
 			this.compoundChange = change;
 			this.compoundChange.start(this.view);
+			return this.compoundChange;
 		},
 		_commitUndo: function () {
 			if (this._undoStart !== undefined) {
@@ -15613,6 +15829,7 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				this._undoText = "";
 				this._undoType = 0;
 			}
+			this.endCompoundChange();
 		},
 		_onDestroy: function(evt) {
 			this.model.removeEventListener("Changing", this._listener.onChanging); //$NON-NLS-0$
@@ -17478,7 +17695,7 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 			var proposal = event.data.proposal;
 			
 			//if the proposal specifies linked positions, build the model and enter linked mode
-			if (proposal.positions && this.linkedMode) {
+			if (proposal.positions && proposal.positions.length > 0 && this.linkedMode) {
 				var positionGroups = [];
 				for (var i = 0; i < proposal.positions.length; ++i) {
 					positionGroups[i] = {
@@ -17494,6 +17711,11 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 					escapePosition: proposal.escapePosition
 				};
 				this.linkedMode.enterLinkedMode(linkedModeModel);
+			} else if (proposal.groups && proposal.groups.length > 0 && this.linkedMode) {
+				this.linkedMode.enterLinkedMode({
+					groups: proposal.groups,
+					escapePosition: proposal.escapePosition
+				});
 			} else if (proposal.escapePosition) {
 				//we don't want linked mode, but there is an escape position, so just set cursor position
 				var textView = this.editor.getTextView();
@@ -17546,49 +17768,94 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 		}
 	};
 	
-	function LinkedMode(editor) {
+	function LinkedMode(editor, undoStack) {
 		this.editor = editor;
+		this.undoStack = undoStack;
 		
-		/**
-		 * The variables used by the Linked Mode. The elements of linkedModePositions have following structure:
-		 * {
-		 *     offset: 10, // The offset of the position counted from the beginning of the text buffer
-		 *     length: 3 // The length of the position (selection)
-		 * }
-		 *
-		 * The linkedModeEscapePosition contains an offset (counted from the beginning of the text buffer) of a
-		 * position where the caret will be placed after exiting from the Linked Mode.
-		 */
 		this.linkedModeActive = false;
-		this.linkedModePositions = [];
-		this.linkedModeCurrentPositionIndex = 0;
-		this.linkedModeEscapePosition = 0;
+		this.linkedModeModel = null;
+		this.linkedModeGroupIndex = 0;
 		
 		/**
 		 * Listener called when Linked Mode is active. Updates position's offsets and length
 		 * on user change. Also escapes the Linked Mode if the text buffer was modified outside of the Linked Mode positions.
 		 */
 		this.linkedModeListener = {
+
 			onVerify: function(event) {
-				var changeInsideGroup = false;
-				var offsetDifference = 0;
-				for (var i = 0; i < this.linkedModePositions.length; ++i) {
-					var position = this.linkedModePositions[i];
-					if (changeInsideGroup) {
-						// The change has already been noticed, update the offsets of all positions next to the changed one
-						position.offset += offsetDifference;
-					} else if (event.start >= position.offset && event.end <= position.offset + position.length) {
-						// The change was done in the current position, update its length
-						var oldLength = position.length;
-						position.length = (event.start - position.offset) + event.text.length + (position.offset + position.length - event.end);
-						offsetDifference = position.length - oldLength;
-						changeInsideGroup = true;
+				if (this.ignoreVerify) { return; }
+				var start = event.start;
+				var addedCharCount = event.text.length;
+				var removedCharCount = event.end - event.start;
+				var end = start + removedCharCount;
+				var changeCount = addedCharCount - removedCharCount;
+				var sortedPositions = [];
+				var groups = this.linkedModeModel.groups, i;
+				for (i = 0; i < groups.length; i++) {
+					var positions = groups[i].positions;
+					for (var j = 0; j < positions.length; j++) {
+						sortedPositions.push({
+							group: i,
+							position: positions[j]
+						});
 					}
 				}
-
-				if (changeInsideGroup) {
-					// Update escape position too
-					this.linkedModeEscapePosition += offsetDifference;
+				sortedPositions.sort(function(a, b) {
+					return a.position.offset - b.position.offset;
+				});
+				var groupChanged, group, position;
+				var deltaStart = event.start, deltaEnd = event.end;
+				for (i = 0; i < sortedPositions.length; i++) {
+					group = sortedPositions[i].group;
+					position = sortedPositions[i].position;
+					if (position.offset <= start && end <= position.offset + position.length) {
+						deltaStart -= position.offset;
+						deltaEnd -= position.offset;
+						groupChanged = group;
+						break;
+					}
+				}
+				if (groupChanged !== undefined) {
+					if (this._compoundChange) {
+						if (this._compoundChange.owner.group !== groupChanged) {
+							this.linkedModeGroupIndex = groupChanged;
+							this.endUndo();
+							this.startUndo();
+						}
+					} else {
+						this.startUndo();
+					}
+					this.ignoreVerify = true;
+					var textView = this.editor.getTextView();
+					for (i = sortedPositions.length - 1; i >= 0; i--) {
+						group = sortedPositions[i].group;
+						position = sortedPositions[i].position;
+						if (group === groupChanged) {
+							textView.setText(event.text, position.offset + deltaStart , position.offset + deltaEnd);
+						}
+					}
+					this.ignoreVerify = false;
+					event.text = null;
+					var deltaCount = 0, escapePositionDeltaCount;
+					for (i = 0; i < sortedPositions.length; ++i) {
+						group = sortedPositions[i].group;
+						position = sortedPositions[i].position;
+						if (escapePositionDeltaCount === undefined && this.linkedModeModel.escapePosition < position.offset) {
+							escapePositionDeltaCount = deltaCount;
+						}
+						if (group === groupChanged) {
+							position.offset += deltaCount;
+							position.length += changeCount;
+							deltaCount += changeCount;
+						} else {
+							position.offset += deltaCount;
+						}
+					}
+					if (escapePositionDeltaCount === undefined) {
+						escapePositionDeltaCount = deltaCount;
+					}
+					this.linkedModeModel.escapePosition += escapePositionDeltaCount;
+					this._updateAnnotations();
 				} else {
 					// The change has been done outside of the positions, exit the Linked Mode
 					this.cancel();
@@ -17617,41 +17884,77 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 				return;
 			}
 			this.linkedModeActive = true;
-
-			// NOTE: only the first position from each group is supported for now
-			this.linkedModePositions = [];
-			for (var i = 0; i < linkedModeModel.groups.length; ++i) {
-				var group = linkedModeModel.groups[i];
-				this.linkedModePositions[i] = {
-					offset: group.positions[0].offset,
-					length: group.positions[0].length
-				};
-			}
-
-			this.linkedModeEscapePosition = linkedModeModel.escapePosition;
-			this.linkedModeCurrentPositionIndex = 0;
-			this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
+			this.linkedModeModel = linkedModeModel;
+			this.selectLinkedGroup(0);
 
 			var textView = this.editor.getTextView();
 			textView.addEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
 
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "nextLinkedModePosition"); //$NON-NLS-0$
 			textView.setAction("nextLinkedModePosition", function() { //$NON-NLS-0$
-				// Switch to the next group on TAB key
-				this.linkedModeCurrentPositionIndex = ++this.linkedModeCurrentPositionIndex % this.linkedModePositions.length;
-				this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
+				this.selectLinkedGroup((this.linkedModeGroupIndex + 1) % this.linkedModeModel.groups.length);
 				return true;
 			}.bind(this));
 			
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "previousLinkedModePosition"); //$NON-NLS-0$
 			textView.setAction("previousLinkedModePosition", function() { //$NON-NLS-0$
-				this.linkedModeCurrentPositionIndex = this.linkedModeCurrentPositionIndex > 0 ? this.linkedModeCurrentPositionIndex-1 : this.linkedModePositions.length-1;
-				this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
+				this.selectLinkedGroup(this.linkedModeGroupIndex > 0 ? this.linkedModeGroupIndex-1 : this.linkedModeModel.groups.length-1);
 				return true;
 			}.bind(this));
 
 			this.editor.reportStatus(messages.linkedModeEntered, null, true);
 		},
+		_cloneModel: function() {
+			var model = this.linkedModeModel;
+			var newGroups = [];
+			var newModel = {
+				escapePosition: model.escapePosition,
+				groups: newGroups
+			};
+			var groups = model.groups;
+			for (var j = 0; j < groups.length; j++) {
+				var newPositions = [];
+				newGroups.push({positions: newPositions});
+				var positions = groups[j].positions;
+				for (var i = 0; i < positions.length; i++) {
+					newPositions.push({
+						offset: positions[i].offset,
+						length: positions[i].length
+					});
+				}
+			}
+			return newModel;
+		},
+		startUndo: function() {
+			if (this.undoStack) {
+				var self = this;
+				this._compoundChange = this.undoStack.startCompoundChange({
+					startModel: self._cloneModel(),
+					group: self.linkedModeGroupIndex,
+					end: function() {
+						self._compoundChange = null;
+						this.endModel = self._cloneModel();
+					},
+					redo: function() {
+						if (self.linkedModeActive) {
+							self.linkedModeModel = this.endModel;
+							self.selectLinkedGroup(0);
+						}
+					},
+					undo: function() {
+						if (self.linkedModeActive) {
+							self.linkedModeModel = this.startModel;
+							self.selectLinkedGroup(0);
+						}
+					}
+				});
+			}
+		}, 
+		endUndo: function() {
+			if (this.undoStack) {
+				this.undoStack.endCompoundChange();
+			}
+		}, 
 		isActive: function() {
 			return this.linkedModeActive;
 		},
@@ -17678,9 +17981,13 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "shiftTab"); //$NON-NLS-0$
 			
 			if (!ignoreEscapePosition) {
-				textView.setCaretOffset(this.linkedModeEscapePosition, false);
+				textView.setCaretOffset(this.linkedModeModel.escapePosition, false);
 			}
-
+			if (this._compoundChange) {
+				this.endUndo();
+				this._compoundChange = null;
+			}
+			this._updateAnnotations();
 			this.editor.reportStatus(messages.linkedModeExited, null, true);
 		},
 		lineUp: function() {
@@ -17690,12 +17997,50 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 		lineDown: function() {
 			this.cancel(true);
 			return false;
-		},		/**
-		 * Updates the selection in the textView for given Linked Mode position.
-		 */
-		selectTextForLinkedModePosition: function(position) {
+		},
+		selectLinkedGroup: function(index) {
+			this.linkedModeGroupIndex = index;
+			var group = this.linkedModeModel.groups[index];
+			var position = group.positions[0];
 			var textView = this.editor.getTextView();
 			textView.setSelection(position.offset, position.offset + position.length);
+			this._updateAnnotations();
+		},
+		_updateAnnotations: function() {
+			var annotationModel = this.editor.getAnnotationModel();
+			if (!annotationModel) { return; }
+			var remove = [], add = [];
+			var model = annotationModel.getTextModel();
+			var annotations = annotationModel.getAnnotations(0, model.getCharCount()), annotation;
+			while (annotations.hasNext()) {
+				annotation = annotations.next();
+				switch (annotation.type) {
+					case mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP:
+					case mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP:
+					case mAnnotations.AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP:
+						remove.push(annotation);
+				}
+			}
+			if (this.linkedModeActive) {
+				var groups = this.linkedModeModel.groups;
+				for (var j = 0; j < groups.length; j++) {
+					var positions = groups[j].positions;
+					for (var i = 0; i < positions.length; i++) {
+						var position = positions[i];
+						var type = mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP;
+						if (j === this.linkedModeGroupIndex) {
+							if (i === 0) {
+								type = mAnnotations.AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP;
+							} else {
+								type = mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP;
+							}
+						}
+						annotation = mAnnotations.AnnotationType.createAnnotation(type, position.offset, position.offset + position.length);
+						add.push(annotation);
+					}
+				}
+			}
+			annotationModel.replaceAnnotations(remove, add);
 		}
 	};
 
@@ -17987,7 +18332,7 @@ define('orion/webui/splitter',['require', 'orion/webui/littlelib'], function(req
 	//return the module exports
 	return {Splitter: Splitter};
 });
-define('text!orion/compare/compare-features.html',[],function () { return '<div id="topWidget_id" style="height:100%;width:100%;position:relative">\r\n\t<div class="leftPanelLayout ">\r\n\t\t<div class="titleContainer" id="left_title_id"></div>\r\n\t\t<div class="compareEditorParent" id="left_editor_id"></div>\r\n\t\t<div class="statusContainer" id="left_status_id"></div>\r\n\t</div>\r\n\t<div class="split compareSplitLayout"></div>\r\n\t<div class="rightPanelLayout">\r\n\t\t<div class="titleContainer" id="right_title_id"></div>\r\n\t\t<div class="compareEditorParent"  id="right_editor_wrapper_id">\r\n\t\t\t<div class="canvasContainer">\r\n\t\t\t\t<canvas id="diff_canvas_id" class="compareCanvas" width="46" height="3000"></canvas>\r\n\t\t\t</div>\r\n\t\t\t<div class="compareEditorParentWithCanvas" id="right_editor_id"></div>\r\n\t\t</div>\r\n\t\t<div class="statusContainer" id="right_status_id"></div>\r\n\t</div>\r\n</div>\r\n';});
+define('text!orion/compare/sideBySideTemplate.html',[],function () { return '<div id="topWidget_id" style="height:100%;width:100%;position:relative">\r\n\t<div class="leftPanelLayout ">\r\n\t\t<div class="titleContainer" id="left_title_id"></div>\r\n\t\t<div class="compareEditorParent" id="left_editor_id"></div>\r\n\t\t<div class="statusContainer" id="left_status_id"></div>\r\n\t</div>\r\n\t<div class="split compareSplitLayout"></div>\r\n\t<div class="rightPanelLayout">\r\n\t\t<div class="titleContainer" id="right_title_id"></div>\r\n\t\t<div class="compareEditorParent"  id="right_editor_wrapper_id">\r\n\t\t\t<div class="canvasContainer">\r\n\t\t\t\t<canvas id="diff_canvas_id" class="compareCanvas" width="46" height="3000"></canvas>\r\n\t\t\t</div>\r\n\t\t\t<div class="compareEditorParentWithCanvas" id="right_editor_id"></div>\r\n\t\t</div>\r\n\t\t<div class="statusContainer" id="right_status_id"></div>\r\n\t</div>\r\n</div>\r\n';});
 
 /*******************************************************************************
  * @license
@@ -18002,8 +18347,8 @@ define('text!orion/compare/compare-features.html',[],function () { return '<div 
  *******************************************************************************/
 /*global define */
 
-define('orion/compare/compare-features',['orion/webui/littlelib', 'orion/webui/splitter', 'text!orion/compare/compare-features.html'], 
-function(lib, mSplitter, FeatureTemplate) {
+define('orion/compare/compareUIFactory',['orion/webui/littlelib', 'orion/webui/splitter', 'text!orion/compare/sideBySideTemplate.html'], 
+function(lib, mSplitter, SideBySideTemplate) {
 
 var orion = orion || {};
 orion.TwoWayCompareUIFactory = (function() {
@@ -18070,7 +18415,7 @@ orion.TwoWayCompareUIFactory = (function() {
 		},
 				
 		buildUI:function(){
-			lib.node(this._parentDivID).innerHTML = FeatureTemplate;//appendChild(topNode);
+			lib.node(this._parentDivID).innerHTML = SideBySideTemplate;//appendChild(topNode);
 			this._init();
 			this._createSplitter();
 		},
@@ -19163,14 +19508,17 @@ exports.DiffTreeNavigator = (function() {
 			
 		iterateOnChange: function(forward){
 			if(!this.iterator){
-				return;
+				return null;
 			}
-			this.iterator.iterate(forward);
-			var cursor = this.iterator.cursor();
-			if(cursor.type === "block" && cursor.children && cursor.children.length > 0){ //$NON-NLS-0$
-				this.iterator.iterate(forward);
+			var retVal = this.iterator.iterate(forward);
+			if(retVal) {
+				var cursor = this.iterator.cursor();
+				if(cursor.type === "block" && cursor.children && cursor.children.length > 0){ //$NON-NLS-0$
+					this.iterator.iterate(forward);
+				}
+				this.updateCurrentAnnotation(true);
 			}
-			this.updateCurrentAnnotation(true);
+			return retVal;
 		},
 		
 		gotoBlock: function(blockIndex, changeIndex){
@@ -19471,8 +19819,9 @@ exports.DiffTreeNavigator = (function() {
 		},
 		
 		nextChange: function(){
-			this.iterateOnChange(true);
+			var ret = this.iterateOnChange(true);
 			this._positionDiffBlock();
+			return ret;
 		},
 		
 		prevChange: function(){
@@ -19777,77 +20126,48 @@ return exports;
 /*jslint forin:true regexp:false sub:true*/
 
 define('orion/compare/compareView',['i18n!orion/compare/nls/messages',
-		'require',
 		'orion/Deferred',
 		'orion/webui/littlelib',
-		'orion/compare/diff-parser',
-		'orion/compare/compare-rulers',
+		'orion/compare/diffParser',
+		'orion/compare/compareRulers',
         'orion/editor/editor',
         'orion/editor/editorFeatures',
         'orion/keyBinding',
         'orion/editor/textView',
-        'orion/compare/compare-features',
+        'orion/compare/compareUIFactory',
         'orion/compare/compareUtils',
         'orion/compare/jsdiffAdapter',
         'orion/compare/diffTreeNavigator'],
-function(messages, require, Deferred, lib, mDiffParser, mCompareRulers, mEditor, mEditorFeatures, mKeyBinding, mTextView,
-		 mCompareFeatures, mCompareUtils, mJSDiffAdapter, mDiffTreeNavigator,  mTextMateStyler, mHtmlGrammar, mTextStyler) {
+function(messages, Deferred, lib, mDiffParser, mCompareRulers, mEditor, mEditorFeatures, mKeyBinding, mTextView,
+		 mCompareUIFactory, mCompareUtils, mJSDiffAdapter, mDiffTreeNavigator,  mTextMateStyler, mHtmlGrammar, mTextStyler) {
 var exports = {};
-//var messages = {};
-/*
- * Abstract diff view class
-*/
+/**
+ * @class An abstract comapre view class that holds all the common functions for both "side by side" and "unified" view.
+ * <p>
+ * <b>See:</b><br/>
+ * {@link orion.compare.TwoWayCompareView}<br/>
+ * {@link orion.compare.InlineCompareView}
+ * </p>		 
+ * @name orion.compare.CompareView
+ */
 exports.CompareView = (function() {
 	function CompareView () {
 		this._diffParser = new mDiffParser.DiffParser();
 	}
 	CompareView.prototype = {
+		/** @private */
 		_clearOptions: function(){
 			this.options = {};
 			this.options.blockNumber = 1;
 			this.options.changeNumber = 0;
 		},
-		
-		setOptions: function(options, clearExisting){
-			if(clearExisting){
-				this._clearOptions();
-			}
-			if(!this.options) {
-				this.options = {};
-			}
-			if(options) {
-				Object.keys(options).forEach(function(option) {
-					this.options[option] = options[option];
-				}.bind(this));
-			}
-		},
-		
-		getCurrentDiffPos: function(){	
-			return this._diffNavigator.getCurrentPosition();
-		},
-		
-		nextDiff: function(){	
-			this._diffNavigator.nextDiff();
-		},
-		
-		prevDiff: function(){	
-			this._diffNavigator.prevDiff();
-		},
-		
-		nextChange: function(){	
-			this._diffNavigator.nextChange();
-		},
-		
-		prevChange: function(){	
-			this._diffNavigator.prevChange();
-		},
-		
+		/** @private */
 		_getLineDelim: function(input , diff){	
 			var delim = "\n"; //$NON-NLS-0$
 			return delim;
 		},
-
-		parseMapper: function(input, output, diff , detectConflicts ,doNotBuildNewFile){
+		/** @private */
+		_generateMapper: function(input, output, diff , detectConflicts ,doNotBuildNewFile){
 			var delim = this._getLineDelim(input , diff);
 			this._diffParser.setLineDelim(delim);
 			if(this.options.mapper && this.options.toggler){
@@ -19873,7 +20193,7 @@ exports.CompareView = (function() {
 				return {delim:delim , mapper:result.mapper, output: result.outPutFile, diffArray:diffArray};
 			}
 		},
-		
+		/** @private */
 		_initSyntaxHighlighter: function(targetArray){
 			this._syntaxHighlighters = null;
 			if(this.options.highlighters && this.options.highlighters.length > 0){
@@ -19886,7 +20206,7 @@ exports.CompareView = (function() {
 				}
 			}
 		},
-
+		/** @private */
 		_highlightSyntax: function(){
 			if(this._syntaxHighlighters){//If syntax highlighter is used, we need to render all the diff annotations after syntax highlighting is done
 		        var promises = [];
@@ -19902,19 +20222,155 @@ exports.CompareView = (function() {
 				this._diffNavigator.gotoBlock(this.options.blockNumber-1, this.options.changeNumber-1);
 			}
 		},
-
-		startup: function(onsave, onLoadContents){
+		
+		/**
+		 * @class This object describes options of a file. Two instances of this object construct the core parameters of a compare view. 
+		 * <p>
+		 * <b>See:</b><br/>
+		 * {@link orion.compare.CompareView}<br/>
+		 * {@link orion.compare.CompareViewOptions}
+		 * </p>		 
+		 * @name orion.compare.FileOptions
+		 *
+		 * @property {String} Content the text contents of the file unit. Requied.
+		 * @property {Boolean} [readonly=true] whether or not the file is in readonly mode. Optional.
+		 * @property {String} Name the file name. Optional but required if the compare view has to show file title.
+		 * @property {orion.core.ContentType} Type the type of the file. Optional but required if the compare view has to highlight the syntax.
+		 */
+		/**
+		 * @class This object describes the options for a compare view.
+		 * <p>
+		 * <b>See:</b><br/>
+		 * {@link orion.compare.FileOptions}<br/>
+		 * {@link orion.compare.CompareView}<br/>
+		 * {@link orion.compare.CompareView#setOptions}
+		 * {@link orion.compare.CompareView#getOptions}	 
+		 * </p>		 
+		 * @name orion.compare.CompareViewOptions
+		 *
+		 * @property {String} parentDivID Required. the parent element id for the compare view. Required. The parentDivID is required to prefix the ids of sub components in case of side by side view.
+		 * @property {orion.compare.FileOptions} [oldFile] Required. the options of the file that is original. Required. In the two way compare case, this file is dispalyed on the left hand side.
+		 * @property {orion.compare.FileOptions} [newFile] Required. the options of the file that is compared against the original. Required. In the two way compare case, this file is dispalyed on the right hand side.
+		 * @property {String} [diffContent] Optional. the unified diff against the original/old file. If this option is defined, the newFile option is ignored or becomes optional.
+		 * @property {Boolean} [showTitle=false] Optional. whether or not to show the two file names on each side of the compare view.
+		 * @property {Boolean} [showLineStatus=false] Optional. whether or not to show the current line and column number fo the caret on each side of the view. Not avaible for inline/unified compare view.
+		 * @property {orion.compare.CompareCommandFactory} [commandProvider] Optional. If defined it will render all the commands that the compare view requires.
+		 * @property {Array} [highlighters] Optional. An array of two instances of {@link orion.compare.CompareSyntaxHighlighter}. If defined the highlighters are used to highlight the syntax of both side of the comapre view, respectively.
+		 */
+		setOptions: function(options, clearExisting){
+			if(clearExisting){
+				this._clearOptions();
+			}
+			if(!this.options) {
+				this.options = {};
+			}
+			if(options) {
+				Object.keys(options).forEach(function(option) {
+					this.options[option] = options[option];
+				}.bind(this));
+			}
+		},
+		getOptions: function() {
+			return this.options;
+		},
+		/**
+		 * Returns the 1-based {blockNumber, changeNumber} current diff location. 
+		 * <p>
+		 * If 0 is returned on the chnageNumber, it means the whole diff block is highlighted.
+		 * </p>
+		 * @returns the 1-based {blockNumber, changeNumber} current diff location.
+		 */
+		getCurrentDiffPos: function(){	
+			return this._diffNavigator.getCurrentPosition();
+		},
+		/**
+		 * Initialize the diff navigation to the starting position. 
+		 * <p>
+		 * Calling this function resets the "current diff block" to the first diff block in the compare view. 
+		 * If there are multiple changes in the diff block, the first change will be highlighted in a darker color. Otherwise the whole diff block will be highlighted in a darker color.
+		 * </p>
+		 */
+		initDiffNav: function(){
+			this._diffNavigator.gotoBlock(0, 0);
+		},
+		/**
+		 * Navigate from the current "diff block" to the next one. Also sets the next one as the current diff block after the function call.
+		 * <p>
+		 * This function will circulate the "diff block" level of navigation, which means if the current block is the last one then it will go to the first one after the function call.
+		 * It also highlights the whole diff block in a darker color.
+		 * </p>
+		 */
+		nextDiff: function(){	
+			this._diffNavigator.nextDiff();
+		},
+		/**
+		 * Navigate from the current "diff block" to the previous one. Also sets the previous one as the current diff block after the function call.
+		 * <p>
+		 * This function will circulate the "diff block" level of navigation, which means if the current block is the first one then it will go to the last one after the function call.
+		 * It also highlights the whole diff block in a darker color.
+		 * </p>
+		 */
+		prevDiff: function(){	
+			this._diffNavigator.prevDiff();
+		},
+		/**
+		 * Navigate from the current "diff change" to the next "diff change". Also sets the next one as the current diff change after the function call.
+		 * <p>
+		 * Continously calling this function will walk forward all the word level changes in all the diff blocks. 
+		 * If it hits the last change in a diff block, it will go to the next diff block at the first change.
+		 * If it hits the last change in the last diff block, it will do nothing.
+		 * It also highlights the current diff change in a darker color.
+		 * </p>
+		 */
+		nextChange: function(){	
+			return this._diffNavigator.nextChange();
+		},
+		/**
+		 * Navigate from the current "diff change" to the previous "diff change". Also sets the previous one as the current diff change after the function call.
+		 * <p>
+		 * Continously calling this function will walk backward all the word level changes in all the diff blocks. 
+		 * If it hits the first change in a diff block, it will go to the previous diff block at the last change.
+		 * If it hits the first change in the first diff block, it will do nothing.
+		 * It also highlights the current diff change in a darker color.
+		 * </p>
+		 */
+		prevChange: function(){	
+			this._diffNavigator.prevChange();
+		},
+		/**
+		 * A helper function to allow the consumer of compareView to get the widget instance easily.
+		 */
+		getWidget: function() {
+			return this;
+		},
+		/**
+		 * A helper function to start the UI after a subclass instance is constructed.
+		 */
+		startup: function(){
 			this.initEditors();
-			this._onLoadContents = onLoadContents;
-			this.refresh(onsave);
+			this.refresh(true);
+		},
+		/**
+		 * An abstract function that should be overridden by a subclass.
+		 * <p>
+		 * The subclass implementation, inline or twoWay, should create the editor instances with an initial string or just leave it empty.
+		 * </p>
+		 * @param {String} initString the initial string that will dispaly when the editors are created. Optional.
+		 */
+		initEditors: function(initString){
 		}
 	};
 	return CompareView;
 }());
 
-/*
- * Side by side diff view
-*/
+/**
+ * Constructs a side by side compare view.
+ * 
+ * @param {orion.compare.CompareViewOptions} options the compare view options.
+ * 
+ * @class A TwoWayCompareView is a side by side view of two files with diff annotations and navigations.
+ * @name orion.compare.TwoWayCompareView
+ */
 exports.TwoWayCompareView = (function() {
 	function TwoWayCompareView(options) {
 		this.setOptions(options, true);
@@ -19925,7 +20381,7 @@ exports.TwoWayCompareView = (function() {
 		//Build the compare view UI by the UI factory
 		this._uiFactory = this.options.uiFactory;
 		if(!this._uiFactory){
-			this._uiFactory = new mCompareFeatures.TwoWayCompareUIFactory({
+			this._uiFactory = new mCompareUIFactory.TwoWayCompareUIFactory({
 				parentDivID: this.options.parentDivId,
 				showTitle: (this.options.showTitle ? this.options.showTitle : false),
 				showLineStatus: (this.options.showLineStatus ? this.options.showLineStatus : false)
@@ -19938,23 +20394,15 @@ exports.TwoWayCompareView = (function() {
 			this.options.commandProvider.initCommands(this);
 		}
 		this._curveRuler = new mCompareRulers.CompareCurveRuler(this._uiFactory.getDiffCanvasDiv());
-		this._highlighter = [];
-		if(this.options.highlighter && typeof this.options.highlighter === "function") { //$NON-NLS-0$
-			this._highlighter.push(new this.options.highlighter());
-			this._highlighter.push(new this.options.highlighter());
-		}
 	}
 	TwoWayCompareView.prototype = new exports.CompareView();
 	
-	TwoWayCompareView.prototype.initEditors = function(){
+	TwoWayCompareView.prototype.initEditors = function(initString){
 		this._editors = [];//this._editors[0] represents the right side editor. this._editors[1] represents the left side editor
 		//Create editor on the right side
-		this._editors.push(this._createEditor(this._uiFactory.getEditorParentDiv(false), this._uiFactory.getStatusDiv(false), this.options.baseFile));
-		
+		this._editors.push(this._createEditor(initString, this._uiFactory.getEditorParentDiv(false), this._uiFactory.getStatusDiv(false), this.options.oldFile));
 		//Create editor on the left side
-		this._editors.push(this._createEditor(this._uiFactory.getEditorParentDiv(true), this._uiFactory.getStatusDiv(true), this.options.newFile, true));
-		//TODO: move this.options.onPage to the comapre glue code
-		
+		this._editors.push(this._createEditor(initString, this._uiFactory.getEditorParentDiv(true), this._uiFactory.getStatusDiv(true), this.options.newFile, true));
 		//Create the overview ruler
 		this._overviewRuler  = new mCompareRulers.CompareOverviewRuler("right", {styleClass: "ruler overview"} , null, //$NON-NLS-1$ //$NON-NLS-0$
                 function(lineIndex, ruler){this._diffNavigator.matchPositionFromOverview(lineIndex);}.bind(this));
@@ -19971,6 +20419,10 @@ exports.TwoWayCompareView = (function() {
 		}.bind(this);
 	};
 	
+	TwoWayCompareView.prototype.getEditors = function(){
+		return this._editors;
+	};
+	
 	TwoWayCompareView.prototype.gotoDiff = function(lineNumber, offsetInTheLine, updateLeft){
 		var textView = updateLeft ? this._editors[1].getTextView() : this._editors[0].getTextView();
 		var offset = textView.getModel().getLineStart(lineNumber) + offsetInTheLine;
@@ -19982,12 +20434,12 @@ exports.TwoWayCompareView = (function() {
 	};
 	
 	TwoWayCompareView.prototype.copyToRight = function(){	
-		this._curveRuler.copyTo(true);
+		this._curveRuler.copyTo(false);
 	};
 	
 	TwoWayCompareView.prototype.resizeEditors = function(){	
 		this._editors.forEach(function(editor) {
-			editor.resize();
+			editor.getTextView().resize();
 		});
 	};
 	
@@ -19995,7 +20447,7 @@ exports.TwoWayCompareView = (function() {
 		return this._uiFactory.getSplitter();
 	};
 	
-	TwoWayCompareView.prototype._createEditor = function(parentDiv, statusDiv, fileOptions, isLeft){
+	TwoWayCompareView.prototype._createEditor = function(initString, parentDiv, statusDiv, fileOptions, isLeft){
 		//Create text view factory
 		var readonly = (typeof fileOptions.readonly === "undefined") ? true : fileOptions.readonly; //$NON-NLS-0$
 		var textViewFactory = function() {
@@ -20031,15 +20483,18 @@ exports.TwoWayCompareView = (function() {
 			return view;
 		}.bind(this);
 		
+		var keyBindingFactory = fileOptions.keyBindingFactory;
 		//Create keybindings factory
-		var keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
-			// Create keybindings for generic editing
-			var genericBindings = new mEditorFeatures.TextActions(editor, undoStack);
-			keyModeStack.push(genericBindings);
-			// create keybindings for source editing
-			var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist);
-			keyModeStack.push(codeBindings);
-		};
+		if(!keyBindingFactory) {
+			keyBindingFactory = function(editor, keyModeStack, undoStack, contentAssist) {
+				// Create keybindings for generic editing
+				var genericBindings = new mEditorFeatures.TextActions(editor, undoStack);
+				keyModeStack.push(genericBindings);
+				// create keybindings for source editing
+				var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist);
+				keyModeStack.push(codeBindings);
+			};
+		}
 
 		//Create the status reporter if needed
 		var statusReporter = null;
@@ -20070,7 +20525,7 @@ exports.TwoWayCompareView = (function() {
 		});
 				
 		editor.installTextView();
-		editor.setInput(null, null, fileOptions.Content ? fileOptions.Content : "");
+		editor.setInput(null, null, fileOptions.Content ? fileOptions.Content : initString);
 		editor.setOverviewRulerVisible(false);
 			
 		var textView = editor.getTextView();
@@ -20138,16 +20593,16 @@ exports.TwoWayCompareView = (function() {
 		}
 	};
 	
-	TwoWayCompareView.prototype.refresh = function(onsave){	
-		var input = this.options.baseFile.Content;
+	TwoWayCompareView.prototype.refresh = function(refreshEditors){	
+		var input = this.options.oldFile.Content;
 		var output = this.options.newFile.Content;
 		var diff = this.options.diffContent;
 		
 		var result;
 		if(output) {
-			result = this.parseMapper(input , output, diff , this.options.hasConflicts, true);
+			result = this._generateMapper(input , output, diff , this.options.hasConflicts);
 		} else {
-			result = this.parseMapper(input , output, diff , this.options.hasConflicts, onsave);
+			result = this._generateMapper(input , output, diff , this.options.hasConflicts);
 			output = result.output;
 		}
 		
@@ -20155,12 +20610,12 @@ exports.TwoWayCompareView = (function() {
 		var lFeeder = new mDiffTreeNavigator.TwoWayDiffBlockFeeder(this._editors[1].getTextView().getModel(), result.mapper, 0);
 		this._diffNavigator.initAll(this.options.charDiff ? "char" : "word", this._editors[0], this._editors[1], rFeeder, lFeeder, this._overviewRuler, this._curveRuler); //$NON-NLS-1$ //$NON-NLS-0$
 		this._curveRuler.init(result.mapper ,this._editors[1], this._editors[0], this._diffNavigator);
-		if(!onsave){
+		if(refreshEditors) {
 			this._editors[1].setInput(this.options.newFile.Name, null, output);
+			this._editors[0].setInput(this.options.oldFile.Name, null, input);
 		}
-		this._editors[0].setInput(this.options.baseFile.Name, null, input);
 		this._initSyntaxHighlighter([{fileName: this.options.newFile.Name, contentType: this.options.newFile.Type, editor: this._editors[1]},
-									 {fileName: this.options.baseFile.Name, contentType: this.options.baseFile.Type, editor: this._editors[0]}]);
+									 {fileName: this.options.oldFile.Name, contentType: this.options.oldFile.Type, editor: this._editors[0]}]);
 		this._highlightSyntax();
 		if(this.options.commandProvider){
 			this.options.commandProvider.renderCommands(this);
@@ -20170,6 +20625,15 @@ exports.TwoWayCompareView = (function() {
 		if(this._viewLoadedCounter === 2){
 			this._diffNavigator.gotoBlock(this.options.blockNumber-1, this.options.changeNumber-1);
 		}
+		
+		var newFileTitleNode = this._uiFactory.getTitleDiv(true);
+		var oldFileTitleNode = this._uiFactory.getTitleDiv(false);
+		if(oldFileTitleNode && newFileTitleNode){
+			lib.empty(oldFileTitleNode);
+			lib.empty(newFileTitleNode);
+			oldFileTitleNode.appendChild(document.createTextNode(this.options.oldFile.Name));
+			newFileTitleNode.appendChild(document.createTextNode(this.options.newFile.Name));
+		}
 		var leftViewHeight = this._editors[1].getTextView().getModel().getLineCount() * this._editors[1].getTextView().getLineHeight() + 5;
 		var rightViewHeight = this._editors[0].getTextView().getModel().getLineCount() * this._editors[0].getTextView().getLineHeight() +5;
 		return leftViewHeight > rightViewHeight ? leftViewHeight : rightViewHeight;
@@ -20177,9 +20641,14 @@ exports.TwoWayCompareView = (function() {
 	return TwoWayCompareView;
 }());
 
-/*
- * Unified diff view
-*/
+/**
+ * Constructs a unifiled compare view.
+ * 
+ * @param {orion.compare.CompareViewOptions} options the compare view options.
+ * 
+ * @class A InlineCompareView is a unified view of two files with diff annotations and navigations. It displayed the old file + diff in one editor.
+ * @name orion.compare.TwoWayCompareView
+ */
 exports.InlineCompareView = (function() {
 	function InlineCompareView(options ) {
 		this.setOptions(options, true);
@@ -20187,10 +20656,6 @@ exports.InlineCompareView = (function() {
 		this.type = "inline"; //$NON-NLS-0$
 		if(this.options.commandProvider){
 			this.options.commandProvider.initCommands(this);
-		}
-		this._highlighter = [];
-		if(this.options.highlighter && typeof this.options.highlighter === "function") { //$NON-NLS-0$
-			this._highlighter.push(new this.options.highlighter());
 		}
 		this._editorDivId = this.options.parentDivId;
 	}
@@ -20229,7 +20694,7 @@ exports.InlineCompareView = (function() {
 		}
 	};
 
-	InlineCompareView.prototype.initEditors = function(){
+	InlineCompareView.prototype.initEditors = function(initString){
 		var parentDiv = lib.node(this._editorDivId);
 		var textViewFactory = function(){
 			var textView = new mTextView.TextView({
@@ -20247,7 +20712,7 @@ exports.InlineCompareView = (function() {
 		});
 				
 		this._editor.installTextView();
-		this._editor.setInput(null, null, "");
+		this._editor.setInput(null, null, initString);
 		this._editor.setOverviewRulerVisible(false);
 		this._editor.setAnnotationRulerVisible(false);
 			
@@ -20287,11 +20752,11 @@ exports.InlineCompareView = (function() {
 	};
 	
 	InlineCompareView.prototype.refresh = function(){
-		var input = this.options.baseFile.Content;
+		var input = this.options.oldFile.Content;
 		var output = this.options.newFile.Content;
 		var diff = this.options.diffContent;
 
-		var result = this.parseMapper(input, output, diff, this.options.hasConflicts, !this.options.toggler);
+		var result = this._generateMapper(input, output, diff, this.options.hasConflicts, !this.options.toggler);
 		if(!output){
 			output = result.output;
 		}
@@ -20304,7 +20769,7 @@ exports.InlineCompareView = (function() {
 		lFeeder.setModel(this._textView.getModel());
 		this._diffNavigator.initAll(this.options.charDiff ? "char" : "word", this._editor, this._editor, rFeeder, lFeeder, this._overviewRuler); //$NON-NLS-1$ //$NON-NLS-0$
 		
-		this._initSyntaxHighlighter([{fileName: this.options.baseFile.Name, contentType: this.options.baseFile.Type, editor: this._editor}]);
+		this._initSyntaxHighlighter([{fileName: this.options.oldFile.Name, contentType: this.options.oldFile.Type, editor: this._editor}]);
 		this._highlightSyntax();
 		if(this.options.commandProvider){
 			this.options.commandProvider.renderCommands(this);
@@ -20325,9 +20790,15 @@ exports.InlineCompareView = (function() {
 	return InlineCompareView;
 }());
 
-/*
- * Toggleable diff view
-*/
+/**
+ * Constructs a toggleable compare view.
+ * 
+ * @param {String} [startWith="twoWay"] the default view of the toggleable compare view. Can be either "twoWay" or "inline".
+ * @param {orion.compare.CompareViewOptions} options the compare view options.
+ * 
+ * @class A toggleableCompareView is an interchangeable comapre view helper that helps user to switch between the "side by side" and "unified" by only button click. The commandProvider property has to be provided in the option in order to render the toggle command.
+ * @name orion.compare.toggleableCompareView
+ */
 exports.toggleableCompareView = (function() {
 	function toggleableCompareView(startWith, options ) {
 		if(options){
@@ -20340,8 +20811,8 @@ exports.toggleableCompareView = (function() {
 		}
 	}
 	toggleableCompareView.prototype = {
-		startup: function(onLoadContents){
-			this._widget.startup(false, onLoadContents);
+		startup: function(){
+			this._widget.startup();
 		},
 		
 		toggle: function(){
@@ -20357,7 +20828,7 @@ exports.toggleableCompareView = (function() {
 				this._widget = new exports.InlineCompareView(options);
 			}
 			this._widget.initEditors();
-			this._widget.refresh();
+			this._widget.refresh(true);
 		},
 		
 		getWidget: function() {
@@ -20388,6 +20859,12 @@ define('orion/compare/compareCommands',['i18n!orion/compare/nls/messages', 'orio
 function(messages, mCommands, mKeyBinding, lib) {
 
 var exports = {};
+/**
+ * @name orion.compare.CompareCommandFactory
+ * @class Represents a command renderer to render all commands and key bindings of the command view.
+ * @property {String} options.commandSpanId The DOM element id where the commands are rendered. Required.
+ * @property {orion.commandRegistry.CommandRegistry} options.commandService The command service that is used to register all the commands. Required.
+ */
 exports.CompareCommandFactory = (function() {
 	function CompareCommandFactory(options){
 		this.setOptions(options, true);
@@ -20406,7 +20883,9 @@ exports.CompareCommandFactory = (function() {
 				}.bind(this));
 			}
 		},
-		
+		getOptions: function() {
+			return this.options;
+		},
 		initCommands: function(compareWidget){	
 			var commandSpanId = this.options.commandSpanId;
 			var commandService = this.options.commandService;
@@ -20420,7 +20899,7 @@ exports.CompareCommandFactory = (function() {
 				id: "orion.compare.copyToLeft", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				visibleWhen: function(item) {
-					return compareWidget.type === "twoWay"; //$NON-NLS-0$
+					return compareWidget.type === "twoWay" && compareWidget.options.newFile && !compareWidget.options.newFile.readonly; //$NON-NLS-0$
 				}.bind(this),
 				callback : function(data) {
 					data.items.copyToLeft();
@@ -20432,7 +20911,7 @@ exports.CompareCommandFactory = (function() {
 				id: "orion.compare.copyToRight", //$NON-NLS-0$
 				groupId: "orion.compareGroup", //$NON-NLS-0$
 				visibleWhen: function(item) {
-					return compareWidget.type === "twoWay"; //$NON-NLS-0$
+					return compareWidget.type === "twoWay" && compareWidget.options.oldFile && !compareWidget.options.oldFile.readonly; //$NON-NLS-0$
 				}.bind(this),
 				callback : function(data) {
 					data.items.copyToRight();
@@ -20509,12 +20988,8 @@ exports.CompareCommandFactory = (function() {
 			// Register command contributions
 			commandService.registerCommandContribution(commandSpanId, "orion.compare.toggle2Inline", 108); //$NON-NLS-0$
 			commandService.registerCommandContribution(commandSpanId, "orion.compare.toggle2TwoWay", 109); //$NON-NLS-0$
-			if (!compareWidget.options.newFile.readonly) {
-				commandService.registerCommandContribution(commandSpanId, "orion.compare.copyToLeft", 110, null, false, new mKeyBinding.KeyBinding(37/*left arrow key*/, true, false, true)); //$NON-NLS-0$
-			}
-			if (!compareWidget.options.baseFile.readonly) {
-				commandService.registerCommandContribution(commandSpanId, "orion.compare.copyToRight", 111, null, false, new mKeyBinding.KeyBinding(39/*left arrow key*/, true, false, true)); //$NON-NLS-0$
-			}
+			commandService.registerCommandContribution(commandSpanId, "orion.compare.copyToLeft", 110, null, false, new mKeyBinding.KeyBinding(37/*left arrow key*/, true, false, true)); //$NON-NLS-0$
+			commandService.registerCommandContribution(commandSpanId, "orion.compare.copyToRight", 111, null, false, new mKeyBinding.KeyBinding(39/*left arrow key*/, true, false, true)); //$NON-NLS-0$
 			commandService.registerCommandContribution(commandSpanId, "orion.compare.nextDiff", 112, null, false, new mKeyBinding.KeyBinding(40/*down arrow key*/, true)); //$NON-NLS-0$
 			commandService.registerCommandContribution(commandSpanId, "orion.compare.prevDiff", 113, null, false, new mKeyBinding.KeyBinding(38/*up arrow key*/, true)); //$NON-NLS-0$
 			if(compareWidget.options.wordLevelNav){
@@ -22052,87 +22527,119 @@ define("orion/editor/htmlGrammar", [], function() {
  * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
  * 
  * Contributors: IBM Corporation - initial API and implementation
+ ******************************************************************************/
+
+/*global define*/
+
+define("orion/editor/keywords", [], function() { //$NON-NLS-0$
+
+	var JS_KEYWORDS = [
+		"break", //$NON-NLS-0$
+		"case", "class", "catch", "continue", "const", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"debugger", "default", "delete", "do", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"else", "enum", "export", "extends", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"false", "finally", "for", "function", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"if", "implements", "import", "in", "instanceof", "interface", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"let", //$NON-NLS-0$
+		"new", "null", //$NON-NLS-1$ //$NON-NLS-0$
+		"package", "private", "protected", "public", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+		"return", //$NON-NLS-0$
+		"static", "super", "switch", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
+		"this", "throw", "true", "try", "typeof", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+		"undefined", //$NON-NLS-0$
+		"var", "void", //$NON-NLS-0$ //$NON-NLS-1$
+		"while", "with", //$NON-NLS-0$ //$NON-NLS-1$
+		"yield" //$NON-NLS-0$
+	];
+
+	var CSS_KEYWORDS = [
+		"alignment-adjust", "alignment-baseline", "animation", "animation-delay", "animation-direction", "animation-duration", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"animation-iteration-count", "animation-name", "animation-play-state", "animation-timing-function", "appearance", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"azimuth", "backface-visibility", "background", "background-attachment", "background-clip", "background-color", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"background-image", "background-origin", "background-position", "background-repeat", "background-size", "baseline-shift", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"binding", "bleed", "bookmark-label", "bookmark-level", "bookmark-state", "bookmark-target", "border", "border-bottom", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-bottom-color", "border-bottom-left-radius", "border-bottom-right-radius", "border-bottom-style", "border-bottom-width", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-collapse", "border-color", "border-image", "border-image-outset", "border-image-repeat", "border-image-slice", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-image-source", "border-image-width", "border-left", "border-left-color", "border-left-style", "border-left-width", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-radius", "border-right", "border-right-color", "border-right-style", "border-right-width", "border-spacing", "border-style", //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-top", "border-top-color", "border-top-left-radius", "border-top-right-radius", "border-top-style", "border-top-width", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-width", "bottom", "box-align", "box-decoration-break", "box-direction", "box-flex", "box-flex-group", "box-lines", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"box-ordinal-group", "box-orient", "box-pack", "box-shadow", "box-sizing", "break-after", "break-before", "break-inside", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"caption-side", "clear", "clip", "color", "color-profile", "column-count", "column-fill", "column-gap", "column-rule", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"column-rule-color", "column-rule-style", "column-rule-width", "column-span", "column-width", "columns", "content", "counter-increment", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"counter-reset", "crop", "cue", "cue-after", "cue-before", "cursor", "direction", "display", "dominant-baseline", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"drop-initial-after-adjust", "drop-initial-after-align", "drop-initial-before-adjust", "drop-initial-before-align", "drop-initial-size", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"drop-initial-value", "elevation", "empty-cells", "fit", "fit-position", "flex-align", "flex-flow", "flex-inline-pack", "flex-order", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"flex-pack", "float", "float-offset", "font", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"font-variant", "font-weight", "grid-columns", "grid-rows", "hanging-punctuation", "height", "hyphenate-after", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"hyphenate-before", "hyphenate-character", "hyphenate-lines", "hyphenate-resource", "hyphens", "icon", "image-orientation", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"image-rendering", "image-resolution", "inline-box-align", "left", "letter-spacing", "line-height", "line-stacking", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"line-stacking-ruby", "line-stacking-shift", "line-stacking-strategy", "list-style", "list-style-image", "list-style-position", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"list-style-type", "margin", "margin-bottom", "margin-left", "margin-right", "margin-top", "mark", "mark-after", "mark-before", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"marker-offset", "marks", "marquee-direction", "marquee-loop", "marquee-play-count", "marquee-speed", "marquee-style", "max-height", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"max-width", "min-height", "min-width", "move-to", "nav-down", "nav-index", "nav-left", "nav-right", "nav-up", "opacity", "orphans", //$NON-NLS-10$ //$NON-NLS-9$ //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"outline", "outline-color", "outline-offset", "outline-style", "outline-width", "overflow", "overflow-style", "overflow-x", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"overflow-y", "padding", "padding-bottom", "padding-left", "padding-right", "padding-top", "page", "page-break-after", "page-break-before", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"page-break-inside", "page-policy", "pause", "pause-after", "pause-before", "perspective", "perspective-origin", "phonemes", "pitch", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"pitch-range", "play-during", "position", "presentation-level", "punctuation-trim", "quotes", "rendering-intent", "resize", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"rest", "rest-after", "rest-before", "richness", "right", "rotation", "rotation-point", "ruby-align", "ruby-overhang", "ruby-position", //$NON-NLS-9$ //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"ruby-span", "size", "speak", "speak-header", "speak-numeral", "speak-punctuation", "speech-rate", "stress", "string-set", "table-layout", //$NON-NLS-9$ //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"target", "target-name", "target-new", "target-position", "text-align", "text-align-last", "text-decoration", "text-emphasis", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"text-height", "text-indent", "text-justify", "text-outline", "text-shadow", "text-transform", "text-wrap", "top", "transform", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"transform-origin", "transform-style", "transition", "transition-delay", "transition-duration", "transition-property", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"transition-timing-function", "unicode-bidi", "vertical-align", "visibility", "voice-balance", "voice-duration", "voice-family", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"voice-pitch", "voice-pitch-range", "voice-rate", "voice-stress", "voice-volume", "volume", "white-space", "white-space-collapse", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"widows", "width", "word-break", "word-spacing", "word-wrap", "z-index" //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	];
+	
+	var JAVA_KEYWORDS = [
+		"abstract", //$NON-NLS-0$
+		"boolean", "break", "byte", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"case", "catch", "char", "class", "continue", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"default", "do", "double", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"else", "extends", //$NON-NLS-1$ //$NON-NLS-0$
+		"false", "final", "finally", "float", "for", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"if", "implements", "import", "instanceof", "int", "interface", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"long", //$NON-NLS-0$
+		"native", "new", "null", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"package", "private", "protected", "public", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"return", //$NON-NLS-0$
+		"short", "static", "super", "switch", "synchronized", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"this", "throw", "throws", "transient", "true", "try", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"void", "volatile", //$NON-NLS-1$ //$NON-NLS-0$
+		"while" //$NON-NLS-0$
+	];
+
+	return {
+		JSKeywords: JS_KEYWORDS,
+		CSSKeywords: CSS_KEYWORDS,
+		JAVAKeywords: JAVA_KEYWORDS
+	};
+});
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: IBM Corporation - initial API and implementation
  *               Alex Lakatos - fix for bug#369781
  ******************************************************************************/
 
 /*global define */
 
-define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnnotations) {
+define("examples/editor/textStyler", [ //$NON-NLS-0$
+	'orion/editor/annotations', //$NON-NLS-0$
+	'orion/editor/keywords' //$NON-NLS-0$
+], function(mAnnotations, mKeywords) {
 
-	var JS_KEYWORDS =
-		["break",
-		 "case", "class", "catch", "continue", "const", 
-		 "debugger", "default", "delete", "do",
-		 "else", "enum", "export", "extends",  
-		 "false", "finally", "for", "function",
-		 "if", "implements", "import", "in", "instanceof", "interface", 
-		 "let",
-		 "new", "null",
-		 "package", "private", "protected", "public",
-		 "return", 
-		 "static", "super", "switch",
-		 "this", "throw", "true", "try", "typeof",
-		 "undefined",
-		 "var", "void",
-		 "while", "with",
-		 "yield"];
+	var JS_KEYWORDS = mKeywords.JSKeywords;
 
-	var JAVA_KEYWORDS =
-		["abstract",
-		 "boolean", "break", "byte",
-		 "case", "catch", "char", "class", "continue",
-		 "default", "do", "double",
-		 "else", "extends",
-		 "false", "final", "finally", "float", "for",
-		 "if", "implements", "import", "instanceof", "int", "interface",
-		 "long",
-		 "native", "new", "null",
-		 "package", "private", "protected", "public",
-		 "return",
-		 "short", "static", "super", "switch", "synchronized",
-		 "this", "throw", "throws", "transient", "true", "try",
-		 "void", "volatile",
-		 "while"];
+	var JAVA_KEYWORDS = mKeywords.JAVAKeywords;
 
-	var CSS_KEYWORDS =
-		["alignment-adjust", "alignment-baseline", "animation", "animation-delay", "animation-direction", "animation-duration",
-		 "animation-iteration-count", "animation-name", "animation-play-state", "animation-timing-function", "appearance",
-		 "azimuth", "backface-visibility", "background", "background-attachment", "background-clip", "background-color",
-		 "background-image", "background-origin", "background-position", "background-repeat", "background-size", "baseline-shift",
-		 "binding", "bleed", "bookmark-label", "bookmark-level", "bookmark-state", "bookmark-target", "border", "border-bottom",
-		 "border-bottom-color", "border-bottom-left-radius", "border-bottom-right-radius", "border-bottom-style", "border-bottom-width",
-		 "border-collapse", "border-color", "border-image", "border-image-outset", "border-image-repeat", "border-image-slice",
-		 "border-image-source", "border-image-width", "border-left", "border-left-color", "border-left-style", "border-left-width",
-		 "border-radius", "border-right", "border-right-color", "border-right-style", "border-right-width", "border-spacing", "border-style",
-		 "border-top", "border-top-color", "border-top-left-radius", "border-top-right-radius", "border-top-style", "border-top-width",
-		 "border-width", "bottom", "box-align", "box-decoration-break", "box-direction", "box-flex", "box-flex-group", "box-lines",
-		 "box-ordinal-group", "box-orient", "box-pack", "box-shadow", "box-sizing", "break-after", "break-before", "break-inside",
-		 "caption-side", "clear", "clip", "color", "color-profile", "column-count", "column-fill", "column-gap", "column-rule",
-		 "column-rule-color", "column-rule-style", "column-rule-width", "column-span", "column-width", "columns", "content", "counter-increment",
-		 "counter-reset", "crop", "cue", "cue-after", "cue-before", "cursor", "direction", "display", "dominant-baseline",
-		 "drop-initial-after-adjust", "drop-initial-after-align", "drop-initial-before-adjust", "drop-initial-before-align", "drop-initial-size",
-		 "drop-initial-value", "elevation", "empty-cells", "fit", "fit-position", "flex-align", "flex-flow", "flex-inline-pack", "flex-order",
-		 "flex-pack", "float", "float-offset", "font", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style",
-		 "font-variant", "font-weight", "grid-columns", "grid-rows", "hanging-punctuation", "height", "hyphenate-after",
-		 "hyphenate-before", "hyphenate-character", "hyphenate-lines", "hyphenate-resource", "hyphens", "icon", "image-orientation",
-		 "image-rendering", "image-resolution", "inline-box-align", "left", "letter-spacing", "line-height", "line-stacking",
-		 "line-stacking-ruby", "line-stacking-shift", "line-stacking-strategy", "list-style", "list-style-image", "list-style-position",
-		 "list-style-type", "margin", "margin-bottom", "margin-left", "margin-right", "margin-top", "mark", "mark-after", "mark-before",
-		 "marker-offset", "marks", "marquee-direction", "marquee-loop", "marquee-play-count", "marquee-speed", "marquee-style", "max-height",
-		 "max-width", "min-height", "min-width", "move-to", "nav-down", "nav-index", "nav-left", "nav-right", "nav-up", "opacity", "orphans",
-		 "outline", "outline-color", "outline-offset", "outline-style", "outline-width", "overflow", "overflow-style", "overflow-x",
-		 "overflow-y", "padding", "padding-bottom", "padding-left", "padding-right", "padding-top", "page", "page-break-after", "page-break-before",
-		 "page-break-inside", "page-policy", "pause", "pause-after", "pause-before", "perspective", "perspective-origin", "phonemes", "pitch",
-		 "pitch-range", "play-during", "position", "presentation-level", "punctuation-trim", "quotes", "rendering-intent", "resize",
-		 "rest", "rest-after", "rest-before", "richness", "right", "rotation", "rotation-point", "ruby-align", "ruby-overhang", "ruby-position",
-		 "ruby-span", "size", "speak", "speak-header", "speak-numeral", "speak-punctuation", "speech-rate", "stress", "string-set", "table-layout",
-		 "target", "target-name", "target-new", "target-position", "text-align", "text-align-last", "text-decoration", "text-emphasis",
-		 "text-height", "text-indent", "text-justify", "text-outline", "text-shadow", "text-transform", "text-wrap", "top", "transform",
-		 "transform-origin", "transform-style", "transition", "transition-delay", "transition-duration", "transition-property",
-		 "transition-timing-function", "unicode-bidi", "vertical-align", "visibility", "voice-balance", "voice-duration", "voice-family",
-		 "voice-pitch", "voice-pitch-range", "voice-rate", "voice-stress", "voice-volume", "volume", "white-space", "white-space-collapse",
-		 "widows", "width", "word-break", "word-spacing", "word-wrap", "z-index"
-		];
+	var CSS_KEYWORDS = mKeywords.CSSKeywords;
 
 	// Scanner constants
 	var UNKOWN = 1;
@@ -22150,21 +22657,21 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 	var DOC_TAG = 13;
 	var TASK_TAG = 14;
 	
-	var BRACKETS = "{}()[]<>";
+	var BRACKETS = "{}()[]<>"; //$NON-NLS-0$
 
 	// Styles 
-	var singleCommentStyle = {styleClass: "comment"};
-	var multiCommentStyle = {styleClass: "token_multiline_comment"};
-	var docCommentStyle = {styleClass: "token_doc_comment"};
-	var htmlMarkupStyle = {styleClass: "token_doc_html_markup"};
-	var tasktagStyle = {styleClass: "token_task_tag"};
-	var doctagStyle = {styleClass: "token_doc_tag"};
-	var stringStyle = {styleClass: "token_string"};
-	var numberStyle = {styleClass: "token_number"};
-	var keywordStyle = {styleClass: "token_keyword"};
-	var spaceStyle = {styleClass: "token_space"};
-	var tabStyle = {styleClass: "token_tab"};
-	var caretLineStyle = {styleClass: "line_caret"};
+	var singleCommentStyle = {styleClass: "comment"}; //$NON-NLS-0$
+	var multiCommentStyle = {styleClass: "token_multiline_comment"}; //$NON-NLS-0$
+	var docCommentStyle = {styleClass: "token_doc_comment"}; //$NON-NLS-0$
+	var htmlMarkupStyle = {styleClass: "token_doc_html_markup"}; //$NON-NLS-0$
+	var tasktagStyle = {styleClass: "token_task_tag"}; //$NON-NLS-0$
+	var doctagStyle = {styleClass: "token_doc_tag"}; //$NON-NLS-0$
+	var stringStyle = {styleClass: "token_string"}; //$NON-NLS-0$
+	var numberStyle = {styleClass: "token_number"}; //$NON-NLS-0$
+	var keywordStyle = {styleClass: "token_keyword"}; //$NON-NLS-0$
+	var spaceStyle = {styleClass: "token_space"}; //$NON-NLS-0$
+	var tabStyle = {styleClass: "token_tab"}; //$NON-NLS-0$
+	var caretLineStyle = {styleClass: "line_caret"}; //$NON-NLS-0$
 	
 	function Scanner (keywords, whitespacesVisible) {
 		this.keywords = keywords;
@@ -22481,13 +22988,13 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 	};
 	
 	function TextStyler (view, lang, annotationModel) {
-		this.commentStart = "/*";
-		this.commentEnd = "*/";
+		this.commentStart = "/*"; //$NON-NLS-0$
+		this.commentEnd = "*/"; //$NON-NLS-0$
 		var keywords = [];
 		switch (lang) {
-			case "java": keywords = JAVA_KEYWORDS; break;
-			case "js": keywords = JS_KEYWORDS; break;
-			case "css": keywords = CSS_KEYWORDS; break;
+			case "java": keywords = JAVA_KEYWORDS; break; //$NON-NLS-0$
+			case "js": keywords = JS_KEYWORDS; break; //$NON-NLS-0$
+			case "css": keywords = CSS_KEYWORDS; break; //$NON-NLS-0$
 		}
 		this.whitespacesVisible = false;
 		this.detectHyperlinks = true;
@@ -22499,7 +23006,7 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 		this._commentScanner = new CommentScanner(this.whitespacesVisible);
 		this._whitespaceScanner = new WhitespaceScanner();
 		//TODO these scanners are not the best/correct way to parse CSS
-		if (lang === "css") {
+		if (lang === "css") { //$NON-NLS-0$
 			this._scanner.isCSS = true;
 			this._firstScanner.isCSS = true;
 		}
@@ -22529,11 +23036,11 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 		if (model.getBaseModel) {
 			model = model.getBaseModel();
 		}
-		model.addEventListener("Changed", this._listener.onChanged);
-		view.addEventListener("MouseDown", this._listener.onMouseDown);
-		view.addEventListener("Selection", this._listener.onSelection);
-		view.addEventListener("Destroy", this._listener.onDestroy);
-		view.addEventListener("LineStyle", this._listener.onLineStyle);
+		model.addEventListener("Changed", this._listener.onChanged); //$NON-NLS-0$
+		view.addEventListener("MouseDown", this._listener.onMouseDown); //$NON-NLS-0$
+		view.addEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
+		view.addEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+		view.addEventListener("LineStyle", this._listener.onLineStyle); //$NON-NLS-0$
 		this._computeComments ();
 		this._computeFolding();
 		view.redrawLines();
@@ -22547,11 +23054,11 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 				if (model.getBaseModel) {
 					model = model.getBaseModel();
 				}
-				model.removeEventListener("Changed", this._listener.onChanged);
-				view.removeEventListener("MouseDown", this._listener.onMouseDown);
-				view.removeEventListener("Selection", this._listener.onSelection);
-				view.removeEventListener("Destroy", this._listener.onDestroy);
-				view.removeEventListener("LineStyle", this._listener.onLineStyle);
+				model.removeEventListener("Changed", this._listener.onChanged); //$NON-NLS-0$
+				view.removeEventListener("MouseDown", this._listener.onMouseDown); //$NON-NLS-0$
+				view.removeEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
+				view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+				view.removeEventListener("LineStyle", this._listener.onLineStyle); //$NON-NLS-0$
 				this.view = null;
 			}
 		},
@@ -22818,7 +23325,7 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 		},
 		_detectHyperlinks: function(text, offset, styles, s) {
 			var href = null, index, linkStyle;
-			if ((index = text.indexOf("://")) > 0) {
+			if ((index = text.indexOf("://")) > 0) { //$NON-NLS-0$
 				href = text;
 				var start = index;
 				while (start > 0) {
@@ -22829,12 +23336,12 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 					start--;
 				}
 				if (start > 0) {
-					var brackets = "\"\"''(){}[]<>";
+					var brackets = "\"\"''(){}[]<>"; //$NON-NLS-0$
 					index = brackets.indexOf(href.substring(start - 1, start));
 					if (index !== -1 && (index & 1) === 0 && (index = href.lastIndexOf(brackets.substring(index + 1, index + 2))) !== -1) {
 						var end = index;
 						linkStyle = this._clone(s);
-						linkStyle.tagName = "A";
+						linkStyle.tagName = "A"; //$NON-NLS-0$
 						linkStyle.attributes = {href: href.substring(start, end)};
 						styles.push({start: offset, end: offset + start, style: s});
 						styles.push({start: offset + start, end: offset + end, style: linkStyle});
@@ -22842,12 +23349,12 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 						return null;
 					}
 				}
-			} else if (text.toLowerCase().indexOf("bug#") === 0) {
-				href = "https://bugs.eclipse.org/bugs/show_bug.cgi?id=" + parseInt(text.substring(4), 10);
+			} else if (text.toLowerCase().indexOf("bug#") === 0) { //$NON-NLS-0$
+				href = "https://bugs.eclipse.org/bugs/show_bug.cgi?id=" + parseInt(text.substring(4), 10); //$NON-NLS-0$
 			}
 			if (href) {
 				linkStyle = this._clone(s);
-				linkStyle.tagName = "A";
+				linkStyle.tagName = "A"; //$NON-NLS-0$
 				linkStyle.attributes = {href: href};
 				return linkStyle;
 			}
@@ -23200,6 +23707,74 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 
 /*******************************************************************************
  * @license
+ * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+/*global define */
+/*jslint forin:true regexp:false sub:true*/
+
+define('orion/compare/compareHighlighter',['orion/Deferred',
+		"orion/editor/textMateStyler",
+		"orion/editor/htmlGrammar",
+		"examples/editor/textStyler"],
+function(Deferred, mTextMateStyler, mHtmlGrammar, mTextStyler) {
+var exports = {};
+function _fileExt(fName){
+	var splitName = fName.split("."); //$NON-NLS-0$
+	var ext = "js"; //$NON-NLS-0$
+	if(splitName.length > 1){
+		ext = splitName[splitName.length - 1];
+	}
+	return ext;
+}
+
+/**
+ * @name orion.compare.CompareSyntaxHighlighter
+ * @class Represents a syntax highlighter to highlight one side of the compare view.
+ */
+exports.DefaultHighlighter = (function() {
+	function DefaultHighlighter() {
+		this.styler = null;
+	}
+	DefaultHighlighter.prototype = {
+		highlight: function(fileName, contentType, editor) {
+			if (this.styler) {
+				this.styler.destroy();
+				this.styler = null;
+			}
+			var lang = _fileExt(fileName);
+			if (lang){
+				var textView = editor.getTextView();
+				var annotationModel = editor.getAnnotationModel();
+				switch(lang) {
+					case "js": //$NON-NLS-0$
+					case "java": //$NON-NLS-0$
+					case "css": //$NON-NLS-0$
+						this.styler = new mTextStyler.TextStyler(textView, lang, annotationModel);
+						break;
+					case "html": //$NON-NLS-0$
+						this.styler = new mTextMateStyler.TextMateStyler(textView, new mHtmlGrammar.HtmlGrammar());
+						break;
+				}
+				return new Deferred().resolve(editor);
+			}
+			return null;
+		}
+	};
+	return DefaultHighlighter;
+}());
+
+return exports;
+});
+
+/*******************************************************************************
+ * @license
  * Copyright (c) 2011, 2012 IBM Corporation and others. All rights reserved. This
  * program and the accompanying materials are made available under the terms of
  * the Eclipse Public License v1.0 (http://www.eclipse.org/legal/epl-v10.html),
@@ -23214,10 +23789,8 @@ define('orion/compare/builder/compare',['orion/commandRegistry',
 		'orion/Deferred',
 		'orion/compare/compareView',
 		'orion/compare/compareCommands',
-		"orion/editor/textMateStyler",
-		"orion/editor/htmlGrammar",
-		"examples/editor/textStyler"],
-function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mTextMateStyler, mHtmlGrammar, mTextStyler) {
+		'orion/compare/compareHighlighter'],
+function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mCompareHighlighter) {
 	var commandService = new mCommandRegistry.CommandRegistry({
 	});
 
@@ -23264,54 +23837,55 @@ function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mTextMateSt
 		return d;
 	}
 	
-	/*
-	 * Default syntax highlighter for js, java, and css. Grammar-based highlighter for html.
-	*/
-	function DefaultHighlighter() {
-		this.styler = null;
-	}
-	DefaultHighlighter.prototype = {
-		highlight: function(fileName, contentType, editor) {
-			if (this.styler) {
-				this.styler.destroy();
-				this.styler = null;
-			}
-			var lang = _fileExt(fileName);
-			if (lang){
-				var textView = editor.getTextView();
-				var annotationModel = editor.getAnnotationModel();
-				switch(lang) {
-					case "js": //$NON-NLS-0$
-					case "java": //$NON-NLS-0$
-					case "css": //$NON-NLS-0$
-						this.styler = new mTextStyler.TextStyler(textView, lang, annotationModel);
-						break;
-					case "html": //$NON-NLS-0$
-						this.styler = new mTextMateStyler.TextMateStyler(textView, new mHtmlGrammar.HtmlGrammar());
-						break;
-				}
-				return new Deferred().resolve(editor);
-			}
-			return null;
-		}
-	};
-    function compare(options){
-		var vOptions = options;
+	/**
+	 * @class This object describes options of a file. Two instances of this object construct the core parameters of a compare view. 
+	 * @name orion.compare.FileOptions
+	 *
+	 * @property {String} Content the text contents of the file unit. Requied.
+	 * @property {String} Name the file name. Required for syntax highlight.
+	 * @property {Boolean} [readonly=true] whether or not the file is in readonly mode. Optional.
+	 */
+	/**
+	 * @class This object describes the options for <code>compare</code>.
+	 * @name orion.compare.CompareOptions
+	 *
+	 * @property {String} parentDivID Required. the parent element id for the compare view. Required. The parentDivID is required to prefix the ids of sub components in case of side by side view.
+	 * @property {orion.compare.FileOptions} [oldFile] Required. the options of the file that is original. Required. In the two way compare case, this file is dispalyed on the left hand side.
+	 * @property {orion.compare.FileOptions} [newFile] Required. the options of the file that is compared against the original. Required. In the two way compare case, this file is dispalyed on the right hand side.
+	 * @property {Boolean} [showTitle=false] Optional. whether or not to show the two file names on each side of the compare view.
+	 * @property {Boolean} [showLineStatus=false] Optional. whether or not to show the current line and column number fo the caret on each side of the view. Not avaible for inline/unified compare view.
+	 */
+	/**
+	 * Creates a compare view instance by given view options and othe parameters.
+	 * 
+	 * @param {orion.compare.CompareOptions} viewOptions Required. The comapre view option.
+	 * @param {String} commandSpanId Optional. The dom element id to render all the commands that toggles compare view and navigates diffs. If not defined, no command is rendered.
+	 * @param {String} [viewType="twoWay"] optional. The type of the compare view. Can be either "twoWay" or "inline". Id not defined default is "twoWay".
+	 * "twoWay" represents a side by side comapre editor while "inline" represents a unified comapre view.
+	 * @param {Boolean} [toggleable=true] optional. Weather or not the compare view is toggleable. A toggleable comapre view provides a toggle button which toggles between the "twoWay" and "inline" view.
+	 */
+    function compare(viewOptions, commandSpanId, viewType, toggleable){
+		var vOptions = viewOptions;
 		if(!vOptions.highlighters){
-			vOptions.highlighters = [new DefaultHighlighter(), new DefaultHighlighter()];
+			vOptions.highlighters = [new mCompareHighlighter.DefaultHighlighter(), new mCompareHighlighter.DefaultHighlighter()];
 		}
-		if(!vOptions.commandService){
-			vOptions.commandService = commandService;
-		}
-		if(vOptions.baseFile && vOptions.baseFile.Name){
-			vOptions.baseFile.Type = _contentType(vOptions.baseFile.Name);
+		if(vOptions.oldFile && vOptions.oldFile.Name){
+			vOptions.oldFile.Type = _contentType(vOptions.oldFile.Name);
 		}
 		if(vOptions.newFile && vOptions.newFile.Name){
 			vOptions.newFile.Type = _contentType(vOptions.newFile.Name);
 		}
-		var cmdProvider = new mCompareCommands.CompareCommandFactory({commandService: commandService, commandSpanId: vOptions.commandSpanId});
+		var cmdProvider = new mCompareCommands.CompareCommandFactory({commandService: commandService, commandSpanId: commandSpanId});
 		vOptions.commandProvider = cmdProvider;
-		this.compareView = new mCompareView.toggleableCompareView("twoWay", vOptions); //$NON-NLS-0$
+		var toggle = (typeof toggleable === "undefined") ? true : toggleable; //$NON-NLS-0$
+		var vType = (viewType === "inline") ? "inline" : "twoWay"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		if(toggle) {
+			this.compareView = new mCompareView.toggleableCompareView(vType, vOptions);
+		} else if(vType === "inline") { //$NON-NLS-0$
+			this.compareView = new mCompareView.inlineCompareView(vOptions);
+		} else {
+			this.compareView = new mCompareView.TwoWayCompareView(vOptions);
+		}
 		this.compareView.startup();
     }
 	compare.prototype = {
@@ -23320,17 +23894,17 @@ function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mTextMateSt
 		},
 		refresh: function(){
 			var options = this.getCompareView().getWidget().options;
-			if(options.baseFile.URL && options.newFile.URL){
+			if(options.oldFile.URL && options.newFile.URL){
 				var promises = [];
-				promises.push( _getFile(options.baseFile.URL));
+				promises.push( _getFile(options.oldFile.URL));
 				promises.push( _getFile(options.newFile.URL));
 				Deferred.all(promises, function(error) { return {_error: error}; }).then(function(results){
-					this.getCompareView().getWidget().options.baseFile.Content = results[0];
+					this.getCompareView().getWidget().options.oldFile.Content = results[0];
 					this.getCompareView().getWidget().options.newFile.Content = results[1];
-					this.getCompareView().getWidget().refresh();
+					this.getCompareView().getWidget().refresh(true);
 				}.bind(this));
 			} else {
-				this.getCompareView().getWidget().refresh();
+				this.getCompareView().getWidget().refresh(true);
 			}
 		}
 	};
