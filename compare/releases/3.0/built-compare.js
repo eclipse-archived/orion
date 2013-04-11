@@ -8861,6 +8861,9 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				evt.screenY = e.screenY;
 				this.onContextMenu(evt);
 				preventDefault = evt.defaultPrevented;
+			} else if (util.isMac && util.isFirefox && e.button === 0) {
+				// hack to prevent CTRL+Space from showing the browser context menu
+				preventDefault = true;
 			}
 			if (preventDefault) {
 				if (e.preventDefault) { e.preventDefault(); }
@@ -17781,8 +17784,19 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 		 * on user change. Also escapes the Linked Mode if the text buffer was modified outside of the Linked Mode positions.
 		 */
 		this.linkedModeListener = {
-
+		
+			onModelChanged: function(event) {
+				if (!this._viewEditing) {
+					this.cancel(true);
+				}
+			}.bind(this),
+			
+			onModify: function(event) {
+				this._viewEditing = false;
+			}.bind(this),
+			
 			onVerify: function(event) {
+				this._viewEditing = true;
 				if (this.ignoreVerify) { return; }
 				var start = event.start;
 				var addedCharCount = event.text.length;
@@ -17889,6 +17903,8 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 
 			var textView = this.editor.getTextView();
 			textView.addEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
+			textView.addEventListener("Modify", this.linkedModeListener.onModify); //$NON-NLS-0$
+			textView.addEventListener("ModelChanged", this.linkedModeListener.onModelChanged); //$NON-NLS-0$
 
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "nextLinkedModePosition"); //$NON-NLS-0$
 			textView.setAction("nextLinkedModePosition", function() { //$NON-NLS-0$
@@ -17977,6 +17993,8 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 			this.linkedModeActive = false;
 			var textView = this.editor.getTextView();
 			textView.removeEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
+			textView.removeEventListener("Modify", this.linkedModeListener.onModify); //$NON-NLS-0$
+			textView.removeEventListener("ModelChanged", this.linkedModeListener.onModelChanged); //$NON-NLS-0$
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "tab"); //$NON-NLS-0$
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "shiftTab"); //$NON-NLS-0$
 			
@@ -20218,8 +20236,10 @@ exports.CompareView = (function() {
 					this._diffNavigator.gotoBlock(this.options.blockNumber-1, this.options.changeNumber-1);
 				}.bind(this));
 			} else {//render all the diff annotations directly
-				this._diffNavigator.renderAnnotations();
-				this._diffNavigator.gotoBlock(this.options.blockNumber-1, this.options.changeNumber-1);
+				window.setTimeout(function () {
+					this._diffNavigator.renderAnnotations();
+					this._diffNavigator.gotoBlock(this.options.blockNumber-1, this.options.changeNumber-1);
+				}.bind(this), 50);
 			}
 		},
 		
@@ -23862,11 +23882,11 @@ function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mCompareHig
 	 * @param {String} commandSpanId Optional. The dom element id to render all the commands that toggles compare view and navigates diffs. If not defined, no command is rendered.
 	 * @param {String} [viewType="twoWay"] optional. The type of the compare view. Can be either "twoWay" or "inline". Id not defined default is "twoWay".
 	 * "twoWay" represents a side by side comapre editor while "inline" represents a unified comapre view.
-	 * @param {Boolean} [toggleable=true] optional. Weather or not the compare view is toggleable. A toggleable comapre view provides a toggle button which toggles between the "twoWay" and "inline" view.
+	 * @param {Boolean} [toggleable=false] optional. Weather or not the compare view is toggleable. A toggleable comapre view provides a toggle button which toggles between the "twoWay" and "inline" view.
 	 */
     function compare(viewOptions, commandSpanId, viewType, toggleable){
 		var vOptions = viewOptions;
-		if(!vOptions.highlighters){
+		if(!vOptions.highlighters && vOptions.oldFile && vOptions.oldFile.Name && vOptions.newFile && vOptions.newFile.Name){
 			vOptions.highlighters = [new mCompareHighlighter.DefaultHighlighter(), new mCompareHighlighter.DefaultHighlighter()];
 		}
 		if(vOptions.oldFile && vOptions.oldFile.Name){
@@ -23875,11 +23895,12 @@ function(mCommandRegistry, Deferred, mCompareView, mCompareCommands, mCompareHig
 		if(vOptions.newFile && vOptions.newFile.Name){
 			vOptions.newFile.Type = _contentType(vOptions.newFile.Name);
 		}
-		var cmdProvider = new mCompareCommands.CompareCommandFactory({commandService: commandService, commandSpanId: commandSpanId});
-		vOptions.commandProvider = cmdProvider;
-		var toggle = (typeof toggleable === "undefined") ? true : toggleable; //$NON-NLS-0$
+		if(commandSpanId) {
+			var cmdProvider = new mCompareCommands.CompareCommandFactory({commandService: commandService, commandSpanId: commandSpanId});
+			vOptions.commandProvider = cmdProvider;
+		}
 		var vType = (viewType === "inline") ? "inline" : "twoWay"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		if(toggle) {
+		if(toggleable) {
 			this.compareView = new mCompareView.toggleableCompareView(vType, vOptions);
 		} else if(vType === "inline") { //$NON-NLS-0$
 			this.compareView = new mCompareView.inlineCompareView(vOptions);
