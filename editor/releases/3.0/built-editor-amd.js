@@ -1,74 +1,5 @@
 /* orion editor */ 
 /*******************************************************************************
- * @license
- * Copyright (c) 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- *
- * Contributors: IBM Corporation - initial API and implementation
- *******************************************************************************/
-
-/*global define navigator*/
-define('orion/util',[],function() {
-
-	var userAgent = navigator.userAgent;
-	var isIE = parseFloat(userAgent.split("MSIE")[1]) || undefined; //$NON-NLS-0$
-	var isFirefox = parseFloat(userAgent.split("Firefox/")[1] || userAgent.split("Minefield/")[1]) || undefined; //$NON-NLS-1$ //$NON-NLS-0$
-	var isOpera = userAgent.indexOf("Opera") !== -1; //$NON-NLS-0$
-	var isChrome = parseFloat(userAgent.split("Chrome/")[1]) || undefined; //$NON-NLS-0$
-	var isSafari = userAgent.indexOf("Safari") !== -1 && !isChrome; //$NON-NLS-0$
-	var isWebkit = parseFloat(userAgent.split("WebKit/")[1]) || undefined; //$NON-NLS-0$
-	var isAndroid = userAgent.indexOf("Android") !== -1; //$NON-NLS-0$
-	var isIPad = userAgent.indexOf("iPad") !== -1; //$NON-NLS-0$
-	var isIPhone = userAgent.indexOf("iPhone") !== -1; //$NON-NLS-0$
-	var isIOS = isIPad || isIPhone;
-	var isMac = navigator.platform.indexOf("Mac") !== -1; //$NON-NLS-0$
-	var isWindows = navigator.platform.indexOf("Win") !== -1; //$NON-NLS-0$
-	var isLinux = navigator.platform.indexOf("Linux") !== -1; //$NON-NLS-0$
-	var platformDelimiter = isWindows ? "\r\n" : "\n"; //$NON-NLS-1$ //$NON-NLS-0$
-
-	function formatMessage(msg) {
-		var args = arguments;
-		return msg.replace(/\$\{([^\}]+)\}/g, function(str, index) { return args[(index << 0) + 1]; });
-	}
-	
-	var XHTML = "http://www.w3.org/1999/xhtml"; //$NON-NLS-0$
-	function createElement(document, tagName) {
-		if (document.createElementNS) {
-			return document.createElementNS(XHTML, tagName);
-		}
-		return document.createElement(tagName);
-	}
-
-	return {
-		formatMessage: formatMessage,
-		
-		createElement: createElement,
-		
-		/** Browsers */
-		isIE: isIE,
-		isFirefox: isFirefox,
-		isOpera: isOpera,
-		isChrome: isChrome,
-		isSafari: isSafari,
-		isWebkit: isWebkit,
-		isAndroid: isAndroid,
-		isIPad: isIPad,
-		isIPhone: isIPhone,
-		isIOS: isIOS,
-		
-		/** OSs */
-		isMac: isMac,
-		isWindows: isWindows,
-		isLinux: isLinux,
-		
-		platformDelimiter: platformDelimiter
-	};
-});
-
-/*******************************************************************************
  * Copyright (c) 2010, 2012 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
@@ -214,6 +145,75 @@ define("orion/editor/eventTarget", [], function() { //$NON-NLS-0$
 		}
 	};
 	return {EventTarget: EventTarget};
+});
+
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ *
+ * Contributors: IBM Corporation - initial API and implementation
+ *******************************************************************************/
+
+/*global define navigator*/
+define('orion/util',[],function() {
+
+	var userAgent = navigator.userAgent;
+	var isIE = parseFloat(userAgent.split("MSIE")[1]) || undefined; //$NON-NLS-0$
+	var isFirefox = parseFloat(userAgent.split("Firefox/")[1] || userAgent.split("Minefield/")[1]) || undefined; //$NON-NLS-1$ //$NON-NLS-0$
+	var isOpera = userAgent.indexOf("Opera") !== -1; //$NON-NLS-0$
+	var isChrome = parseFloat(userAgent.split("Chrome/")[1]) || undefined; //$NON-NLS-0$
+	var isSafari = userAgent.indexOf("Safari") !== -1 && !isChrome; //$NON-NLS-0$
+	var isWebkit = parseFloat(userAgent.split("WebKit/")[1]) || undefined; //$NON-NLS-0$
+	var isAndroid = userAgent.indexOf("Android") !== -1; //$NON-NLS-0$
+	var isIPad = userAgent.indexOf("iPad") !== -1; //$NON-NLS-0$
+	var isIPhone = userAgent.indexOf("iPhone") !== -1; //$NON-NLS-0$
+	var isIOS = isIPad || isIPhone;
+	var isMac = navigator.platform.indexOf("Mac") !== -1; //$NON-NLS-0$
+	var isWindows = navigator.platform.indexOf("Win") !== -1; //$NON-NLS-0$
+	var isLinux = navigator.platform.indexOf("Linux") !== -1; //$NON-NLS-0$
+	var platformDelimiter = isWindows ? "\r\n" : "\n"; //$NON-NLS-1$ //$NON-NLS-0$
+
+	function formatMessage(msg) {
+		var args = arguments;
+		return msg.replace(/\$\{([^\}]+)\}/g, function(str, index) { return args[(index << 0) + 1]; });
+	}
+	
+	var XHTML = "http://www.w3.org/1999/xhtml"; //$NON-NLS-0$
+	function createElement(document, tagName) {
+		if (document.createElementNS) {
+			return document.createElementNS(XHTML, tagName);
+		}
+		return document.createElement(tagName);
+	}
+
+	return {
+		formatMessage: formatMessage,
+		
+		createElement: createElement,
+		
+		/** Browsers */
+		isIE: isIE,
+		isFirefox: isFirefox,
+		isOpera: isOpera,
+		isChrome: isChrome,
+		isSafari: isSafari,
+		isWebkit: isWebkit,
+		isAndroid: isAndroid,
+		isIPad: isIPad,
+		isIPhone: isIPhone,
+		isIOS: isIOS,
+		
+		/** OSs */
+		isMac: isMac,
+		isWindows: isWindows,
+		isLinux: isLinux,
+		
+		platformDelimiter: platformDelimiter
+	};
 });
 
 /*******************************************************************************
@@ -802,6 +802,91 @@ define("orion/editor/textModel", ['orion/editor/eventTarget', 'orion/util'], fun
 
 /*******************************************************************************
  * @license
+ * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: 
+ *		Felipe Heidrich (IBM Corporation) - initial API and implementation
+ *		Silenio Quarti (IBM Corporation) - initial API and implementation
+ ******************************************************************************/
+
+/*global define */
+
+define("orion/keyBinding", ['orion/util'], function(util) { //$NON-NLS-1$ //$NON-NLS-0$
+
+	/**
+	 * Constructs a new key binding with the given key code and modifiers.
+	 * 
+	 * @param {String|Number} keyCode the key code.
+	 * @param {Boolean} mod1 the primary modifier (usually Command on Mac and Control on other platforms).
+	 * @param {Boolean} mod2 the secondary modifier (usually Shift).
+	 * @param {Boolean} mod3 the third modifier (usually Alt).
+	 * @param {Boolean} mod4 the fourth modifier (usually Control on the Mac).
+	 * 
+	 * @class A KeyBinding represents of a key code and a modifier state that can be triggered by the user using the keyboard.
+	 * @name orion.editor.KeyBinding
+	 * 
+	 * @property {String|Number} keyCode The key code.
+	 * @property {Boolean} mod1 The primary modifier (usually Command on Mac and Control on other platforms).
+	 * @property {Boolean} mod2 The secondary modifier (usually Shift).
+	 * @property {Boolean} mod3 The third modifier (usually Alt).
+	 * @property {Boolean} mod4 The fourth modifier (usually Control on the Mac).
+	 *
+	 * @see orion.editor.TextView#setKeyBinding
+	 */
+	function KeyBinding (keyCode, mod1, mod2, mod3, mod4) {
+		if (typeof(keyCode) === "string") { //$NON-NLS-0$
+			this.keyCode = keyCode.toUpperCase().charCodeAt(0);
+		} else {
+			this.keyCode = keyCode;
+		}
+		this.mod1 = mod1 !== undefined && mod1 !== null ? mod1 : false;
+		this.mod2 = mod2 !== undefined && mod2 !== null ? mod2 : false;
+		this.mod3 = mod3 !== undefined && mod3 !== null ? mod3 : false;
+		this.mod4 = mod4 !== undefined && mod4 !== null ? mod4 : false;
+	}
+	KeyBinding.prototype = /** @lends orion.editor.KeyBinding.prototype */ {
+		/**
+		 * Returns whether this key binding matches the given key event.
+		 * 
+		 * @param e the key event.
+		 * @returns {Boolean} <code>true</code> whether the key binding matches the key event.
+		 */
+		match: function (e) {
+			if (this.keyCode === e.keyCode) {
+				var mod1 = util.isMac ? e.metaKey : e.ctrlKey;
+				if (this.mod1 !== mod1) { return false; }
+				if (this.mod2 !== e.shiftKey) { return false; }
+				if (this.mod3 !== e.altKey) { return false; }
+				if (util.isMac && this.mod4 !== e.ctrlKey) { return false; }
+				return true;
+			}
+			return false;
+		},
+		/**
+		 * Returns whether this key binding is the same as the given parameter.
+		 * 
+		 * @param {orion.editor.KeyBinding} kb the key binding to compare with.
+		 * @returns {Boolean} whether or not the parameter and the receiver describe the same key binding.
+		 */
+		equals: function(kb) {
+			if (!kb) { return false; }
+			if (this.keyCode !== kb.keyCode) { return false; }
+			if (this.mod1 !== kb.mod1) { return false; }
+			if (this.mod2 !== kb.mod2) { return false; }
+			if (this.mod3 !== kb.mod3) { return false; }
+			if (this.mod4 !== kb.mod4) { return false; }
+			return true;
+		} 
+	};
+	return {KeyBinding: KeyBinding};
+});
+
+/*******************************************************************************
+ * @license
  * Copyright (c) 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
@@ -976,6 +1061,7 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 			defineRule("string-quoted", settings.string, false); //$NON-NLS-0$
 			
 			//From textstyler.css
+			defineRule("line_caret", settings.currentLine, true); //$NON-NLS-0$
 			defineRule("token_keyword", settings.keyword, false); //$NON-NLS-0$
 			defineRule("token_string", settings.string, false); //$NON-NLS-0$
 			defineRule("token_singleline_comment", settings.comment, false); //$NON-NLS-0$
@@ -1051,676 +1137,6 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 	return {
 		TextTheme: TextTheme
 	};
-});
-
-/*******************************************************************************
- * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
- * Contributors: 
- *		Felipe Heidrich (IBM Corporation) - initial API and implementation
- *		Silenio Quarti (IBM Corporation) - initial API and implementation
- ******************************************************************************/
-
-/*global define */
-
-define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/editor/eventTarget'], function(mTextModel, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-
-	/**
-	 * @class This object represents a projection range. A projection specifies a
-	 * range of text and the replacement text. The range of text is relative to the
-	 * base text model associated to a projection model.
-	 * <p>
-	 * <b>See:</b><br/>
-	 * {@link orion.editor.ProjectionTextModel}<br/>
-	 * {@link orion.editor.ProjectionTextModel#addProjection}<br/>
-	 * </p>		 
-	 * @name orion.editor.Projection
-	 * 
-	 * @property {Number} start The start offset of the projection range. 
-	 * @property {Number} end The end offset of the projection range. This offset is exclusive.
-	 * @property {String|orion.editor.TextModel} [text=""] The projection text to be inserted
-	 */
-	/**
-	 * Constructs a new <code>ProjectionTextModel</code> based on the specified <code>TextModel</code>.
-	 *
-	 * @param {orion.editor.TextModel} baseModel The base text model.
-	 *
-	 * @name orion.editor.ProjectionTextModel
-	 * @class The <code>ProjectionTextModel</code> represents a projection of its base text
-	 * model. Projection ranges can be added to the projection text model to hide and/or insert
-	 * ranges to the base text model.
-	 * <p>
-	 * The contents of the projection text model is modified when changes occur in the base model,
-	 * projection model or by calls to {@link #addProjection} and {@link #removeProjection}.
-	 * </p>
-	 * <p>
-	 * <b>See:</b><br/>
-	 * {@link orion.editor.TextView}<br/>
-	 * {@link orion.editor.TextModel}
-	 * {@link orion.editor.TextView#setModel}
-	 * </p>
-	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
-	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
-	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
-	 */
-	function ProjectionTextModel(baseModel) {
-		this._model = baseModel;	/* Base Model */
-		this._projections = [];
-	}
-
-	ProjectionTextModel.prototype = /** @lends orion.editor.ProjectionTextModel.prototype */ {
-		/**
-		 * Adds a projection range to the model.
-		 * <p>
-		 * The model must notify the listeners before and after the the text is
-		 * changed by calling {@link #onChanging} and {@link #onChanged} respectively. 
-		 * </p>
-		 * @param {orion.editor.Projection} projection The projection range to be added.
-		 * 
-		 * @see #removeProjection
-		 */
-		addProjection: function(projection) {
-			if (!projection) {return;}
-			//start and end can't overlap any exist projection
-			var model = this._model, projections = this._projections;
-			projection._lineIndex = model.getLineAtOffset(projection.start);
-			projection._lineCount = model.getLineAtOffset(projection.end) - projection._lineIndex;
-			var text = projection.text;
-			if (!text) { text = ""; }
-			if (typeof text === "string") { //$NON-NLS-0$
-				projection._model = new mTextModel.TextModel(text, model.getLineDelimiter());
-			} else {
-				projection._model = text;
-			}
-			var eventStart = this.mapOffset(projection.start, true);
-			var removedCharCount = projection.end - projection.start;
-			var removedLineCount = projection._lineCount;
-			var addedCharCount = projection._model.getCharCount();
-			var addedLineCount = projection._model.getLineCount() - 1;
-			var modelChangingEvent = {
-				type: "Changing", //$NON-NLS-0$
-				text: projection._model.getText(),
-				start: eventStart,
-				removedCharCount: removedCharCount,
-				addedCharCount: addedCharCount,
-				removedLineCount: removedLineCount,
-				addedLineCount: addedLineCount
-			};
-			this.onChanging(modelChangingEvent);
-			var index = this._binarySearch(projections, projection.start);
-			projections.splice(index, 0, projection);
-			var modelChangedEvent = {
-				type: "Changed", //$NON-NLS-0$
-				start: eventStart,
-				removedCharCount: removedCharCount,
-				addedCharCount: addedCharCount,
-				removedLineCount: removedLineCount,
-				addedLineCount: addedLineCount
-			};
-			this.onChanged(modelChangedEvent);
-		},
-		/**
-		 * Returns all projection ranges of this model.
-		 * 
-		 * @return {orion.editor.Projection[]} The projection ranges.
-		 * 
-		 * @see #addProjection
-		 */
-		getProjections: function() {
-			return this._projections.slice(0);
-		},
-		/**
-		 * Gets the base text model.
-		 *
-		 * @return {orion.editor.TextModel} The base text model.
-		 */
-		getBaseModel: function() {
-			return this._model;
-		},
-		/**
-		 * Maps offsets between the projection model and its base model.
-		 *
-		 * @param {Number} offset The offset to be mapped.
-		 * @param {Boolean} [baseOffset=false] <code>true</code> if <code>offset</code> is in base model and
-		 *	should be mapped to the projection model.
-		 * @return {Number} The mapped offset
-		 */
-		mapOffset: function(offset, baseOffset) {
-			var projections = this._projections, delta = 0, i, projection;
-			if (baseOffset) {
-				for (i = 0; i < projections.length; i++) {
-					projection = projections[i];
-					if (projection.start > offset) { break; }
-					if (projection.end > offset) { return -1; }
-					delta += projection._model.getCharCount() - (projection.end - projection.start);
-				}
-				return offset + delta;
-			}
-			for (i = 0; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection.start > offset - delta) { break; }
-				var charCount = projection._model.getCharCount();
-				if (projection.start + charCount > offset - delta) {
-					return -1;
-				}
-				delta += charCount - (projection.end - projection.start);
-			}
-			return offset - delta;
-		},
-		/**
-		 * Removes a projection range from the model.
-		 * <p>
-		 * The model must notify the listeners before and after the the text is
-		 * changed by calling {@link #onChanging} and {@link #onChanged} respectively. 
-		 * </p>
-		 * 
-		 * @param {orion.editor.Projection} projection The projection range to be removed.
-		 * 
-		 * @see #addProjection
-		 */
-		removeProjection: function(projection) {
-			//TODO remove listeners from model
-			var i, delta = 0;
-			for (i = 0; i < this._projections.length; i++) {
-				var p = this._projections[i];
-				if (p === projection) {
-					projection = p;
-					break;
-				}
-				delta += p._model.getCharCount() - (p.end - p.start);
-			}
-			if (i < this._projections.length) {
-				var model = this._model;
-				var eventStart = projection.start + delta;
-				var addedCharCount = projection.end - projection.start;
-				var addedLineCount = projection._lineCount;
-				var removedCharCount = projection._model.getCharCount();
-				var removedLineCount = projection._model.getLineCount() - 1;
-				var modelChangingEvent = {
-					type: "Changing", //$NON-NLS-0$
-					text: model.getText(projection.start, projection.end),
-					start: eventStart,
-					removedCharCount: removedCharCount,
-					addedCharCount: addedCharCount,
-					removedLineCount: removedLineCount,
-					addedLineCount: addedLineCount
-				};
-				this.onChanging(modelChangingEvent);
-				this._projections.splice(i, 1);
-				var modelChangedEvent = {
-					type: "Changed", //$NON-NLS-0$
-					start: eventStart,
-					removedCharCount: removedCharCount,
-					addedCharCount: addedCharCount,
-					removedLineCount: removedLineCount,
-					addedLineCount: addedLineCount
-				};
-				this.onChanged(modelChangedEvent);
-			}
-		},
-		/** @ignore */
-		_binarySearch: function (array, offset) {
-			var high = array.length, low = -1, index;
-			while (high - low > 1) {
-				index = Math.floor((high + low) / 2);
-				if (offset <= array[index].start) {
-					high = index;
-				} else {
-					low = index;
-				}
-			}
-			return high;
-		},
-		/**
-		 * @see orion.editor.TextModel#getCharCount
-		 */
-		getCharCount: function() {
-			var count = this._model.getCharCount(), projections = this._projections;
-			for (var i = 0; i < projections.length; i++) {
-				var projection = projections[i];
-				count += projection._model.getCharCount() - (projection.end - projection.start);
-			}
-			return count;
-		},
-		/**
-		 * @see orion.editor.TextModel#getLine
-		 */
-		getLine: function(lineIndex, includeDelimiter) {
-			if (lineIndex < 0) { return null; }
-			var model = this._model, projections = this._projections;
-			var delta = 0, result = [], offset = 0, i, lineCount, projection;
-			for (i = 0; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection._lineIndex >= lineIndex - delta) { break; }
-				lineCount = projection._model.getLineCount() - 1;
-				if (projection._lineIndex + lineCount >= lineIndex - delta) {
-					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
-					if (projectionLineIndex < lineCount) {
-						return projection._model.getLine(projectionLineIndex, includeDelimiter);
-					} else {
-						result.push(projection._model.getLine(lineCount));
-					}
-				}
-				offset = projection.end;
-				delta += lineCount - projection._lineCount;
-			}
-			offset = Math.max(offset, model.getLineStart(lineIndex - delta));
-			for (; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection._lineIndex > lineIndex - delta) { break; }
-				result.push(model.getText(offset, projection.start));
-				lineCount = projection._model.getLineCount() - 1;
-				if (projection._lineIndex + lineCount > lineIndex - delta) {
-					result.push(projection._model.getLine(0, includeDelimiter));
-					return result.join("");
-				}
-				result.push(projection._model.getText());
-				offset = projection.end;
-				delta += lineCount - projection._lineCount;
-			}
-			var end = model.getLineEnd(lineIndex - delta, includeDelimiter);
-			if (offset < end) {
-				result.push(model.getText(offset, end));
-			}
-			return result.join("");
-		},
-		/**
-		 * @see orion.editor.TextModel#getLineAtOffset
-		 */
-		getLineAtOffset: function(offset) {
-			var model = this._model, projections = this._projections;
-			var delta = 0, lineDelta = 0;
-			for (var i = 0; i < projections.length; i++) {
-				var projection = projections[i];
-				if (projection.start > offset - delta) { break; }
-				var charCount = projection._model.getCharCount();
-				if (projection.start + charCount > offset - delta) {
-					var projectionOffset = offset - (projection.start + delta);
-					lineDelta += projection._model.getLineAtOffset(projectionOffset);
-					delta += projectionOffset;
-					break;
-				}
-				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
-				delta += charCount - (projection.end - projection.start);
-			}
-			return model.getLineAtOffset(offset - delta) + lineDelta;
-		},
-		/**
-		 * @see orion.editor.TextModel#getLineCount
-		 */
-		getLineCount: function() {
-			var model = this._model, projections = this._projections;
-			var count = model.getLineCount();
-			for (var i = 0; i < projections.length; i++) {
-				var projection = projections[i];
-				count += projection._model.getLineCount() - 1 - projection._lineCount;
-			}
-			return count;
-		},
-		/**
-		 * @see orion.editor.TextModel#getLineDelimiter
-		 */
-		getLineDelimiter: function() {
-			return this._model.getLineDelimiter();
-		},
-		/**
-		 * @see orion.editor.TextModel#getLineEnd
-		 */
-		getLineEnd: function(lineIndex, includeDelimiter) {
-			if (lineIndex < 0) { return -1; }
-			var model = this._model, projections = this._projections;
-			var delta = 0, offsetDelta = 0;
-			for (var i = 0; i < projections.length; i++) {
-				var projection = projections[i];
-				if (projection._lineIndex > lineIndex - delta) { break; }
-				var lineCount = projection._model.getLineCount() - 1;
-				if (projection._lineIndex + lineCount > lineIndex - delta) {
-					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
-					return projection._model.getLineEnd (projectionLineIndex, includeDelimiter) + projection.start + offsetDelta;
-				}
-				offsetDelta += projection._model.getCharCount() - (projection.end - projection.start);
-				delta += lineCount - projection._lineCount;
-			}
-			return model.getLineEnd(lineIndex - delta, includeDelimiter) + offsetDelta;
-		},
-		/**
-		 * @see orion.editor.TextModel#getLineStart
-		 */
-		getLineStart: function(lineIndex) {
-			if (lineIndex < 0) { return -1; }
-			var model = this._model, projections = this._projections;
-			var delta = 0, offsetDelta = 0;
-			for (var i = 0; i < projections.length; i++) {
-				var projection = projections[i];
-				if (projection._lineIndex >= lineIndex - delta) { break; }
-				var lineCount = projection._model.getLineCount() - 1;
-				if (projection._lineIndex + lineCount >= lineIndex - delta) {
-					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
-					return projection._model.getLineStart (projectionLineIndex) + projection.start + offsetDelta;
-				}
-				offsetDelta += projection._model.getCharCount() - (projection.end - projection.start);
-				delta += lineCount - projection._lineCount;
-			}
-			return model.getLineStart(lineIndex - delta) + offsetDelta;
-		},
-		/**
-		 * @see orion.editor.TextModel#getText
-		 */
-		getText: function(start, end) {
-			if (start === undefined) { start = 0; }
-			var model = this._model, projections = this._projections;
-			var delta = 0, result = [], i, projection, charCount;
-			for (i = 0; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection.start > start - delta) { break; }
-				charCount = projection._model.getCharCount();
-				if (projection.start + charCount > start - delta) {
-					if (end !== undefined && projection.start + charCount > end - delta) {
-						return projection._model.getText(start - (projection.start + delta), end - (projection.start + delta));
-					} else {
-						result.push(projection._model.getText(start - (projection.start + delta)));
-						start = projection.end + delta + charCount - (projection.end - projection.start);
-					}
-				}
-				delta += charCount - (projection.end - projection.start);
-			}
-			var offset = start - delta;
-			if (end !== undefined) {
-				for (; i < projections.length; i++) {
-					projection = projections[i];
-					if (projection.start > end - delta) { break; }
-					result.push(model.getText(offset, projection.start));
-					charCount = projection._model.getCharCount();
-					if (projection.start + charCount > end - delta) {
-						result.push(projection._model.getText(0, end - (projection.start + delta)));
-						return result.join("");
-					}
-					result.push(projection._model.getText());
-					offset = projection.end;
-					delta += charCount - (projection.end - projection.start);
-				}
-				result.push(model.getText(offset, end - delta));
-			} else {
-				for (; i < projections.length; i++) {
-					projection = projections[i];
-					result.push(model.getText(offset, projection.start));
-					result.push(projection._model.getText());
-					offset = projection.end;
-				}
-				result.push(model.getText(offset));
-			}
-			return result.join("");
-		},
-		/** @ignore */
-		_onChanging: function(text, start, removedCharCount, addedCharCount, removedLineCount, addedLineCount) {
-			var model = this._model, projections = this._projections, i, projection, delta = 0, lineDelta;
-			var end = start + removedCharCount;
-			for (; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection.start > start) { break; }
-				delta += projection._model.getCharCount() - (projection.end - projection.start);
-			}
-			/*TODO add stuff saved by setText*/
-			var mapStart = start + delta, rangeStart = i;
-			for (; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection.start > end) { break; }
-				delta += projection._model.getCharCount() - (projection.end - projection.start);
-				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
-			}
-			/*TODO add stuff saved by setText*/
-			var mapEnd = end + delta, rangeEnd = i;
-			this.onChanging(mapStart, mapEnd - mapStart, addedCharCount/*TODO add stuff saved by setText*/, removedLineCount + lineDelta/*TODO add stuff saved by setText*/, addedLineCount/*TODO add stuff saved by setText*/);
-			projections.splice(projections, rangeEnd - rangeStart);
-			var count = text.length - (mapEnd - mapStart);
-			for (; i < projections.length; i++) {
-				projection = projections[i];
-				projection.start += count;
-				projection.end += count;
-				projection._lineIndex = model.getLineAtOffset(projection.start);
-			}
-		},
-		/**
-		 * @see orion.editor.TextModel#onChanging
-		 */
-		onChanging: function(modelChangingEvent) {
-			return this.dispatchEvent(modelChangingEvent);
-		},
-		/**
-		 * @see orion.editor.TextModel#onChanged
-		 */
-		onChanged: function(modelChangedEvent) {
-			return this.dispatchEvent(modelChangedEvent);
-		},
-		/**
-		 * @see orion.editor.TextModel#setLineDelimiter
-		 */
-		setLineDelimiter: function(lineDelimiter) {
-			this._model.setLineDelimiter(lineDelimiter);
-		},
-		/**
-		 * @see orion.editor.TextModel#setText
-		 */
-		setText: function(text, start, end) {
-			if (text === undefined) { text = ""; }
-			if (start === undefined) { start = 0; }
-			var eventStart = start, eventEnd = end;
-			var model = this._model, projections = this._projections;
-			var delta = 0, lineDelta = 0, i, projection, charCount, startProjection, endProjection, startLineDelta = 0;
-			for (i = 0; i < projections.length; i++) {
-				projection = projections[i];
-				if (projection.start > start - delta) { break; }
-				charCount = projection._model.getCharCount();
-				if (projection.start + charCount > start - delta) {
-					if (end !== undefined && projection.start + charCount > end - delta) {
-						projection._model.setText(text, start - (projection.start + delta), end - (projection.start + delta));
-						//TODO events - special case
-						return;
-					} else {
-						startLineDelta = projection._model.getLineCount() - 1 - projection._model.getLineAtOffset(start - (projection.start + delta));
-						startProjection = {
-							projection: projection,
-							start: start - (projection.start + delta)
-						};
-						start = projection.end + delta + charCount - (projection.end - projection.start);
-					}
-				}
-				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
-				delta += charCount - (projection.end - projection.start);
-			}
-			var mapStart = start - delta, rangeStart = i, startLine = model.getLineAtOffset(mapStart) + lineDelta - startLineDelta;
-			if (end !== undefined) {
-				for (; i < projections.length; i++) {
-					projection = projections[i];
-					if (projection.start > end - delta) { break; }
-					charCount = projection._model.getCharCount();
-					if (projection.start + charCount > end - delta) {
-						lineDelta += projection._model.getLineAtOffset(end - (projection.start + delta));
-						charCount = end - (projection.start + delta);
-						end = projection.end + delta;
-						endProjection = {
-							projection: projection,
-							end: charCount
-						};
-						break;
-					}
-					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
-					delta += charCount - (projection.end - projection.start);
-				}
-			} else {
-				for (; i < projections.length; i++) {
-					projection = projections[i];
-					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
-					delta += projection._model.getCharCount() - (projection.end - projection.start);
-				}
-				end = eventEnd = model.getCharCount() + delta;
-			}
-			var mapEnd = end - delta, rangeEnd = i, endLine = model.getLineAtOffset(mapEnd) + lineDelta;
-			
-			//events
-			var removedCharCount = eventEnd - eventStart;
-			var removedLineCount = endLine - startLine;
-			var addedCharCount = text.length;
-			var addedLineCount = 0;
-			var cr = 0, lf = 0, index = 0;
-			while (true) {
-				if (cr !== -1 && cr <= index) { cr = text.indexOf("\r", index); } //$NON-NLS-0$
-				if (lf !== -1 && lf <= index) { lf = text.indexOf("\n", index); } //$NON-NLS-0$
-				if (lf === -1 && cr === -1) { break; }
-				if (cr !== -1 && lf !== -1) {
-					if (cr + 1 === lf) {
-						index = lf + 1;
-					} else {
-						index = (cr < lf ? cr : lf) + 1;
-					}
-				} else if (cr !== -1) {
-					index = cr + 1;
-				} else {
-					index = lf + 1;
-				}
-				addedLineCount++;
-			}
-			
-			var modelChangingEvent = {
-				type: "Changing", //$NON-NLS-0$
-				text: text,
-				start: eventStart,
-				removedCharCount: removedCharCount,
-				addedCharCount: addedCharCount,
-				removedLineCount: removedLineCount,
-				addedLineCount: addedLineCount
-			};
-			this.onChanging(modelChangingEvent);
-			
-//			var changeLineCount = model.getLineAtOffset(mapEnd) - model.getLineAtOffset(mapStart) + addedLineCount;
-			model.setText(text, mapStart, mapEnd);
-			if (startProjection) {
-				projection = startProjection.projection;
-				projection._model.setText("", startProjection.start);
-			}		
-			if (endProjection) {
-				projection = endProjection.projection;
-				projection._model.setText("", 0, endProjection.end);
-				projection.start = projection.end;
-				projection._lineCount = 0;
-			}
-			projections.splice(rangeStart, rangeEnd - rangeStart);
-			var changeCount = text.length - (mapEnd - mapStart);
-			for (i = rangeEnd; i < projections.length; i++) {
-				projection = projections[i];
-				projection.start += changeCount;
-				projection.end += changeCount;
-//				if (projection._lineIndex + changeLineCount !== model.getLineAtOffset(projection.start)) {
-//					log("here");
-//				}
-				projection._lineIndex = model.getLineAtOffset(projection.start);
-//				projection._lineIndex += changeLineCount;
-			}
-			
-			var modelChangedEvent = {
-				type: "Changed", //$NON-NLS-0$
-				start: eventStart,
-				removedCharCount: removedCharCount,
-				addedCharCount: addedCharCount,
-				removedLineCount: removedLineCount,
-				addedLineCount: addedLineCount
-			};
-			this.onChanged(modelChangedEvent);
-		}
-	};
-	mEventTarget.EventTarget.addMixin(ProjectionTextModel.prototype);
-
-	return {ProjectionTextModel: ProjectionTextModel};
-});
-
-/*******************************************************************************
- * @license
- * Copyright (c) 2010, 2012 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
- * Contributors: 
- *		Felipe Heidrich (IBM Corporation) - initial API and implementation
- *		Silenio Quarti (IBM Corporation) - initial API and implementation
- ******************************************************************************/
-
-/*global define */
-
-define("orion/keyBinding", ['orion/util'], function(util) { //$NON-NLS-1$ //$NON-NLS-0$
-
-	/**
-	 * Constructs a new key binding with the given key code and modifiers.
-	 * 
-	 * @param {String|Number} keyCode the key code.
-	 * @param {Boolean} mod1 the primary modifier (usually Command on Mac and Control on other platforms).
-	 * @param {Boolean} mod2 the secondary modifier (usually Shift).
-	 * @param {Boolean} mod3 the third modifier (usually Alt).
-	 * @param {Boolean} mod4 the fourth modifier (usually Control on the Mac).
-	 * 
-	 * @class A KeyBinding represents of a key code and a modifier state that can be triggered by the user using the keyboard.
-	 * @name orion.editor.KeyBinding
-	 * 
-	 * @property {String|Number} keyCode The key code.
-	 * @property {Boolean} mod1 The primary modifier (usually Command on Mac and Control on other platforms).
-	 * @property {Boolean} mod2 The secondary modifier (usually Shift).
-	 * @property {Boolean} mod3 The third modifier (usually Alt).
-	 * @property {Boolean} mod4 The fourth modifier (usually Control on the Mac).
-	 *
-	 * @see orion.editor.TextView#setKeyBinding
-	 */
-	function KeyBinding (keyCode, mod1, mod2, mod3, mod4) {
-		if (typeof(keyCode) === "string") { //$NON-NLS-0$
-			this.keyCode = keyCode.toUpperCase().charCodeAt(0);
-		} else {
-			this.keyCode = keyCode;
-		}
-		this.mod1 = mod1 !== undefined && mod1 !== null ? mod1 : false;
-		this.mod2 = mod2 !== undefined && mod2 !== null ? mod2 : false;
-		this.mod3 = mod3 !== undefined && mod3 !== null ? mod3 : false;
-		this.mod4 = mod4 !== undefined && mod4 !== null ? mod4 : false;
-	}
-	KeyBinding.prototype = /** @lends orion.editor.KeyBinding.prototype */ {
-		/**
-		 * Returns whether this key binding matches the given key event.
-		 * 
-		 * @param e the key event.
-		 * @returns {Boolean} <code>true</code> whether the key binding matches the key event.
-		 */
-		match: function (e) {
-			if (this.keyCode === e.keyCode) {
-				var mod1 = util.isMac ? e.metaKey : e.ctrlKey;
-				if (this.mod1 !== mod1) { return false; }
-				if (this.mod2 !== e.shiftKey) { return false; }
-				if (this.mod3 !== e.altKey) { return false; }
-				if (util.isMac && this.mod4 !== e.ctrlKey) { return false; }
-				return true;
-			}
-			return false;
-		},
-		/**
-		 * Returns whether this key binding is the same as the given parameter.
-		 * 
-		 * @param {orion.editor.KeyBinding} kb the key binding to compare with.
-		 * @returns {Boolean} whether or not the parameter and the receiver describe the same key binding.
-		 */
-		equals: function(kb) {
-			if (!kb) { return false; }
-			if (this.keyCode !== kb.keyCode) { return false; }
-			if (this.mod1 !== kb.mod1) { return false; }
-			if (this.mod2 !== kb.mod2) { return false; }
-			if (this.mod3 !== kb.mod3) { return false; }
-			if (this.mod4 !== kb.mod4) { return false; }
-			return true;
-		} 
-	};
-	return {KeyBinding: KeyBinding};
 });
 
 /*******************************************************************************
@@ -3576,6 +2992,50 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			return this.dispatchEvent(lineStyleEvent);
 		},
 		/**
+		 * @class This is the event sent for all keyboard events.
+		 * <p>
+		 * <b>See:</b><br/>
+		 * {@link orion.editor.TextView}<br/>
+		 * {@link orion.editor.TextView#event:onKeyDown}<br/>
+		 * {@link orion.editor.TextView#event:onKeyPress}<br/>
+		 * {@link orion.editor.TextView#event:onKeyUp}<br/>
+		 * </p>
+		 * @name orion.editor.KeyEvent
+		 * 
+		 * @property {String} type The type of event.
+		 * @property {DOMEvent} event The key DOM event.
+		 * @property {Boolean} defaultPrevented Determines whether the user agent context menu should be shown. It is shown by default.
+		 * @property {Function} preventDefault If called prevents the user agent context menu from showing.
+		 */
+		/**
+		 * This event is sent for key down events.
+		 *
+		 * @event
+		 * @param {orion.editor.KeyEvent} keyEvent the event
+		 */
+		onKeyDown: function(keyEvent) {
+			return this.dispatchEvent(keyEvent);
+		},
+		/**
+		 * This event is sent for key press events. Key press events are only sent
+		 * for printable characters.
+		 *
+		 * @event
+		 * @param {orion.editor.KeyEvent} keyEvent the event
+		 */
+		onKeyPress: function(keyEvent) {
+			return this.dispatchEvent(keyEvent);
+		},
+		/**
+		 * This event is sent for key up events.
+		 *
+		 * @event
+		 * @param {orion.editor.KeyEvent} keyEvent the event
+		 */
+		onKeyUp: function(keyEvent) {
+			return this.dispatchEvent(keyEvent);
+		},
+		/**
 		 * @class This is the event sent when the text in the model has changed.
 		 * <p>
 		 * <b>See:</b><br/>
@@ -4478,6 +3938,22 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 		},
 		_handleKeyDown: function (e) {
+			if (this.isListening("KeyDown")) { //$NON-NLS-0$
+				var keyEvent = this._createKeyEvent("KeyDown", e); //$NON-NLS-0$
+				this.onKeyDown(keyEvent); //$NON-NLS-0$
+				if (keyEvent.defaultPrevented) {
+					/*
+					* Feature in Firefox. Keypress events still happen even if the keydown event
+					* was prevented. The fix is to remember that keydown was prevented and prevent
+					* the keypress ourselves.
+					*/
+					if (util.isFirefox) {
+						this._keyDownPrevented = true;
+					}
+					e.preventDefault();
+					return;
+				}
+			}
 			var modifier = false;
 			switch (e.keyCode) {
 				case 16: /* Shift */
@@ -4545,6 +4021,19 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 		},
 		_handleKeyPress: function (e) {
 			/*
+			* Feature in Firefox. Keypress events still happen even if the keydown event
+			* was prevented. The fix is to remember that keydown was prevented and prevent
+			* the keypress ourselves.
+			*/
+			if (this._keyDownPrevented) { 
+				if (e.preventDefault) {
+					e.preventDefault(); 
+					e.stopPropagation(); 
+				} 
+				this._keyDownPrevented = undefined;
+				return;
+			}
+			/*
 			* Feature in Embedded WebKit.  Embedded WekKit on Mac runs in compatibility mode and
 			* generates key press events for these Unicode values (Function keys).  This does not
 			* happen in Safari or Chrome.  The fix is to ignore these key events.
@@ -4577,6 +4066,14 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 					}
 				}
 			}
+			if (this.isListening("KeyPress")) { //$NON-NLS-0$
+				var keyEvent = this._createKeyEvent("KeyPress", e); //$NON-NLS-0$
+				this.onKeyPress(keyEvent); //$NON-NLS-0$
+				if (keyEvent.defaultPrevented) {
+					e.preventDefault();
+					return;
+				}
+			}
 			var ignore = false;
 			if (util.isMac) {
 				if (e.ctrlKey || e.metaKey) { ignore = true; }
@@ -4599,6 +4096,14 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 			}
 		},
 		_handleKeyUp: function (e) {
+			if (this.isListening("KeyUp")) { //$NON-NLS-0$
+				var keyEvent = this._createKeyEvent("KeyUp", e); //$NON-NLS-0$
+				this.onKeyUp(keyEvent); //$NON-NLS-0$
+				if (keyEvent.defaultPrevented) {
+					e.preventDefault();
+					return;
+				}
+			}
 			var ctrlKey = util.isMac ? e.metaKey : e.ctrlKey;
 			if (!ctrlKey) {
 				this._setLinksVisible(false);
@@ -4816,6 +4321,15 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 				temp = temp.parentNode;
 			}
 			return false;
+		},
+		_createKeyEvent: function(type, e) {
+			return {
+				type: type,
+				event: e,
+				preventDefault: function() {
+					this.defaultPrevented = true;
+				}
+			};
 		},
 		_createMouseEvent: function(type, e) {
 			var pt = this.convert({x: e.clientX, y: e.clientY}, "page", "document"); //$NON-NLS-1$ //$NON-NLS-0$
@@ -8273,12 +7787,597 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 });
 
 
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: 
+ *		Felipe Heidrich (IBM Corporation) - initial API and implementation
+ *		Silenio Quarti (IBM Corporation) - initial API and implementation
+ ******************************************************************************/
+
+/*global define */
+
+define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/editor/eventTarget'], function(mTextModel, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+
+	/**
+	 * @class This object represents a projection range. A projection specifies a
+	 * range of text and the replacement text. The range of text is relative to the
+	 * base text model associated to a projection model.
+	 * <p>
+	 * <b>See:</b><br/>
+	 * {@link orion.editor.ProjectionTextModel}<br/>
+	 * {@link orion.editor.ProjectionTextModel#addProjection}<br/>
+	 * </p>		 
+	 * @name orion.editor.Projection
+	 * 
+	 * @property {Number} start The start offset of the projection range. 
+	 * @property {Number} end The end offset of the projection range. This offset is exclusive.
+	 * @property {String|orion.editor.TextModel} [text=""] The projection text to be inserted
+	 */
+	/**
+	 * Constructs a new <code>ProjectionTextModel</code> based on the specified <code>TextModel</code>.
+	 *
+	 * @param {orion.editor.TextModel} baseModel The base text model.
+	 *
+	 * @name orion.editor.ProjectionTextModel
+	 * @class The <code>ProjectionTextModel</code> represents a projection of its base text
+	 * model. Projection ranges can be added to the projection text model to hide and/or insert
+	 * ranges to the base text model.
+	 * <p>
+	 * The contents of the projection text model is modified when changes occur in the base model,
+	 * projection model or by calls to {@link #addProjection} and {@link #removeProjection}.
+	 * </p>
+	 * <p>
+	 * <b>See:</b><br/>
+	 * {@link orion.editor.TextView}<br/>
+	 * {@link orion.editor.TextModel}
+	 * {@link orion.editor.TextView#setModel}
+	 * </p>
+	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
+	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
+	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
+	 */
+	function ProjectionTextModel(baseModel) {
+		this._model = baseModel;	/* Base Model */
+		this._projections = [];
+	}
+
+	ProjectionTextModel.prototype = /** @lends orion.editor.ProjectionTextModel.prototype */ {
+		/**
+		 * Adds a projection range to the model.
+		 * <p>
+		 * The model must notify the listeners before and after the the text is
+		 * changed by calling {@link #onChanging} and {@link #onChanged} respectively. 
+		 * </p>
+		 * @param {orion.editor.Projection} projection The projection range to be added.
+		 * 
+		 * @see #removeProjection
+		 */
+		addProjection: function(projection) {
+			if (!projection) {return;}
+			//start and end can't overlap any exist projection
+			var model = this._model, projections = this._projections;
+			projection._lineIndex = model.getLineAtOffset(projection.start);
+			projection._lineCount = model.getLineAtOffset(projection.end) - projection._lineIndex;
+			var text = projection.text;
+			if (!text) { text = ""; }
+			if (typeof text === "string") { //$NON-NLS-0$
+				projection._model = new mTextModel.TextModel(text, model.getLineDelimiter());
+			} else {
+				projection._model = text;
+			}
+			var eventStart = this.mapOffset(projection.start, true);
+			var removedCharCount = projection.end - projection.start;
+			var removedLineCount = projection._lineCount;
+			var addedCharCount = projection._model.getCharCount();
+			var addedLineCount = projection._model.getLineCount() - 1;
+			var modelChangingEvent = {
+				type: "Changing", //$NON-NLS-0$
+				text: projection._model.getText(),
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanging(modelChangingEvent);
+			var index = this._binarySearch(projections, projection.start);
+			projections.splice(index, 0, projection);
+			var modelChangedEvent = {
+				type: "Changed", //$NON-NLS-0$
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanged(modelChangedEvent);
+		},
+		/**
+		 * Returns all projection ranges of this model.
+		 * 
+		 * @return {orion.editor.Projection[]} The projection ranges.
+		 * 
+		 * @see #addProjection
+		 */
+		getProjections: function() {
+			return this._projections.slice(0);
+		},
+		/**
+		 * Gets the base text model.
+		 *
+		 * @return {orion.editor.TextModel} The base text model.
+		 */
+		getBaseModel: function() {
+			return this._model;
+		},
+		/**
+		 * Maps offsets between the projection model and its base model.
+		 *
+		 * @param {Number} offset The offset to be mapped.
+		 * @param {Boolean} [baseOffset=false] <code>true</code> if <code>offset</code> is in base model and
+		 *	should be mapped to the projection model.
+		 * @return {Number} The mapped offset
+		 */
+		mapOffset: function(offset, baseOffset) {
+			var projections = this._projections, delta = 0, i, projection;
+			if (baseOffset) {
+				for (i = 0; i < projections.length; i++) {
+					projection = projections[i];
+					if (projection.start > offset) { break; }
+					if (projection.end > offset) { return -1; }
+					delta += projection._model.getCharCount() - (projection.end - projection.start);
+				}
+				return offset + delta;
+			}
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > offset - delta) { break; }
+				var charCount = projection._model.getCharCount();
+				if (projection.start + charCount > offset - delta) {
+					return -1;
+				}
+				delta += charCount - (projection.end - projection.start);
+			}
+			return offset - delta;
+		},
+		/**
+		 * Removes a projection range from the model.
+		 * <p>
+		 * The model must notify the listeners before and after the the text is
+		 * changed by calling {@link #onChanging} and {@link #onChanged} respectively. 
+		 * </p>
+		 * 
+		 * @param {orion.editor.Projection} projection The projection range to be removed.
+		 * 
+		 * @see #addProjection
+		 */
+		removeProjection: function(projection) {
+			//TODO remove listeners from model
+			var i, delta = 0;
+			for (i = 0; i < this._projections.length; i++) {
+				var p = this._projections[i];
+				if (p === projection) {
+					projection = p;
+					break;
+				}
+				delta += p._model.getCharCount() - (p.end - p.start);
+			}
+			if (i < this._projections.length) {
+				var model = this._model;
+				var eventStart = projection.start + delta;
+				var addedCharCount = projection.end - projection.start;
+				var addedLineCount = projection._lineCount;
+				var removedCharCount = projection._model.getCharCount();
+				var removedLineCount = projection._model.getLineCount() - 1;
+				var modelChangingEvent = {
+					type: "Changing", //$NON-NLS-0$
+					text: model.getText(projection.start, projection.end),
+					start: eventStart,
+					removedCharCount: removedCharCount,
+					addedCharCount: addedCharCount,
+					removedLineCount: removedLineCount,
+					addedLineCount: addedLineCount
+				};
+				this.onChanging(modelChangingEvent);
+				this._projections.splice(i, 1);
+				var modelChangedEvent = {
+					type: "Changed", //$NON-NLS-0$
+					start: eventStart,
+					removedCharCount: removedCharCount,
+					addedCharCount: addedCharCount,
+					removedLineCount: removedLineCount,
+					addedLineCount: addedLineCount
+				};
+				this.onChanged(modelChangedEvent);
+			}
+		},
+		/** @ignore */
+		_binarySearch: function (array, offset) {
+			var high = array.length, low = -1, index;
+			while (high - low > 1) {
+				index = Math.floor((high + low) / 2);
+				if (offset <= array[index].start) {
+					high = index;
+				} else {
+					low = index;
+				}
+			}
+			return high;
+		},
+		/**
+		 * @see orion.editor.TextModel#getCharCount
+		 */
+		getCharCount: function() {
+			var count = this._model.getCharCount(), projections = this._projections;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				count += projection._model.getCharCount() - (projection.end - projection.start);
+			}
+			return count;
+		},
+		/**
+		 * @see orion.editor.TextModel#getLine
+		 */
+		getLine: function(lineIndex, includeDelimiter) {
+			if (lineIndex < 0) { return null; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, result = [], offset = 0, i, lineCount, projection;
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection._lineIndex >= lineIndex - delta) { break; }
+				lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount >= lineIndex - delta) {
+					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
+					if (projectionLineIndex < lineCount) {
+						return projection._model.getLine(projectionLineIndex, includeDelimiter);
+					} else {
+						result.push(projection._model.getLine(lineCount));
+					}
+				}
+				offset = projection.end;
+				delta += lineCount - projection._lineCount;
+			}
+			offset = Math.max(offset, model.getLineStart(lineIndex - delta));
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection._lineIndex > lineIndex - delta) { break; }
+				result.push(model.getText(offset, projection.start));
+				lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount > lineIndex - delta) {
+					result.push(projection._model.getLine(0, includeDelimiter));
+					return result.join("");
+				}
+				result.push(projection._model.getText());
+				offset = projection.end;
+				delta += lineCount - projection._lineCount;
+			}
+			var end = model.getLineEnd(lineIndex - delta, includeDelimiter);
+			if (offset < end) {
+				result.push(model.getText(offset, end));
+			}
+			return result.join("");
+		},
+		/**
+		 * @see orion.editor.TextModel#getLineAtOffset
+		 */
+		getLineAtOffset: function(offset) {
+			var model = this._model, projections = this._projections;
+			var delta = 0, lineDelta = 0;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				if (projection.start > offset - delta) { break; }
+				var charCount = projection._model.getCharCount();
+				if (projection.start + charCount > offset - delta) {
+					var projectionOffset = offset - (projection.start + delta);
+					lineDelta += projection._model.getLineAtOffset(projectionOffset);
+					delta += projectionOffset;
+					break;
+				}
+				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+				delta += charCount - (projection.end - projection.start);
+			}
+			return model.getLineAtOffset(offset - delta) + lineDelta;
+		},
+		/**
+		 * @see orion.editor.TextModel#getLineCount
+		 */
+		getLineCount: function() {
+			var model = this._model, projections = this._projections;
+			var count = model.getLineCount();
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				count += projection._model.getLineCount() - 1 - projection._lineCount;
+			}
+			return count;
+		},
+		/**
+		 * @see orion.editor.TextModel#getLineDelimiter
+		 */
+		getLineDelimiter: function() {
+			return this._model.getLineDelimiter();
+		},
+		/**
+		 * @see orion.editor.TextModel#getLineEnd
+		 */
+		getLineEnd: function(lineIndex, includeDelimiter) {
+			if (lineIndex < 0) { return -1; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, offsetDelta = 0;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				if (projection._lineIndex > lineIndex - delta) { break; }
+				var lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount > lineIndex - delta) {
+					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
+					return projection._model.getLineEnd (projectionLineIndex, includeDelimiter) + projection.start + offsetDelta;
+				}
+				offsetDelta += projection._model.getCharCount() - (projection.end - projection.start);
+				delta += lineCount - projection._lineCount;
+			}
+			return model.getLineEnd(lineIndex - delta, includeDelimiter) + offsetDelta;
+		},
+		/**
+		 * @see orion.editor.TextModel#getLineStart
+		 */
+		getLineStart: function(lineIndex) {
+			if (lineIndex < 0) { return -1; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, offsetDelta = 0;
+			for (var i = 0; i < projections.length; i++) {
+				var projection = projections[i];
+				if (projection._lineIndex >= lineIndex - delta) { break; }
+				var lineCount = projection._model.getLineCount() - 1;
+				if (projection._lineIndex + lineCount >= lineIndex - delta) {
+					var projectionLineIndex = lineIndex - (projection._lineIndex + delta);
+					return projection._model.getLineStart (projectionLineIndex) + projection.start + offsetDelta;
+				}
+				offsetDelta += projection._model.getCharCount() - (projection.end - projection.start);
+				delta += lineCount - projection._lineCount;
+			}
+			return model.getLineStart(lineIndex - delta) + offsetDelta;
+		},
+		/**
+		 * @see orion.editor.TextModel#getText
+		 */
+		getText: function(start, end) {
+			if (start === undefined) { start = 0; }
+			var model = this._model, projections = this._projections;
+			var delta = 0, result = [], i, projection, charCount;
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > start - delta) { break; }
+				charCount = projection._model.getCharCount();
+				if (projection.start + charCount > start - delta) {
+					if (end !== undefined && projection.start + charCount > end - delta) {
+						return projection._model.getText(start - (projection.start + delta), end - (projection.start + delta));
+					} else {
+						result.push(projection._model.getText(start - (projection.start + delta)));
+						start = projection.end + delta + charCount - (projection.end - projection.start);
+					}
+				}
+				delta += charCount - (projection.end - projection.start);
+			}
+			var offset = start - delta;
+			if (end !== undefined) {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					if (projection.start > end - delta) { break; }
+					result.push(model.getText(offset, projection.start));
+					charCount = projection._model.getCharCount();
+					if (projection.start + charCount > end - delta) {
+						result.push(projection._model.getText(0, end - (projection.start + delta)));
+						return result.join("");
+					}
+					result.push(projection._model.getText());
+					offset = projection.end;
+					delta += charCount - (projection.end - projection.start);
+				}
+				result.push(model.getText(offset, end - delta));
+			} else {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					result.push(model.getText(offset, projection.start));
+					result.push(projection._model.getText());
+					offset = projection.end;
+				}
+				result.push(model.getText(offset));
+			}
+			return result.join("");
+		},
+		/** @ignore */
+		_onChanging: function(text, start, removedCharCount, addedCharCount, removedLineCount, addedLineCount) {
+			var model = this._model, projections = this._projections, i, projection, delta = 0, lineDelta;
+			var end = start + removedCharCount;
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > start) { break; }
+				delta += projection._model.getCharCount() - (projection.end - projection.start);
+			}
+			/*TODO add stuff saved by setText*/
+			var mapStart = start + delta, rangeStart = i;
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > end) { break; }
+				delta += projection._model.getCharCount() - (projection.end - projection.start);
+				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+			}
+			/*TODO add stuff saved by setText*/
+			var mapEnd = end + delta, rangeEnd = i;
+			this.onChanging(mapStart, mapEnd - mapStart, addedCharCount/*TODO add stuff saved by setText*/, removedLineCount + lineDelta/*TODO add stuff saved by setText*/, addedLineCount/*TODO add stuff saved by setText*/);
+			projections.splice(projections, rangeEnd - rangeStart);
+			var count = text.length - (mapEnd - mapStart);
+			for (; i < projections.length; i++) {
+				projection = projections[i];
+				projection.start += count;
+				projection.end += count;
+				projection._lineIndex = model.getLineAtOffset(projection.start);
+			}
+		},
+		/**
+		 * @see orion.editor.TextModel#onChanging
+		 */
+		onChanging: function(modelChangingEvent) {
+			return this.dispatchEvent(modelChangingEvent);
+		},
+		/**
+		 * @see orion.editor.TextModel#onChanged
+		 */
+		onChanged: function(modelChangedEvent) {
+			return this.dispatchEvent(modelChangedEvent);
+		},
+		/**
+		 * @see orion.editor.TextModel#setLineDelimiter
+		 */
+		setLineDelimiter: function(lineDelimiter) {
+			this._model.setLineDelimiter(lineDelimiter);
+		},
+		/**
+		 * @see orion.editor.TextModel#setText
+		 */
+		setText: function(text, start, end) {
+			if (text === undefined) { text = ""; }
+			if (start === undefined) { start = 0; }
+			var eventStart = start, eventEnd = end;
+			var model = this._model, projections = this._projections;
+			var delta = 0, lineDelta = 0, i, projection, charCount, startProjection, endProjection, startLineDelta = 0;
+			for (i = 0; i < projections.length; i++) {
+				projection = projections[i];
+				if (projection.start > start - delta) { break; }
+				charCount = projection._model.getCharCount();
+				if (projection.start + charCount > start - delta) {
+					if (end !== undefined && projection.start + charCount > end - delta) {
+						projection._model.setText(text, start - (projection.start + delta), end - (projection.start + delta));
+						//TODO events - special case
+						return;
+					} else {
+						startLineDelta = projection._model.getLineCount() - 1 - projection._model.getLineAtOffset(start - (projection.start + delta));
+						startProjection = {
+							projection: projection,
+							start: start - (projection.start + delta)
+						};
+						start = projection.end + delta + charCount - (projection.end - projection.start);
+					}
+				}
+				lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+				delta += charCount - (projection.end - projection.start);
+			}
+			var mapStart = start - delta, rangeStart = i, startLine = model.getLineAtOffset(mapStart) + lineDelta - startLineDelta;
+			if (end !== undefined) {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					if (projection.start > end - delta) { break; }
+					charCount = projection._model.getCharCount();
+					if (projection.start + charCount > end - delta) {
+						lineDelta += projection._model.getLineAtOffset(end - (projection.start + delta));
+						charCount = end - (projection.start + delta);
+						end = projection.end + delta;
+						endProjection = {
+							projection: projection,
+							end: charCount
+						};
+						break;
+					}
+					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+					delta += charCount - (projection.end - projection.start);
+				}
+			} else {
+				for (; i < projections.length; i++) {
+					projection = projections[i];
+					lineDelta += projection._model.getLineCount() - 1 - projection._lineCount;
+					delta += projection._model.getCharCount() - (projection.end - projection.start);
+				}
+				end = eventEnd = model.getCharCount() + delta;
+			}
+			var mapEnd = end - delta, rangeEnd = i, endLine = model.getLineAtOffset(mapEnd) + lineDelta;
+			
+			//events
+			var removedCharCount = eventEnd - eventStart;
+			var removedLineCount = endLine - startLine;
+			var addedCharCount = text.length;
+			var addedLineCount = 0;
+			var cr = 0, lf = 0, index = 0;
+			while (true) {
+				if (cr !== -1 && cr <= index) { cr = text.indexOf("\r", index); } //$NON-NLS-0$
+				if (lf !== -1 && lf <= index) { lf = text.indexOf("\n", index); } //$NON-NLS-0$
+				if (lf === -1 && cr === -1) { break; }
+				if (cr !== -1 && lf !== -1) {
+					if (cr + 1 === lf) {
+						index = lf + 1;
+					} else {
+						index = (cr < lf ? cr : lf) + 1;
+					}
+				} else if (cr !== -1) {
+					index = cr + 1;
+				} else {
+					index = lf + 1;
+				}
+				addedLineCount++;
+			}
+			
+			var modelChangingEvent = {
+				type: "Changing", //$NON-NLS-0$
+				text: text,
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanging(modelChangingEvent);
+			
+//			var changeLineCount = model.getLineAtOffset(mapEnd) - model.getLineAtOffset(mapStart) + addedLineCount;
+			model.setText(text, mapStart, mapEnd);
+			if (startProjection) {
+				projection = startProjection.projection;
+				projection._model.setText("", startProjection.start);
+			}		
+			if (endProjection) {
+				projection = endProjection.projection;
+				projection._model.setText("", 0, endProjection.end);
+				projection.start = projection.end;
+				projection._lineCount = 0;
+			}
+			projections.splice(rangeStart, rangeEnd - rangeStart);
+			var changeCount = text.length - (mapEnd - mapStart);
+			for (i = rangeEnd; i < projections.length; i++) {
+				projection = projections[i];
+				projection.start += changeCount;
+				projection.end += changeCount;
+//				if (projection._lineIndex + changeLineCount !== model.getLineAtOffset(projection.start)) {
+//					log("here");
+//				}
+				projection._lineIndex = model.getLineAtOffset(projection.start);
+//				projection._lineIndex += changeLineCount;
+			}
+			
+			var modelChangedEvent = {
+				type: "Changed", //$NON-NLS-0$
+				start: eventStart,
+				removedCharCount: removedCharCount,
+				addedCharCount: addedCharCount,
+				removedLineCount: removedLineCount,
+				addedLineCount: addedLineCount
+			};
+			this.onChanged(modelChangedEvent);
+		}
+	};
+	mEventTarget.EventTarget.addMixin(ProjectionTextModel.prototype);
+
+	return {ProjectionTextModel: ProjectionTextModel};
+});
+
 /**
- * @license RequireJS i18n 1.0.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
+ * @license RequireJS i18n 2.0.2 Copyright (c) 2010-2012, The Dojo Foundation All Rights Reserved.
  * Available via the MIT or new BSD license.
- * see: http://github.com/jrburke/requirejs for details
+ * see: http://github.com/requirejs/i18n for details
  */
-/*jslint regexp: false, nomen: false, plusplus: false, strict: false */
+/*jslint regexp: true */
 /*global require: false, navigator: false, define: false */
 
 /**
@@ -8310,14 +8409,15 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
  * for the nls/fr-fr/colors bundle to be that mixed in locale.
  */
 (function () {
+    
+
     //regexp for reconstructing the master bundle name from parts of the regexp match
     //nlsRegExp.exec("foo/bar/baz/nls/en-ca/foo") gives:
     //["foo/bar/baz/nls/en-ca/foo", "foo/bar/baz/nls/", "/", "/", "en-ca", "foo"]
     //nlsRegExp.exec("foo/bar/baz/nls/foo") gives:
     //["foo/bar/baz/nls/foo", "foo/bar/baz/nls/", "/", "/", "foo", ""]
     //so, if match[5] is blank, it means this is the top bundle definition.
-    var nlsRegExp = /(^.*(^|\/)nls(\/|$))([^\/]*)\/?([^\/]*)/,
-        empty = {};
+    var nlsRegExp = /(^.*(^|\/)nls(\/|$))([^\/]*)\/?([^\/]*)/;
 
     //Helper function to avoid repeating code. Lots of arguments in the
     //desire to stay functional and support RequireJS contexts without having
@@ -8333,7 +8433,7 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
 
     function addIfExists(req, locale, toLoad, prefix, suffix) {
         var fullName = prefix + locale + '/' + suffix;
-        if (require._fileExists(req.toUrl(fullName))) {
+        if (require._fileExists(req.toUrl(fullName + '.js'))) {
             toLoad.push(fullName);
         }
     }
@@ -8346,92 +8446,110 @@ define("orion/editor/textView", ['orion/editor/textModel', 'orion/keyBinding', '
      * trigger a problem related to that.
      */
     function mixin(target, source, force) {
-        for (var prop in source) {
-            if (!(prop in empty) && (!(prop in target) || force)) {
+        var prop;
+        for (prop in source) {
+            if (source.hasOwnProperty(prop) && (!target.hasOwnProperty(prop) || force)) {
                 target[prop] = source[prop];
+            } else if (typeof source[prop] === 'object') {
+                mixin(target[prop], source[prop], force);
             }
         }
     }
 
-    define('i18n',{
-        version: '1.0.0',
-        /**
-         * Called when a dependency needs to be loaded.
-         */
-        load: function (name, req, onLoad, config) {
-            config = config || {};
+    define('i18n',['module'], function (module) {
+        var masterConfig = module.config ? module.config() : {};
 
-            var masterName,
-                match = nlsRegExp.exec(name),
-                prefix = match[1],
-                locale = match[4],
-                suffix = match[5],
-                parts = locale.split("-"),
-                toLoad = [],
-                value = {},
-                i, part, current = "";
+        return {
+            version: '2.0.1+',
+            /**
+             * Called when a dependency needs to be loaded.
+             */
+            load: function (name, req, onLoad, config) {
+                config = config || {};
 
-            //If match[5] is blank, it means this is the top bundle definition,
-            //so it does not have to be handled. Locale-specific requests
-            //will have a match[4] value but no match[5]
-            if (match[5]) {
-                //locale-specific bundle
-                prefix = match[1];
-                masterName = prefix + suffix;
-            } else {
-                //Top-level bundle.
-                masterName = name;
-                suffix = match[4];
-                locale = config.locale || (config.locale =
-                        typeof navigator === "undefined" ? "root" :
-                        (navigator.language ||
-                         navigator.userLanguage || "root").toLowerCase());
-                parts = locale.split("-");
-            }
-
-            if (config.isBuild) {
-                //Check for existence of all locale possible files and
-                //require them if exist.
-                toLoad.push(masterName);
-                addIfExists(req, "root", toLoad, prefix, suffix);
-                for (i = 0; (part = parts[i]); i++) {
-                    current += (current ? "-" : "") + part;
-                    addIfExists(req, current, toLoad, prefix, suffix);
+                if (config.locale) {
+                    masterConfig.locale = config.locale;
                 }
 
-                req(toLoad, function () {
-                    onLoad();
-                });
-            } else {
-                //First, fetch the master bundle, it knows what locales are available.
-                req([masterName], function (master) {
-                    //Figure out the best fit
-                    var needed = [];
+                var masterName,
+                    match = nlsRegExp.exec(name),
+                    prefix = match[1],
+                    locale = match[4],
+                    suffix = match[5],
+                    parts = locale.split("-"),
+                    toLoad = [],
+                    value = {},
+                    i, part, current = "";
 
-                    //Always allow for root, then do the rest of the locale parts.
-                    addPart("root", master, needed, toLoad, prefix, suffix);
-                    for (i = 0; (part = parts[i]); i++) {
+                //If match[5] is blank, it means this is the top bundle definition,
+                //so it does not have to be handled. Locale-specific requests
+                //will have a match[4] value but no match[5]
+                if (match[5]) {
+                    //locale-specific bundle
+                    prefix = match[1];
+                    masterName = prefix + suffix;
+                } else {
+                    //Top-level bundle.
+                    masterName = name;
+                    suffix = match[4];
+                    locale = masterConfig.locale;
+                    if (!locale) {
+                        locale = masterConfig.locale =
+                            typeof navigator === "undefined" ? "root" :
+                            (navigator.language ||
+                             navigator.userLanguage || "root").toLowerCase();
+                    }
+                    parts = locale.split("-");
+                }
+
+                if (config.isBuild) {
+                    //Check for existence of all locale possible files and
+                    //require them if exist.
+                    toLoad.push(masterName);
+                    addIfExists(req, "root", toLoad, prefix, suffix);
+                    for (i = 0; i < parts.length; i++) {
+                        part = parts[i];
                         current += (current ? "-" : "") + part;
-                        addPart(current, master, needed, toLoad, prefix, suffix);
+                        addIfExists(req, current, toLoad, prefix, suffix);
                     }
 
-                    //Load all the parts missing.
                     req(toLoad, function () {
-                        var i, partBundle;
-                        for (i = needed.length - 1; i > -1 && (part = needed[i]); i--) {
-                            partBundle = master[part];
-                            if (partBundle === true || partBundle === 1) {
-                                partBundle = req(prefix + part + '/' + suffix);
-                            }
-                            mixin(value, partBundle);
+                        onLoad();
+                    });
+                } else {
+                    //First, fetch the master bundle, it knows what locales are available.
+                    req([masterName], function (master) {
+                        //Figure out the best fit
+                        var needed = [],
+                            part;
+
+                        //Always allow for root, then do the rest of the locale parts.
+                        addPart("root", master, needed, toLoad, prefix, suffix);
+                        for (i = 0; i < parts.length; i++) {
+                            part = parts[i];
+                            current += (current ? "-" : "") + part;
+                            addPart(current, master, needed, toLoad, prefix, suffix);
                         }
 
-                        //All done, notify the loader.
-                        onLoad(value);
+                        //Load all the parts missing.
+                        req(toLoad, function () {
+                            var i, partBundle, part;
+                            for (i = needed.length - 1; i > -1 && needed[i]; i--) {
+                                part = needed[i];
+                                partBundle = master[part];
+                                if (partBundle === true || partBundle === 1) {
+                                    partBundle = req(prefix + part + '/' + suffix);
+                                }
+                                mixin(value, partBundle);
+                            }
+
+                            //All done, notify the loader.
+                            onLoad(value);
+                        });
                     });
-                });
+                }
             }
-        }
+        };
     });
 }());
 
@@ -8703,6 +8821,21 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 	 * Write Occurrence annotation type.
 	 */
 	AnnotationType.ANNOTATION_WRITE_OCCURRENCE = "orion.annotation.writeOccurrence"; //$NON-NLS-0$
+
+	/**
+	 * Selected linked group annotation type.
+	 */
+	AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP = "orion.annotation.selectedLinkedGroup"; //$NON-NLS-0$
+
+	/**
+	 * Current linked group annotation type.
+	 */
+	AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP = "orion.annotation.currentLinkedGroup"; //$NON-NLS-0$
+
+	/**
+	 * Linked group annotation type.
+	 */
+	AnnotationType.ANNOTATION_LINKED_GROUP = "orion.annotation.linkedGroup"; //$NON-NLS-0$
 	
 	/** @private */
 	var annotationTypes = {};
@@ -8784,6 +8917,9 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 	registerType(AnnotationType.ANNOTATION_MATCHING_SEARCH);
 	registerType(AnnotationType.ANNOTATION_READ_OCCURRENCE);
 	registerType(AnnotationType.ANNOTATION_WRITE_OCCURRENCE);
+	registerType(AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP);
+	registerType(AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP);
+	registerType(AnnotationType.ANNOTATION_LINKED_GROUP);
 	registerType(AnnotationType.ANNOTATION_CURRENT_LINE, true);
 	AnnotationType.registerType(AnnotationType.ANNOTATION_FOLDING, FoldingAnnotation);
 	
@@ -10443,7 +10579,7 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				if (mapOffset < 0) { return; }
 				offset = mapOffset;
 			}
-			view.setText(text, offset, offset + previousText.length);
+			model.setText(text, offset, offset + previousText.length);
 			if (select) {
 				view.setSelection(offset, offset + text.length);
 			}
@@ -10453,11 +10589,14 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 	/** 
 	 * Constructs a new CompoundChange object.
 	 * 
+	 * @param owner the owner of the compound change
+	 *
 	 * @class 
 	 * @name orion.editor.CompoundChange
 	 * @private
 	 */
-	function CompoundChange () {
+	function CompoundChange (owner) {
+		this.owner = owner;
 		this.changes = [];
 	}
 	CompoundChange.prototype = {
@@ -10469,6 +10608,10 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		end: function (view) {
 			this.endSelection = view.getSelection();
 			this.endCaret = view.getCaretOffset();
+			var owner = this.owner;
+			if (owner && owner.end) {
+				owner.end();
+			}
 		},
 		/** @ignore */
 		undo: function (view, select) {
@@ -10479,6 +10622,10 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				var start = this.startSelection.start;
 				var end = this.startSelection.end;
 				view.setSelection(this.startCaret ? start : end, this.startCaret ? end : start);
+			}
+			var owner = this.owner;
+			if (owner && owner.undo) {
+				owner.undo();
 			}
 		},
 		/** @ignore */
@@ -10491,11 +10638,19 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				var end = this.endSelection.end;
 				view.setSelection(this.endCaret ? start : end, this.endCaret ? end : start);
 			}
+			var owner = this.owner;
+			if (owner && owner.redo) {
+				owner.redo();
+			}
 		},
 		/** @ignore */
 		start: function (view) {
 			this.startSelection = view.getSelection();
 			this.startCaret = view.getCaretOffset();
+			var owner = this.owner;
+			if (owner && owner.start) {
+				owner.start();
+			}
 		}
 	};
 
@@ -10540,9 +10695,6 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 * Adds a change to the stack.
 		 * 
 		 * @param change the change to add.
-		 * @param {Number} change.offset the offset of the change
-		 * @param {String} change.text the new text of the change
-		 * @param {String} change.previousText the previous text of the change
 		 */
 		add: function (change) {
 			if (this.compoundChange) {
@@ -10700,14 +10852,19 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 		 * with one single call to undo() or redo().
 		 * </p>
 		 *
+		 * @param owner the owner of the compound change which is called for start, end, undo and redo.
+		 *		 
+		 * @return the compound change
+		 *
 		 * @see #endCompoundChange
 		 */
-		startCompoundChange: function() {
+		startCompoundChange: function(owner) {
 			this._commitUndo();
-			var change = new CompoundChange();
+			var change = new CompoundChange(owner);
 			this.add(change);
 			this.compoundChange = change;
 			this.compoundChange.start(this.view);
+			return this.compoundChange;
 		},
 		_commitUndo: function () {
 			if (this._undoStart !== undefined) {
@@ -10720,6 +10877,7 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
 				this._undoText = "";
 				this._undoType = 0;
 			}
+			this.endCompoundChange();
 		},
 		_onDestroy: function(evt) {
 			this.model.removeEventListener("Changing", this._listener.onChanging); //$NON-NLS-0$
@@ -11506,6 +11664,9 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINE);
 						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_READ_OCCURRENCE);
 						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_WRITE_OCCURRENCE);
+						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP);
+						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP);
+						styler.addAnnotationType(mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP);
 						styler.addAnnotationType(HIGHLIGHT_ERROR_ANNOTATION);
 					}
 				}
@@ -12768,7 +12929,7 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 			var proposal = event.data.proposal;
 			
 			//if the proposal specifies linked positions, build the model and enter linked mode
-			if (proposal.positions && this.linkedMode) {
+			if (proposal.positions && proposal.positions.length > 0 && this.linkedMode) {
 				var positionGroups = [];
 				for (var i = 0; i < proposal.positions.length; ++i) {
 					positionGroups[i] = {
@@ -12784,6 +12945,11 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 					escapePosition: proposal.escapePosition
 				};
 				this.linkedMode.enterLinkedMode(linkedModeModel);
+			} else if (proposal.groups && proposal.groups.length > 0 && this.linkedMode) {
+				this.linkedMode.enterLinkedMode({
+					groups: proposal.groups,
+					escapePosition: proposal.escapePosition
+				});
 			} else if (proposal.escapePosition) {
 				//we don't want linked mode, but there is an escape position, so just set cursor position
 				var textView = this.editor.getTextView();
@@ -12836,49 +13002,94 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 		}
 	};
 	
-	function LinkedMode(editor) {
+	function LinkedMode(editor, undoStack) {
 		this.editor = editor;
+		this.undoStack = undoStack;
 		
-		/**
-		 * The variables used by the Linked Mode. The elements of linkedModePositions have following structure:
-		 * {
-		 *     offset: 10, // The offset of the position counted from the beginning of the text buffer
-		 *     length: 3 // The length of the position (selection)
-		 * }
-		 *
-		 * The linkedModeEscapePosition contains an offset (counted from the beginning of the text buffer) of a
-		 * position where the caret will be placed after exiting from the Linked Mode.
-		 */
 		this.linkedModeActive = false;
-		this.linkedModePositions = [];
-		this.linkedModeCurrentPositionIndex = 0;
-		this.linkedModeEscapePosition = 0;
+		this.linkedModeModel = null;
+		this.linkedModeGroupIndex = 0;
 		
 		/**
 		 * Listener called when Linked Mode is active. Updates position's offsets and length
 		 * on user change. Also escapes the Linked Mode if the text buffer was modified outside of the Linked Mode positions.
 		 */
 		this.linkedModeListener = {
+
 			onVerify: function(event) {
-				var changeInsideGroup = false;
-				var offsetDifference = 0;
-				for (var i = 0; i < this.linkedModePositions.length; ++i) {
-					var position = this.linkedModePositions[i];
-					if (changeInsideGroup) {
-						// The change has already been noticed, update the offsets of all positions next to the changed one
-						position.offset += offsetDifference;
-					} else if (event.start >= position.offset && event.end <= position.offset + position.length) {
-						// The change was done in the current position, update its length
-						var oldLength = position.length;
-						position.length = (event.start - position.offset) + event.text.length + (position.offset + position.length - event.end);
-						offsetDifference = position.length - oldLength;
-						changeInsideGroup = true;
+				if (this.ignoreVerify) { return; }
+				var start = event.start;
+				var addedCharCount = event.text.length;
+				var removedCharCount = event.end - event.start;
+				var end = start + removedCharCount;
+				var changeCount = addedCharCount - removedCharCount;
+				var sortedPositions = [];
+				var groups = this.linkedModeModel.groups, i;
+				for (i = 0; i < groups.length; i++) {
+					var positions = groups[i].positions;
+					for (var j = 0; j < positions.length; j++) {
+						sortedPositions.push({
+							group: i,
+							position: positions[j]
+						});
 					}
 				}
-
-				if (changeInsideGroup) {
-					// Update escape position too
-					this.linkedModeEscapePosition += offsetDifference;
+				sortedPositions.sort(function(a, b) {
+					return a.position.offset - b.position.offset;
+				});
+				var groupChanged, group, position;
+				var deltaStart = event.start, deltaEnd = event.end;
+				for (i = 0; i < sortedPositions.length; i++) {
+					group = sortedPositions[i].group;
+					position = sortedPositions[i].position;
+					if (position.offset <= start && end <= position.offset + position.length) {
+						deltaStart -= position.offset;
+						deltaEnd -= position.offset;
+						groupChanged = group;
+						break;
+					}
+				}
+				if (groupChanged !== undefined) {
+					if (this._compoundChange) {
+						if (this._compoundChange.owner.group !== groupChanged) {
+							this.linkedModeGroupIndex = groupChanged;
+							this.endUndo();
+							this.startUndo();
+						}
+					} else {
+						this.startUndo();
+					}
+					this.ignoreVerify = true;
+					var textView = this.editor.getTextView();
+					for (i = sortedPositions.length - 1; i >= 0; i--) {
+						group = sortedPositions[i].group;
+						position = sortedPositions[i].position;
+						if (group === groupChanged) {
+							textView.setText(event.text, position.offset + deltaStart , position.offset + deltaEnd);
+						}
+					}
+					this.ignoreVerify = false;
+					event.text = null;
+					var deltaCount = 0, escapePositionDeltaCount;
+					for (i = 0; i < sortedPositions.length; ++i) {
+						group = sortedPositions[i].group;
+						position = sortedPositions[i].position;
+						if (escapePositionDeltaCount === undefined && this.linkedModeModel.escapePosition < position.offset) {
+							escapePositionDeltaCount = deltaCount;
+						}
+						if (group === groupChanged) {
+							position.offset += deltaCount;
+							position.length += changeCount;
+							deltaCount += changeCount;
+						} else {
+							position.offset += deltaCount;
+						}
+					}
+					if (escapePositionDeltaCount === undefined) {
+						escapePositionDeltaCount = deltaCount;
+					}
+					this.linkedModeModel.escapePosition += escapePositionDeltaCount;
+					this._updateAnnotations();
 				} else {
 					// The change has been done outside of the positions, exit the Linked Mode
 					this.cancel();
@@ -12907,41 +13118,77 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 				return;
 			}
 			this.linkedModeActive = true;
-
-			// NOTE: only the first position from each group is supported for now
-			this.linkedModePositions = [];
-			for (var i = 0; i < linkedModeModel.groups.length; ++i) {
-				var group = linkedModeModel.groups[i];
-				this.linkedModePositions[i] = {
-					offset: group.positions[0].offset,
-					length: group.positions[0].length
-				};
-			}
-
-			this.linkedModeEscapePosition = linkedModeModel.escapePosition;
-			this.linkedModeCurrentPositionIndex = 0;
-			this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
+			this.linkedModeModel = linkedModeModel;
+			this.selectLinkedGroup(0);
 
 			var textView = this.editor.getTextView();
 			textView.addEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
 
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9), "nextLinkedModePosition"); //$NON-NLS-0$
 			textView.setAction("nextLinkedModePosition", function() { //$NON-NLS-0$
-				// Switch to the next group on TAB key
-				this.linkedModeCurrentPositionIndex = ++this.linkedModeCurrentPositionIndex % this.linkedModePositions.length;
-				this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
+				this.selectLinkedGroup((this.linkedModeGroupIndex + 1) % this.linkedModeModel.groups.length);
 				return true;
 			}.bind(this));
 			
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "previousLinkedModePosition"); //$NON-NLS-0$
 			textView.setAction("previousLinkedModePosition", function() { //$NON-NLS-0$
-				this.linkedModeCurrentPositionIndex = this.linkedModeCurrentPositionIndex > 0 ? this.linkedModeCurrentPositionIndex-1 : this.linkedModePositions.length-1;
-				this.selectTextForLinkedModePosition(this.linkedModePositions[this.linkedModeCurrentPositionIndex]);
+				this.selectLinkedGroup(this.linkedModeGroupIndex > 0 ? this.linkedModeGroupIndex-1 : this.linkedModeModel.groups.length-1);
 				return true;
 			}.bind(this));
 
 			this.editor.reportStatus(messages.linkedModeEntered, null, true);
 		},
+		_cloneModel: function() {
+			var model = this.linkedModeModel;
+			var newGroups = [];
+			var newModel = {
+				escapePosition: model.escapePosition,
+				groups: newGroups
+			};
+			var groups = model.groups;
+			for (var j = 0; j < groups.length; j++) {
+				var newPositions = [];
+				newGroups.push({positions: newPositions});
+				var positions = groups[j].positions;
+				for (var i = 0; i < positions.length; i++) {
+					newPositions.push({
+						offset: positions[i].offset,
+						length: positions[i].length
+					});
+				}
+			}
+			return newModel;
+		},
+		startUndo: function() {
+			if (this.undoStack) {
+				var self = this;
+				this._compoundChange = this.undoStack.startCompoundChange({
+					startModel: self._cloneModel(),
+					group: self.linkedModeGroupIndex,
+					end: function() {
+						self._compoundChange = null;
+						this.endModel = self._cloneModel();
+					},
+					redo: function() {
+						if (self.linkedModeActive) {
+							self.linkedModeModel = this.endModel;
+							self.selectLinkedGroup(0);
+						}
+					},
+					undo: function() {
+						if (self.linkedModeActive) {
+							self.linkedModeModel = this.startModel;
+							self.selectLinkedGroup(0);
+						}
+					}
+				});
+			}
+		}, 
+		endUndo: function() {
+			if (this.undoStack) {
+				this.undoStack.endCompoundChange();
+			}
+		}, 
 		isActive: function() {
 			return this.linkedModeActive;
 		},
@@ -12968,9 +13215,13 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 			textView.setKeyBinding(new mKeyBinding.KeyBinding(9, false, true), "shiftTab"); //$NON-NLS-0$
 			
 			if (!ignoreEscapePosition) {
-				textView.setCaretOffset(this.linkedModeEscapePosition, false);
+				textView.setCaretOffset(this.linkedModeModel.escapePosition, false);
 			}
-
+			if (this._compoundChange) {
+				this.endUndo();
+				this._compoundChange = null;
+			}
+			this._updateAnnotations();
 			this.editor.reportStatus(messages.linkedModeExited, null, true);
 		},
 		lineUp: function() {
@@ -12980,12 +13231,50 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 		lineDown: function() {
 			this.cancel(true);
 			return false;
-		},		/**
-		 * Updates the selection in the textView for given Linked Mode position.
-		 */
-		selectTextForLinkedModePosition: function(position) {
+		},
+		selectLinkedGroup: function(index) {
+			this.linkedModeGroupIndex = index;
+			var group = this.linkedModeModel.groups[index];
+			var position = group.positions[0];
 			var textView = this.editor.getTextView();
 			textView.setSelection(position.offset, position.offset + position.length);
+			this._updateAnnotations();
+		},
+		_updateAnnotations: function() {
+			var annotationModel = this.editor.getAnnotationModel();
+			if (!annotationModel) { return; }
+			var remove = [], add = [];
+			var model = annotationModel.getTextModel();
+			var annotations = annotationModel.getAnnotations(0, model.getCharCount()), annotation;
+			while (annotations.hasNext()) {
+				annotation = annotations.next();
+				switch (annotation.type) {
+					case mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP:
+					case mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP:
+					case mAnnotations.AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP:
+						remove.push(annotation);
+				}
+			}
+			if (this.linkedModeActive) {
+				var groups = this.linkedModeModel.groups;
+				for (var j = 0; j < groups.length; j++) {
+					var positions = groups[j].positions;
+					for (var i = 0; i < positions.length; i++) {
+						var position = positions[i];
+						var type = mAnnotations.AnnotationType.ANNOTATION_LINKED_GROUP;
+						if (j === this.linkedModeGroupIndex) {
+							if (i === 0) {
+								type = mAnnotations.AnnotationType.ANNOTATION_SELECTED_LINKED_GROUP;
+							} else {
+								type = mAnnotations.AnnotationType.ANNOTATION_CURRENT_LINKED_GROUP;
+							}
+						}
+						annotation = mAnnotations.AnnotationType.createAnnotation(type, position.offset, position.offset + position.length);
+						add.push(annotation);
+					}
+				}
+			}
+			annotationModel.replaceAnnotations(remove, add);
 		}
 	};
 
@@ -13015,7 +13304,7 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 
 (function(root, factory) { // UMD
 	if (typeof define === "function" && define.amd) { //$NON-NLS-0$
-		define('orion/Deferred',[],factory);
+		define('orion/Deferred',factory);
 	} else if (typeof exports === "object") { //$NON-NLS-0$
 		module.exports = factory();
 	} else {
@@ -13067,9 +13356,9 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 	 * @class Interface representing an eventual value.
 	 * @description Promise is an interface that represents an eventual value returned from the single completion of an operation.
 	 *
-	 * <p>For a concrete class that provides Promise-based APIs, see {@link orion.Deferred}.</p>
-	 * @see orion.Deferred#promise
+	 * <p>For a concrete class that implements Promise and provides additional API, see {@link orion.Deferred}.</p>
 	 * @see orion.Deferred
+	 * @see orion.Deferred#promise
 	 */
 	/**
 	 * @name then
@@ -13078,19 +13367,27 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 	 * @param {Function} [onResolve] Called when this promise is resolved.
 	 * @param {Function} [onReject] Called when this promise is rejected.
 	 * @param {Function} [onProgress] May be called to report progress events on this promise.
-	 * @returns {orion.Promise} A new promise that is fulfilled when the given onResolve or onReject callback is finished.
-	 * The callback's return value gives the fulfillment value of the returned promise.
+	 * @returns {orion.Promise} A new promise that is fulfilled when the given <code>onResolve</code> or <code>onReject</code>
+	 * callback is finished. The callback's return value gives the fulfillment value of the returned promise.
+	 */
+	/**
+	 * Cancels this promise.
+	 * @name cancel
+	 * @methodOf orion.Promise.prototype
+	 * @param {Object} reason The reason for canceling this promise.
+	 * @param {Boolean} [strict]
 	 */
 
 	/**
 	 * @name orion.Deferred
 	 * @borrows orion.Promise#then as #then
+	 * @borrows orion.Promise#cancel as #cancel
 	 * @class Provides abstraction over asynchronous operations.
 	 * @description Deferred provides abstraction over asynchronous operations.
 	 *
 	 * <p>Because Deferred implements the {@link orion.Promise} interface, a Deferred may be used anywhere a Promise is called for.
-	 * However, in most such cases it is recommended to use the Deferred's {@link #promise} field instead, which exposes a read-only
-	 * interface to callers.</p>
+	 * However, in most such cases it is recommended to use the Deferred's {@link #promise} field instead, which exposes a 
+	 * simplified, minimally <a href="https://github.com/promises-aplus/promises-spec">Promises/A+</a>-compliant interface to callers.</p>
 	 */
 	function Deferred() {
 		var result, state, listeners = [],
@@ -13176,13 +13473,6 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 			return _this.promise;
 		};
 
-		/**
-		 * Cancels this Deferred.
-		 * @name cancel
-		 * @methodOf orion.Deferred.prototype
-		 * @param {Object} reason The reason for canceling this Deferred.
-		 * @param {Boolean} [strict]
-		 */
 		this.cancel = function() {
 			if (!state) {
 				_this.reject(createCancelError());
@@ -13198,24 +13488,25 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 				deferred: new Deferred()
 			};
 			var deferred = listener.deferred;
-			var thisCancel = this.cancel.bind(this);
+			var propagated = false;
 			var propagateCancel = function() {
+				if (propagated) {
+					return;
+				}
+				propagated = true;
 				enqueue(function() {
-					var cancel = deferred.cancel === propagateCancel ? thisCancel : deferred.cancel;
-					cancel();
+					var cancel = deferred.cancel === propagateCancel ? _this.cancel : deferred.cancel;
+					if (typeof cancel === "function") {
+						cancel();
+					}
 				}, true);
 			};
 			deferred.cancel = propagateCancel;
-			var promise = deferred.promise;
-			promise.cancel = function() {
-				deferred.cancel(); // require indirection since deferred.cancel will be assigned if a promise is returned by onResolve/onReject
-			};
-
 			listeners.push(listener);
 			if (state) {
 				enqueue(notify, true); //runAsync
 			}
-			return promise;
+			return deferred.promise;
 		};
 
 		/**
@@ -13224,28 +13515,39 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 		 * @fieldOf orion.Deferred.prototype
 		 * @type orion.Promise
 		 */
-		this.promise = {
-			then: this.then,
-			cancel: this.cancel
-		};
+		this.promise = Object.create(Object.prototype, {
+			then: {
+				value: _this.then
+			},
+			cancel: {
+				get: function() {
+					return _this.cancel;
+				},
+				set: function(value) {
+					_this.cancel = value;
+				}
+			}
+		});
 	}
 
 	/**
-	 * Takes multiple promises and returns a new promise that represents the outcome of all the promises.
+	 * Returns a promise that represents the outcome of all the input promises.
 	 * <p>When <code>all</code> is called with a single parameter, the returned promise has <dfn>eager</dfn> semantics,
-	 * meaning if one of the input promises is rejected, the returned promise also rejects, without waiting for the 
-	 * rest of the promises to fulfill.</p>
+	 * meaning that if any input promise rejects, the returned promise immediately rejects, without waiting for the rest of the
+	 * input promises to fulfill.</p>
 	 *
-	 * To obtain <dfn>lazy</dfn> semantics (meaning the returned promise waits for all input promises to fulfill), pass the
+	 * To obtain <dfn>lazy</dfn> semantics (meaning the returned promise waits for every input promise to fulfill), pass the
 	 * optional parameter <code>optOnError</code>.
 	 * @name all
 	 * @methodOf orion.Deferred
 	 * @static
-	 * @param {orion.Promise[]} promises The promises.
-	 * @param {Function} [optOnError] Handles a rejected input promise. When invoked, <code>optOnError</code> is passed the reason 
-	 * the input promise was rejected. The return value of this <code>optOnError</code> call serves as the value of the rejected promise.
+	 * @param {orion.Promise[]} promises The input promises.
+	 * @param {Function} [optOnError] Handles a rejected input promise. <code>optOnError</code> is invoked for every rejected
+	 * input promise, and is passed the reason the input promise was rejected. <p><code>optOnError</code> can return a value, which
+	 * allows it to act as a transformer: the return value serves as the final fulfillment value of the rejected promise in the 
+	 * results array generated by <code>all</code>.
 	 * @returns {orion.Promise} A new promise. The returned promise is generally fulfilled to an <code>Array</code> whose elements
-	 * give the fulfillment values of the input promises. However if an input promise is rejected and eager semantics is used, the 
+	 * give the fulfillment values of the input promises. <p>However, if an input promise rejects and eager semantics is used, the 
 	 * returned promise will instead be fulfilled to a single error value.</p>
 	 */
 	Deferred.all = function(promises, optOnError) {
@@ -13339,7 +13641,13 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 /*global define */
 /*jslint maxerr:150 browser:true devel:true */
 
-define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/keyBinding', 'orion/editor/eventTarget', 'orion/Deferred', 'orion/util'], function(messages, mKeyBinding, mEventTarget, Deferred, util) {
+define("orion/editor/contentAssist", [ //$NON-NLS-0$
+	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
+	'orion/keyBinding', //$NON-NLS-0$
+	'orion/editor/eventTarget', //$NON-NLS-0$
+	'orion/Deferred', //$NON-NLS-0$
+	'orion/util' //$NON-NLS-0$
+], function(messages, mKeyBinding, mEventTarget, Deferred, util) {
 	/**
 	 * @name orion.editor.ContentAssistProvider
 	 * @class Interface defining a provider of content assist proposals.
@@ -13407,11 +13715,11 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 	};
 	
 	var STYLES = {
-		selected : " selected",
-		hr : "proposal-hr",
-		emphasis : "proposal-emphasis",
-		noemphasis : "proposal-noemphasis",
-		dfault : "proposal-default"
+		selected : " selected", //$NON-NLS-0$
+		hr : "proposal-hr", //$NON-NLS-0$
+		emphasis : "proposal-emphasis", //$NON-NLS-0$
+		noemphasis : "proposal-noemphasis", //$NON-NLS-0$
+		dfault : "proposal-default" //$NON-NLS-0$
 	};
 	
 	function ContentAssist(textView) {
@@ -13440,8 +13748,8 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 				}
 			}
 		};
-		textView.setKeyBinding(util.isMac ? new mKeyBinding.KeyBinding(' ', false, false, false, true) : new mKeyBinding.KeyBinding(' ', true), "contentAssist");
-		textView.setAction("contentAssist", function() {
+		textView.setKeyBinding(util.isMac ? new mKeyBinding.KeyBinding(' ', false, false, false, true) : new mKeyBinding.KeyBinding(' ', true), "contentAssist"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		textView.setAction("contentAssist", function() { //$NON-NLS-0$
 			self.activate();
 			return true;
 		}, {name: messages.contentAssist});
@@ -13475,7 +13783,7 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			this.setState(State.INACTIVE);
 			var proposalText = proposal.proposal || proposal;
 			this.textView.setText(proposalText, start, end);
-			this.dispatchEvent({type: "ProposalApplied", data: data});
+			this.dispatchEvent({type: "ProposalApplied", data: data}); //$NON-NLS-0$
 			return true;
 		},
 		activate: function() {
@@ -13505,9 +13813,9 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		setState: function(state) {
 			var eventType;
 			if (state === State.ACTIVE) {
-				eventType = "Activating";
+				eventType = "Activating"; //$NON-NLS-0$
 			} else if (state === State.INACTIVE) {
-				eventType = "Deactivating";
+				eventType = "Deactivating"; //$NON-NLS-0$
 			}
 			if (eventType) {
 				this.dispatchEvent({type: eventType});
@@ -13519,16 +13827,16 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		onStateChange: function(state) {
 			if (state === State.INACTIVE) {
 				if (this.listenerAdded) {
-					this.textView.removeEventListener("ModelChanging", this.contentAssistListener.onModelChanging);
-					this.textView.removeEventListener("Scroll", this.contentAssistListener.onScroll);
-					this.textView.removeEventListener("Selection", this.contentAssistListener.onSelection);
+					this.textView.removeEventListener("ModelChanging", this.contentAssistListener.onModelChanging); //$NON-NLS-0$
+					this.textView.removeEventListener("Scroll", this.contentAssistListener.onScroll); //$NON-NLS-0$
+					this.textView.removeEventListener("Selection", this.contentAssistListener.onSelection); //$NON-NLS-0$
 					this.listenerAdded = false;
 				}
 			} else if (state === State.ACTIVE) {
 				if (!this.listenerAdded) {
-					this.textView.addEventListener("ModelChanging", this.contentAssistListener.onModelChanging);
-					this.textView.addEventListener("Scroll", this.contentAssistListener.onScroll);
-					this.textView.addEventListener("Selection", this.contentAssistListener.onSelection);
+					this.textView.addEventListener("ModelChanging", this.contentAssistListener.onModelChanging); //$NON-NLS-0$
+					this.textView.addEventListener("Scroll", this.contentAssistListener.onScroll); //$NON-NLS-0$
+					this.textView.addEventListener("Selection", this.contentAssistListener.onSelection); //$NON-NLS-0$
 					this.listenerAdded = true;
 				}
 				this.computeProposals();
@@ -13541,7 +13849,7 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			var self = this;
 			var offset = this.textView.getCaretOffset();
 			this._computeProposals(offset).then(function(proposals) {
-				self.dispatchEvent({type: "ProposalsComputed", data: {proposals: proposals}});
+				self.dispatchEvent({type: "ProposalsComputed", data: {proposals: proposals}}); //$NON-NLS-0$
 			});
 		},
 		/** @private */
@@ -13553,8 +13861,8 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			return index;
 		},
 		handleError: function(error) {
-			if (typeof console !== "undefined") {
-				console.log("Error retrieving content assist proposals");
+			if (typeof console !== "undefined") { //$NON-NLS-0$
+				console.log("Error retrieving content assist proposals"); //$NON-NLS-0$
 				console.log(error);
 			}
 		},
@@ -13568,10 +13876,21 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			var providers = this.providers;
 			var textView = this.textView, textModel = textView.getModel();
 			var buffer = textView.getText();
+			var line = textModel.getLine(textModel.getLineAtOffset(offset));
+			var index = 0;
+			while (index < line.length && /\s/.test(line.charAt(index))) {
+				index++;
+			}
+			var indentation = line.substring(0, index);
+			var options = textView.getOptions("tabSize", "expandTab"); //$NON-NLS-1$ //$NON-NLS-0$
+			var tab = options.expandTab ? new Array(options.tabSize + 1).join(" ") : "\t"; //$NON-NLS-1$ //$NON-NLS-0$
 			var context = {
-				line: textModel.getLine(textModel.getLineAtOffset(offset)),
+				line: line,
 				prefix: textView.getText(this.getPrefixStart(offset), offset),
-				selection: textView.getSelection()
+				selection: textView.getSelection(),
+				delimiter: textModel.getLineDelimiter(),
+				tab: tab,
+				indentation: indentation
 			};
 			var self = this;
 			var promises = providers.map(function(provider) {
@@ -13625,7 +13944,7 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		this.widget = ContentAssistWidget;
 		this.proposals = [];
 		var self = this;
-		this.contentAssist.addEventListener("ProposalsComputed", function(event) {
+		this.contentAssist.addEventListener("ProposalsComputed", function(event) { //$NON-NLS-0$
 			self.proposals = event.data.proposals;
 			self.selectedIndex = self.proposals.length ? 0 : -1;
 		});
@@ -13692,16 +14011,16 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		this.textView = this.contentAssist.getTextView();
 		this.textViewListenerAdded = false;
 		this.isShowing = false;
-		var document = this.textView.getOptions("parent").ownerDocument;
-		this.parentNode = typeof parentNode === "string" ? document.getElementById(parentNode) : parentNode;
+		var document = this.textView.getOptions("parent").ownerDocument; //$NON-NLS-0$
+		this.parentNode = typeof parentNode === "string" ? document.getElementById(parentNode) : parentNode; //$NON-NLS-0$
 		if (!this.parentNode) {
-			this.parentNode = util.createElement(document, "div");
-			this.parentNode.className = "contentassist";
-			var body = document.getElementsByTagName("body")[0];
+			this.parentNode = util.createElement(document, "div"); //$NON-NLS-0$
+			this.parentNode.className = "contentassist"; //$NON-NLS-0$
+			var body = document.getElementsByTagName("body")[0]; //$NON-NLS-0$
 			if (body) {
 				body.appendChild(this.parentNode);
 			} else {
-				throw new Error("parentNode is required");
+				throw new Error("parentNode is required"); //$NON-NLS-0$
 			}
 		}
 		var self = this;
@@ -13714,19 +14033,19 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 				// the click is handled by the onClick() function
 			}
 		};
-		this.contentAssist.addEventListener("ProposalsComputed", function(event) {
+		this.contentAssist.addEventListener("ProposalsComputed", function(event) { //$NON-NLS-0$
 			self.setProposals(event.data.proposals);
 			self.show();
 			if (!self.textViewListenerAdded) {
-				self.textView.addEventListener("MouseDown", self.textViewListener.onMouseDown);
+				self.textView.addEventListener("MouseDown", self.textViewListener.onMouseDown); //$NON-NLS-0$
 				self.textViewListenerAdded = true;
 			}
 		});
-		this.contentAssist.addEventListener("Deactivating", function(event) {
+		this.contentAssist.addEventListener("Deactivating", function(event) { //$NON-NLS-0$
 			self.setProposals([]);
 			self.hide();
 			if (self.textViewListenerAdded) {
-				self.textView.removeEventListener("MouseDown", self.textViewListener.onMouseDown);
+				self.textView.removeEventListener("MouseDown", self.textViewListener.onMouseDown); //$NON-NLS-0$
 				self.textViewListenerAdded = false;
 			}
 			self.textViewListenerAdded = false;
@@ -13737,7 +14056,7 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			}
 		};
 		if (document.addEventListener) {
-			document.addEventListener("scroll", this.scrollListener);
+			document.addEventListener("scroll", this.scrollListener); //$NON-NLS-0$
 		}
 	}
 	ContentAssistWidget.prototype = /** @lends orion.editor.ContentAssistWidget.prototype */ {
@@ -13749,17 +14068,17 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		/** @private */
 		createDiv: function(proposal, isSelected, parent, itemIndex) {
 			var document = parent.ownerDocument;
-			var div = util.createElement(document, "div");
-			div.id = "contentoption" + itemIndex;
-			div.setAttribute("role", "option");
+			var div = util.createElement(document, "div"); //$NON-NLS-0$
+			div.id = "contentoption" + itemIndex; //$NON-NLS-0$
+			div.setAttribute("role", "option"); //$NON-NLS-1$ //$NON-NLS-0$
 			var node;
-			if (proposal.style === "hr") {
-				node = util.createElement(document, "hr");
+			if (proposal.style === "hr") { //$NON-NLS-0$
+				node = util.createElement(document, "hr"); //$NON-NLS-0$
 			} else {
 				div.className = this.calculateClasses(proposal.style, isSelected);
 				node = document.createTextNode(this.getDisplayString(proposal));
 				if (isSelected) {
-					this.parentNode.setAttribute("aria-activedescendant", div.id);
+					this.parentNode.setAttribute("aria-activedescendant", div.id); //$NON-NLS-0$
 				}
 			}
 			div.appendChild(node, div);
@@ -13768,7 +14087,7 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		/** @private */
 		createAccessible: function(mode) {
 			if(!this._isAccessible) {
-				this.parentNode.addEventListener("keydown", function(evt) {
+				this.parentNode.addEventListener("keydown", function(evt) { //$NON-NLS-0$
 					evt.preventDefault();
 					if(evt.keyCode === 27) {return mode.cancel(); }
 					else if(evt.keyCode === 38) { return mode.lineUp(); }
@@ -13790,11 +14109,11 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		/** @private */
 		getDisplayString: function(proposal) {
 			//for simple string content assist, the display string is just the proposal
-			if (typeof proposal === "string") {
+			if (typeof proposal === "string") { //$NON-NLS-0$
 				return proposal;
 			}
 			//return the description if applicable
-			if (proposal.description && typeof proposal.description === "string") {
+			if (proposal.description && typeof proposal.description === "string") { //$NON-NLS-0$
 				return proposal.description;
 			}
 			//by default return the straight proposal text
@@ -13831,7 +14150,7 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 				}
 				if (child === node) {
 					child.className = child.className + STYLES.selected;
-					this.parentNode.setAttribute("aria-activedescendant", child.id);
+					this.parentNode.setAttribute("aria-activedescendant", child.id); //$NON-NLS-0$
 					child.focus();
 					if (child.offsetTop < this.parentNode.scrollTop) {
 						child.scrollIntoView(true);
@@ -13861,18 +14180,18 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			if(this.parentNode.ownerDocument.activeElement === this.parentNode) {
 				this.textView.focus();
 			}
-			this.parentNode.style.display = "none";
+			this.parentNode.style.display = "none"; //$NON-NLS-0$
 			this.parentNode.onclick = null;
 			this.isShowing = false;
 		},
 		position: function() {
 			var caretLocation = this.textView.getLocationAtOffset(this.textView.getCaretOffset());
 			caretLocation.y += this.textView.getLineHeight();
-			this.textView.convert(caretLocation, "document", "page");
-			this.parentNode.style.position = "fixed";
-			this.parentNode.style.left = caretLocation.x + "px";
-			this.parentNode.style.top = caretLocation.y + "px";
-			this.parentNode.style.display = "block";
+			this.textView.convert(caretLocation, "document", "page"); //$NON-NLS-1$ //$NON-NLS-0$
+			this.parentNode.style.position = "fixed"; //$NON-NLS-0$
+			this.parentNode.style.left = caretLocation.x + "px"; //$NON-NLS-0$
+			this.parentNode.style.top = caretLocation.y + "px"; //$NON-NLS-0$
+			this.parentNode.style.display = "block"; //$NON-NLS-0$
 			this.parentNode.scrollTop = 0;
 
 			// Make sure that the panel is never outside the viewport
@@ -13880,10 +14199,10 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 			var viewportWidth = document.documentElement.clientWidth,
 			    viewportHeight =  document.documentElement.clientHeight;
 			if (caretLocation.y + this.parentNode.offsetHeight > viewportHeight) {
-				this.parentNode.style.top = (caretLocation.y - this.parentNode.offsetHeight - this.textView.getLineHeight()) + "px";
+				this.parentNode.style.top = (caretLocation.y - this.parentNode.offsetHeight - this.textView.getLineHeight()) + "px"; //$NON-NLS-0$
 			}
 			if (caretLocation.x + this.parentNode.offsetWidth > viewportWidth) {
-				this.parentNode.style.left = (viewportWidth - this.parentNode.offsetWidth) + "px";
+				this.parentNode.style.left = (viewportWidth - this.parentNode.offsetWidth) + "px"; //$NON-NLS-0$
 			}
 		}
 	};
@@ -13891,6 +14210,302 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
 		ContentAssist: ContentAssist,
 		ContentAssistMode: ContentAssistMode,
 		ContentAssistWidget: ContentAssistWidget
+	};
+});
+
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: IBM Corporation - initial API and implementation
+ ******************************************************************************/
+
+/*global define*/
+
+define("orion/editor/templates", [], function() { //$NON-NLS-0$
+
+	/** 
+	 * Removes prefix from string.
+	 * @param {String} prefix
+	 * @param {String} string
+	 */
+	function chop(prefix, string) {
+		return string.substring(prefix.length);
+	}
+	
+	var tabVar = "${tab}"; //$NON-NLS-0$
+	var delimiterVar = "${delimiter}"; //$NON-NLS-0$
+	var cursorVar = "${cursor}"; //$NON-NLS-0$
+	
+	function Template (prefix, description, template) {
+		this.prefix = prefix;
+		this.description = description;
+		this.template = template;
+		this._parse();
+	}
+	Template.prototype = /** @lends orion.editor.Template.prototype */ {
+		getProposal: function(prefix, offset, context) {
+			//any returned positions need to be offset based on current cursor position and length of prefix
+			var startOffset = offset-prefix.length;
+			var groups = {};
+			var escapePosition;
+			var delimiter = context.delimiter !== undefined ? context.delimiter : "\n"; //$NON-NLS-0$
+			if (context.indentation) {
+				delimiter += context.indentation;
+			}
+			var variables = this.variables;
+			variables[delimiterVar] = delimiter;
+			variables[tabVar] = context.tab !== undefined ? context.tab : "\t"; //$NON-NLS-0$
+			variables[cursorVar] = "";
+			var delta = 0;
+			var segments = this.segments, proposal = [];
+			for (var i = 0; i < segments.length; i++) {
+				var segment = segments[i], variable = segment;
+				var substitution = variables[segment];
+				if (substitution !== undefined) {
+					segment = substitution;
+					switch (variable) {
+						case tabVar:
+						case delimiterVar:
+							break;
+						case cursorVar:
+							escapePosition = delta;
+							break;
+						default:
+							var g = groups[segment];
+							if (!g) {
+								g = groups[segment] = {positions: []};
+							}
+							g.positions.push({
+								offset: startOffset + delta,
+								length: segment.length
+							});
+					}
+				}
+				proposal.push(segment);
+				delta += segment.length;
+			}
+			var newGroups = [];
+			for (var p in groups) {
+				if (groups.hasOwnProperty(p)) {
+					newGroups.push(groups[p]);
+				}
+			}
+			proposal = proposal.join("");
+			if (escapePosition === undefined) {
+				escapePosition = proposal.length;
+			}
+			return {
+				proposal: proposal,
+				description: this.description,
+				groups: newGroups,
+				escapePosition: startOffset + escapePosition
+			};
+		},
+		match: function(prefix) {
+			return this.prefix.indexOf(prefix) === 0;
+		},
+		_parse: function() {
+			var template = this.template;
+			var segments = [], variables = {}, segment, start = 0;
+			template = template.replace(/\n/g, delimiterVar);
+			template = template.replace(/\t/g, tabVar);
+			template.replace(/\$\{([^\}]+)\}/g, function(group, text, index) {
+				var variable = text;
+				var colon = variable.indexOf(":"); //$NON-NLS-0$
+				if (colon !== -1) {
+					variable = variable.substring(0, colon);
+				}
+				var v = variables[group];
+				if (!v) {
+					v = variables[group] = variable;
+				}
+				segment = template.substring(start, index);
+				if (segment) { segments.push(segment); }
+				segments.push(group);
+				start = index + group.length;
+				return variable;
+			});
+			segment = template.substring(start, template.length);
+			if (segment) { segments.push(segment); }
+			this.segments = segments;
+			this.variables = variables;
+		}
+	};
+	
+	function TemplateContentAssist (keywords, templates) {
+		this._keywords = keywords || [];
+		this._templates = [];
+		this.addTemplates(templates || []);
+	}
+	TemplateContentAssist.prototype = /** @lends orion.editor.TemplateContentAssist.prototype */ {
+		addTemplates: function(json) {
+			var templates = this.getTemplates();
+			for (var j = 0; j < json.length; j++) {
+				templates.push(new Template(json[j].prefix, json[j].description, json[j].template));
+			}
+		},
+		computeProposals: function(buffer, offset, context) {
+			var prefix = this.getPrefix(buffer, offset, context);
+			var proposals = [];
+			if (!this.isValid(prefix, buffer, offset, context)) {
+				return proposals;
+			}
+			proposals = proposals.concat(this.getTemplateProposals(prefix, offset, context));
+			proposals = proposals.concat(this.getKeywordProposals(prefix));
+			return proposals;
+		},
+		getKeywords: function() {
+			return this._keywords;
+		},
+		getKeywordProposals: function(prefix) {
+			var proposals = [];
+			var keywords = this.getKeywords();
+			if (keywords) {
+				for (var i = 0; i < keywords.length; i++) {
+					if (keywords[i].indexOf(prefix) === 0) {
+						proposals.push({proposal: chop(prefix, keywords[i]), description: keywords[i]});
+					}
+				}
+			}
+			return proposals;
+		},
+		getPrefix: function(buffer, offset, context) {
+			return context.prefix;
+		},
+		getTemplates: function() {
+			return this._templates;
+		},
+		getTemplateProposals: function(prefix, offset, context) {
+			var proposals = [];
+			var templates = this.getTemplates();
+			for (var t = 0; t < templates.length; t++) {
+				var template = templates[t];
+				if (template.match(prefix)) {
+					var proposal = template.getProposal(prefix, offset, context);
+					this.removePrefix(prefix, proposal);
+					proposals.push(proposal);
+				}
+			}
+			return proposals;
+		},
+		removePrefix: function(prefix, proposal) {
+			var overwrite = proposal.overwrite = proposal.proposal.substring(0, prefix.length) !== prefix;
+			if (!overwrite) {
+				proposal.proposal = chop(prefix, proposal.proposal);
+			}
+		},
+		isValid: function(prefix, buffer, offset, context) {
+			return true;
+		}
+	};
+	
+	return {
+		Template: Template,
+		TemplateContentAssist: TemplateContentAssist
+	};
+});
+
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2010, 2012 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: IBM Corporation - initial API and implementation
+ ******************************************************************************/
+
+/*global define*/
+
+define("orion/editor/keywords", [], function() { //$NON-NLS-0$
+
+	var JS_KEYWORDS = [
+		"break", //$NON-NLS-0$
+		"case", "class", "catch", "continue", "const", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"debugger", "default", "delete", "do", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"else", "enum", "export", "extends", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"false", "finally", "for", "function", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"if", "implements", "import", "in", "instanceof", "interface", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"let", //$NON-NLS-0$
+		"new", "null", //$NON-NLS-1$ //$NON-NLS-0$
+		"package", "private", "protected", "public", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+		"return", //$NON-NLS-0$
+		"static", "super", "switch", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
+		"this", "throw", "true", "try", "typeof", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+		"undefined", //$NON-NLS-0$
+		"var", "void", //$NON-NLS-0$ //$NON-NLS-1$
+		"while", "with", //$NON-NLS-0$ //$NON-NLS-1$
+		"yield" //$NON-NLS-0$
+	];
+
+	var CSS_KEYWORDS = [
+		"alignment-adjust", "alignment-baseline", "animation", "animation-delay", "animation-direction", "animation-duration", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"animation-iteration-count", "animation-name", "animation-play-state", "animation-timing-function", "appearance", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"azimuth", "backface-visibility", "background", "background-attachment", "background-clip", "background-color", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"background-image", "background-origin", "background-position", "background-repeat", "background-size", "baseline-shift", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"binding", "bleed", "bookmark-label", "bookmark-level", "bookmark-state", "bookmark-target", "border", "border-bottom", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-bottom-color", "border-bottom-left-radius", "border-bottom-right-radius", "border-bottom-style", "border-bottom-width", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-collapse", "border-color", "border-image", "border-image-outset", "border-image-repeat", "border-image-slice", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-image-source", "border-image-width", "border-left", "border-left-color", "border-left-style", "border-left-width", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-radius", "border-right", "border-right-color", "border-right-style", "border-right-width", "border-spacing", "border-style", //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-top", "border-top-color", "border-top-left-radius", "border-top-right-radius", "border-top-style", "border-top-width", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"border-width", "bottom", "box-align", "box-decoration-break", "box-direction", "box-flex", "box-flex-group", "box-lines", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"box-ordinal-group", "box-orient", "box-pack", "box-shadow", "box-sizing", "break-after", "break-before", "break-inside", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"caption-side", "clear", "clip", "color", "color-profile", "column-count", "column-fill", "column-gap", "column-rule", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"column-rule-color", "column-rule-style", "column-rule-width", "column-span", "column-width", "columns", "content", "counter-increment", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"counter-reset", "crop", "cue", "cue-after", "cue-before", "cursor", "direction", "display", "dominant-baseline", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"drop-initial-after-adjust", "drop-initial-after-align", "drop-initial-before-adjust", "drop-initial-before-align", "drop-initial-size", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"drop-initial-value", "elevation", "empty-cells", "fit", "fit-position", "flex-align", "flex-flow", "flex-inline-pack", "flex-order", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"flex-pack", "float", "float-offset", "font", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"font-variant", "font-weight", "grid-columns", "grid-rows", "hanging-punctuation", "height", "hyphenate-after", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"hyphenate-before", "hyphenate-character", "hyphenate-lines", "hyphenate-resource", "hyphens", "icon", "image-orientation", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"image-rendering", "image-resolution", "inline-box-align", "left", "letter-spacing", "line-height", "line-stacking", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"line-stacking-ruby", "line-stacking-shift", "line-stacking-strategy", "list-style", "list-style-image", "list-style-position", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"list-style-type", "margin", "margin-bottom", "margin-left", "margin-right", "margin-top", "mark", "mark-after", "mark-before", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"marker-offset", "marks", "marquee-direction", "marquee-loop", "marquee-play-count", "marquee-speed", "marquee-style", "max-height", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"max-width", "min-height", "min-width", "move-to", "nav-down", "nav-index", "nav-left", "nav-right", "nav-up", "opacity", "orphans", //$NON-NLS-10$ //$NON-NLS-9$ //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"outline", "outline-color", "outline-offset", "outline-style", "outline-width", "overflow", "overflow-style", "overflow-x", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"overflow-y", "padding", "padding-bottom", "padding-left", "padding-right", "padding-top", "page", "page-break-after", "page-break-before", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"page-break-inside", "page-policy", "pause", "pause-after", "pause-before", "perspective", "perspective-origin", "phonemes", "pitch", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"pitch-range", "play-during", "position", "presentation-level", "punctuation-trim", "quotes", "rendering-intent", "resize", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"rest", "rest-after", "rest-before", "richness", "right", "rotation", "rotation-point", "ruby-align", "ruby-overhang", "ruby-position", //$NON-NLS-9$ //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"ruby-span", "size", "speak", "speak-header", "speak-numeral", "speak-punctuation", "speech-rate", "stress", "string-set", "table-layout", //$NON-NLS-9$ //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"target", "target-name", "target-new", "target-position", "text-align", "text-align-last", "text-decoration", "text-emphasis", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"text-height", "text-indent", "text-justify", "text-outline", "text-shadow", "text-transform", "text-wrap", "top", "transform", //$NON-NLS-8$ //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"transform-origin", "transform-style", "transition", "transition-delay", "transition-duration", "transition-property", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"transition-timing-function", "unicode-bidi", "vertical-align", "visibility", "voice-balance", "voice-duration", "voice-family", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"voice-pitch", "voice-pitch-range", "voice-rate", "voice-stress", "voice-volume", "volume", "white-space", "white-space-collapse", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"widows", "width", "word-break", "word-spacing", "word-wrap", "z-index" //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	];
+	
+	var JAVA_KEYWORDS = [
+		"abstract", //$NON-NLS-0$
+		"boolean", "break", "byte", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"case", "catch", "char", "class", "continue", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"default", "do", "double", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"else", "extends", //$NON-NLS-1$ //$NON-NLS-0$
+		"false", "final", "finally", "float", "for", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"if", "implements", "import", "instanceof", "int", "interface", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"long", //$NON-NLS-0$
+		"native", "new", "null", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"package", "private", "protected", "public", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"return", //$NON-NLS-0$
+		"short", "static", "super", "switch", "synchronized", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"this", "throw", "throws", "transient", "true", "try", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"void", "volatile", //$NON-NLS-1$ //$NON-NLS-0$
+		"while" //$NON-NLS-0$
+	];
+
+	return {
+		JSKeywords: JS_KEYWORDS,
+		CSSKeywords: CSS_KEYWORDS,
+		JAVAKeywords: JAVA_KEYWORDS
 	};
 });
 
@@ -13907,52 +14522,48 @@ define("orion/editor/contentAssist", ['i18n!orion/editor/nls/messages', 'orion/k
  *******************************************************************************/
 /*global define */
 
-define("orion/editor/cssContentAssist", [], function() {
-	var keywords = ["alignment-adjust", "alignment-baseline", "animation", "animation-delay", "animation-direction", "animation-duration",
-			"animation-iteration-count", "animation-name", "animation-play-state", "animation-timing-function", "appearance",
-			"azimuth", "backface-visibility", "background", "background-attachment", "background-clip", "background-color",
-			"background-image", "background-origin", "background-position", "background-repeat", "background-size", "baseline-shift",
-			"binding", "bleed", "bookmark-label", "bookmark-level", "bookmark-state", "bookmark-target", "border", "border-bottom",
-			"border-bottom-color", "border-bottom-left-radius", "border-bottom-right-radius", "border-bottom-style", "border-bottom-width",
-			"border-collapse", "border-color", "border-image", "border-image-outset", "border-image-repeat", "border-image-slice",
-			"border-image-source", "border-image-width", "border-left", "border-left-color", "border-left-style", "border-left-width",
-			"border-radius", "border-right", "border-right-color", "border-right-style", "border-right-width", "border-spacing", "border-style",
-			"border-top", "border-top-color", "border-top-left-radius", "border-top-right-radius", "border-top-style", "border-top-width",
-			"border-width", "bottom", "box-align", "box-decoration-break", "box-direction", "box-flex", "box-flex-group", "box-lines",
-			"box-ordinal-group", "box-orient", "box-pack", "box-shadow", "box-sizing", "break-after", "break-before", "break-inside",
-			"caption-side", "clear", "clip", "color", "color-profile", "column-count", "column-fill", "column-gap", "column-rule",
-			"column-rule-color", "column-rule-style", "column-rule-width", "column-span", "column-width", "columns", "content", "counter-increment",
-			"counter-reset", "crop", "cue", "cue-after", "cue-before", "cursor", "direction", "display", "dominant-baseline",
-			"drop-initial-after-adjust", "drop-initial-after-align", "drop-initial-before-adjust", "drop-initial-before-align", "drop-initial-size",
-			"drop-initial-value", "elevation", "empty-cells", "fit", "fit-position", "flex-align", "flex-flow", "flex-inline-pack", "flex-order",
-			"flex-pack", "float", "float-offset", "font", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style",
-			"font-variant", "font-weight", "grid-columns", "grid-rows", "hanging-punctuation", "height", "hyphenate-after",
-			"hyphenate-before", "hyphenate-character", "hyphenate-lines", "hyphenate-resource", "hyphens", "icon", "image-orientation",
-			"image-rendering", "image-resolution", "inline-box-align", "left", "letter-spacing", "line-height", "line-stacking",
-			"line-stacking-ruby", "line-stacking-shift", "line-stacking-strategy", "list-style", "list-style-image", "list-style-position",
-			"list-style-type", "margin", "margin-bottom", "margin-left", "margin-right", "margin-top", "mark", "mark-after", "mark-before",
-			"marker-offset", "marks", "marquee-direction", "marquee-loop", "marquee-play-count", "marquee-speed", "marquee-style", "max-height",
-			"max-width", "min-height", "min-width", "move-to", "nav-down", "nav-index", "nav-left", "nav-right", "nav-up", "opacity", "orphans",
-			"outline", "outline-color", "outline-offset", "outline-style", "outline-width", "overflow", "overflow-style", "overflow-x",
-			"overflow-y", "padding", "padding-bottom", "padding-left", "padding-right", "padding-top", "page", "page-break-after", "page-break-before",
-			"page-break-inside", "page-policy", "pause", "pause-after", "pause-before", "perspective", "perspective-origin", "phonemes", "pitch",
-			"pitch-range", "play-during", "position", "presentation-level", "punctuation-trim", "quotes", "rendering-intent", "resize",
-			"rest", "rest-after", "rest-before", "richness", "right", "rotation", "rotation-point", "ruby-align", "ruby-overhang", "ruby-position",
-			"ruby-span", "size", "speak", "speak-header", "speak-numeral", "speak-punctuation", "speech-rate", "stress", "string-set", "table-layout",
-			"target", "target-name", "target-new", "target-position", "text-align", "text-align-last", "text-decoration", "text-emphasis",
-			"text-height", "text-indent", "text-justify", "text-outline", "text-shadow", "text-transform", "text-wrap", "top", "transform",
-			"transform-origin", "transform-style", "transition", "transition-delay", "transition-duration", "transition-property",
-			"transition-timing-function", "unicode-bidi", "vertical-align", "visibility", "voice-balance", "voice-duration", "voice-family",
-			"voice-pitch", "voice-pitch-range", "voice-rate", "voice-stress", "voice-volume", "volume", "white-space", "white-space-collapse",
-			"widows", "width", "word-break", "word-spacing", "word-wrap", "z-index"];
-
-	function getCSSPrefix(buffer, offset) {
-		var index = offset;
-		while (index && /[A-Za-z\-]/.test(buffer.charAt(index - 1))) {
-			index--;
+define("orion/editor/cssContentAssist", [ //$NON-NLS-0$
+	'orion/editor/templates', //$NON-NLS-0$
+	'orion/editor/keywords' //$NON-NLS-0$
+], function(mTemplates, mKeywords) {
+	
+	var templates = [
+		{
+			prefix: "rule", //$NON-NLS-0$
+			description: "rule - class selector rule",
+			template: ".${class} {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "rule", //$NON-NLS-0$
+			description: "rule - id selector rule",
+			template: "#${id} {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "width", //$NON-NLS-0$
+			description: "width - width pixel style",
+			template: "width: ${value}px;" //$NON-NLS-0$
+		},
+		{
+			prefix: "height", //$NON-NLS-0$
+			description: "height - height pixel style",
+			template: "width: ${value}px;" //$NON-NLS-0$
+		},
+		{
+			prefix: "background-image", //$NON-NLS-0$
+			description: "background-image - image style",
+			template: "background-image: url(\"${uri}\");" //$NON-NLS-0$
+		},
+		{
+			prefix: "url", //$NON-NLS-0$
+			description: "url - url image",
+			template: "url(\"${uri}\");" //$NON-NLS-0$
+		},
+		{
+			prefix: "@", //$NON-NLS-0$
+			description: "import - import style sheet",
+			template: "@import \"${uri}\";" //$NON-NLS-0$
 		}
-		return index ? buffer.substring(index, offset) : "";
-	}
+	];
 
 	/**
 	 * @name orion.contentAssist.CssContentAssistProvider
@@ -13960,26 +14571,14 @@ define("orion/editor/cssContentAssist", [], function() {
 	 */
 	function CssContentAssistProvider() {
 	}
-	CssContentAssistProvider.prototype = /** @lends orion.editor.CssContentAssistProvider.prototype */ {
-		/**
-		 * @param {String} buffer The entire buffer being edited.
-		 * @param {Number} offset The offset at which proposals will be inserted.
-		 * @param {Object} context Extra information about the editor state.
-		 */
-		computeProposals: function(buffer, offset, context) {
-			var cssPrefix = getCSSPrefix(buffer, offset);
-			var proposals = [];
-			for (var i=0; i < keywords.length; i++) {
-					var keyword = keywords[i];
-					if (keyword.indexOf(cssPrefix) === 0) {
-						proposals.push({
-							proposal: keyword.substring(cssPrefix.length),
-							description: keyword
-						});
-					}
-			}
-			return proposals;
+	CssContentAssistProvider.prototype = new mTemplates.TemplateContentAssist(mKeywords.CSSKeywords, templates);
+	
+	CssContentAssistProvider.prototype.getPrefix = function(buffer, offset, context) {
+		var index = offset;
+		while (index && /[A-Za-z\-\@]/.test(buffer.charAt(index - 1))) {
+			index--;
 		}
+		return index ? buffer.substring(index, offset) : "";
 	};
 
 	return {
@@ -14000,168 +14599,137 @@ define("orion/editor/cssContentAssist", [], function() {
  *******************************************************************************/
 /*global define */
 
-define("orion/editor/htmlContentAssist", [], function() {
+define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mTemplates) { //$NON-NLS-1$ //$NON-NLS-0$
 
-/**
- * @name orion.contentAssist.HTMLContentAssistProvider
- * @class Provides content assist for HTML.
- */
-function HTMLContentAssistProvider() {
-}
-HTMLContentAssistProvider.prototype = /** @lends orion.contentAssist.HTMLContentAssistProvider.prototype */ {
+	var simpleDocTemplate = new mTemplates.Template("", "Simple HTML document", //$NON-NLS-0$
+		"<!DOCTYPE html>\n" + //$NON-NLS-0$
+		"<html lang=\"en\">\n" + //$NON-NLS-0$
+		"\t<head>\n" + //$NON-NLS-0$
+		"\t\t<meta charset=utf-8>\n" + //$NON-NLS-0$
+		"\t\t<title>${title}</title>\n" + //$NON-NLS-0$
+		"\t</head>\n" + //$NON-NLS-0$
+		"\t<body>\n" + //$NON-NLS-0$
+		"\t\t<h1>${header}</h1>\n" + //$NON-NLS-0$
+		"\t\t<p>\n" + //$NON-NLS-0$
+		"\t\t\t${cursor}\n" + //$NON-NLS-0$
+		"\t\t</p>\n" + //$NON-NLS-0$
+		"\t</body>\n" + //$NON-NLS-0$
+		"</html>"); //$NON-NLS-0$
+		
+	var templates = [
+		{
+			prefix: "<img", //$NON-NLS-0$
+			description: "<img> - HTML image element",
+			template: "<img src=\"${cursor}\" alt=\"${Image}\"/>" //$NON-NLS-0$
+		},
+		{
+			prefix: "<a", //$NON-NLS-0$
+			description: "<a> - HTML anchor element",
+			template: "<a href=\"${cursor}\"></a>" //$NON-NLS-0$
+		},
+		{
+			prefix: "<ul", //$NON-NLS-0$
+			description: "<ul> - HTML unordered list",
+			template: "<ul>\n\t<li>${cursor}</li>\n</ul>" //$NON-NLS-0$
+		},
+		{
+			prefix: "<ol", //$NON-NLS-0$
+			description: "<ol> - HTML ordered list",
+			template: "<ol>\n\t<li>${cursor}</li>\n</ol>" //$NON-NLS-0$
+		},
+		{
+			prefix: "<dl", //$NON-NLS-0$
+			description: "<dl> - HTML definition list",
+			template: "<dl>\n\t<dt>${cursor}</dt>\n\t<dd></dd>\n</dl>" //$NON-NLS-0$
+		},
+		{
+			prefix: "<table", //$NON-NLS-0$
+			description: "<table> - basic HTML table",
+			template: "<table>\n\t<tr>\n\t\t<td>${cursor}</td>\n\t</tr>\n</table>" //$NON-NLS-0$
+		}
+	];
+
+	//elements that are typically placed on a single line (e.g., <b>, <h1>, etc)
+	var element, template, description, i;
+	var singleLineElements = [
+		"abbr","b","button","canvas","cite", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"command","dd","del","dfn","dt", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"em","embed","font","h1","h2", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"h3","h4","h5","h6","i", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"ins","kbd","label","li","mark", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"meter","object","option","output","progress", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"q","rp","rt","samp","small", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"strong","sub","sup","td","time", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"title","tt","u","var" //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	];
+	for (i = 0; i < singleLineElements.length; i++) {
+		element = singleLineElements[i];
+		description = "<" + element + "></" + element + ">"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		template = "<" + element + ">${cursor}</" + element + ">"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		templates.push({prefix: "<" + element, description: description, template: template}); //$NON-NLS-0$
+	}
+
+	//elements that typically start a block spanning multiple lines (e.g., <p>, <div>, etc)
+	var multiLineElements = [
+		"address","article","aside","audio","bdo", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"blockquote","body","caption","code","colgroup", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"datalist","details","div","fieldset","figure", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"footer","form","head","header","hgroup", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"iframe","legend","map","menu","nav", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"noframes","noscript","optgroup","p","pre", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"ruby","script","section","select","span", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"style","tbody","textarea","tfoot","th", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"thead","tr","video" //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	];
+	for (i = 0; i < multiLineElements.length; i++) {
+		element = multiLineElements[i];
+		description = "<" + element + "></" + element + ">"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		template = "<" + element + ">\n\t${cursor}\n</" + element + ">"; //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		templates.push({prefix: "<" + element, description: description, template: template}); //$NON-NLS-0$
+	}
+
+	//elements with no closing element (e.g., <hr>, <br>, etc)
+	var emptyElements = [
+		"area","base","br","col", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"hr","input","link","meta", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"param","keygen","source" //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	];
+	for (i = 0; i < emptyElements.length; i++) {
+		element = emptyElements[i];
+		template = description = "<" + element + "/>"; //$NON-NLS-1$ //$NON-NLS-0$
+		templates.push({prefix: "<" + element, description: description, template: template}); //$NON-NLS-0$
+	}
 
 	/**
-	 * Returns a string of all the whitespace at the start of the current line.
-	 * @param {String} buffer The document
-	 * @param {Object} selection The current selection
-	 * @param {Integer} selection.offset The current selection offset
+	 * @name orion.contentAssist.HTMLContentAssistProvider
+	 * @class Provides content assist for HTML.
 	 */
-	leadingWhitespace: function(buffer, offset) {
-		var whitespace = "";
-		offset = offset-1;
-		while (offset > 0) {
-			var c = buffer.charAt(offset--);
-			if (c === '\n' || c === '\r') {
-				//we hit the start of the line so we are done
+	function HTMLContentAssistProvider() {
+	}
+	HTMLContentAssistProvider.prototype = new mTemplates.TemplateContentAssist([], templates);
+
+	HTMLContentAssistProvider.prototype.getPrefix = function(buffer, offset, context) {
+		var index = offset;
+		while (index && /[A-Za-z<]/.test(buffer.charAt(index - 1))) {
+			index--;
+			if (buffer.charAt(index) === "<") { //$NON-NLS-0$
 				break;
 			}
-			if (/\s/.test(c)) {
-				//we found whitespace to add it to our result
-				whitespace = c.concat(whitespace);
-			} else {
-				//we found non-whitespace, so reset our result
-				whitespace = "";
-			}
-
 		}
-		return whitespace;
-	},
-	computeProposals: function(buffer, offset, context) {
-		function removePrefix(string) {
-			return string.substring(context.prefix.length);
-		}
-
-		var proposals = [];
+		return index ? buffer.substring(index, offset) : "";
+	};
+	
+	HTMLContentAssistProvider.prototype.computeProposals = function(buffer, offset, context) {
 		//template - simple html document
 		if (buffer.length === 0) {
-			var text = "<!DOCTYPE html>\n" +
-				"<html lang=\"en\">\n" +
-				"\t<head>\n" +
-				"\t\t<meta charset=utf-8>\n" +
-				"\t\t<title>My Document</title>\n" +
-				"\t</head>\n" +
-				"\t<body>\n" +
-				"\t\t<h1>A basic HTML document</h1>\n" +
-				"\t\t<p>\n" +
-				"\t\t\t\n" + //cursor goes here
-				"\t\t</p>\n" +
-				"\t</body>\n" +
-				"</html>";
-			proposals.push({proposal: text, description: "Simple HTML document", escapePosition: offset+152});
-			return proposals;
+			return [simpleDocTemplate.getProposal("", offset, context)];
 		}
+		return mTemplates.TemplateContentAssist.prototype.computeProposals.call(this, buffer, offset, context);
+	};
 
-		var prefix = context.prefix;
-		//only offer HTML element proposals if the character preceeding the prefix is the start of an HTML element
-		var precedingChar = buffer.charAt(offset-prefix.length-1);
-		if (precedingChar !== '<') {
-			return proposals;
-		}
-		
-		//elements that are typically placed on a single line (e.g., <b>, <h1>, etc)
-		var element, proposalText, description, exitOffset;
-		var singleLineElements = ["abbr","b","button","canvas","cite","command","dd","del","dfn","dt","em","embed",
-			"font","h1","h2","h3","h4","h5","h6","i","ins","kbd","label","li","mark","meter","object","option","output",
-			"progress","q","rp","rt","samp","small","strong","sub","sup","td","time","title","tt","u","var"];
-		for (var i = 0; i < singleLineElements.length; i++) {
-			element = singleLineElements[i];
-			if (element.indexOf(prefix) === 0) {
-				proposalText = element + "></" + element + ">";
-				//exit position is the end of the opening element tag, so we need to substract the prefix already typed
-				exitOffset = offset+element.length-prefix.length+1;
-				proposals.push({proposal: removePrefix(proposalText), description: "<" + proposalText, escapePosition: exitOffset});
-			}
-		}
-		
-		//elements that typically start a block spanning multiple lines (e.g., <p>, <div>, etc)
-		var multiLineElements = ["address","article","aside","audio","bdo","blockquote","body","caption","code",
-			"colgroup","datalist","details","div","fieldset","figure","footer","form","head","header",
-			"hgroup","iframe","legend","map","menu","nav","noframes","noscript","optgroup","p","pre",
-			"ruby","script","section","select","span","style","tbody","textarea","tfoot","th","thead",
-			"tr","video"];
-		var whitespace = this.leadingWhitespace(buffer, offset);
-		for (i = 0; i < multiLineElements.length; i++) {
-			element = multiLineElements[i];
-			if (element.indexOf(prefix) === 0) {
-				proposalText = element + ">\n" + whitespace + "\t\n" + whitespace + "</" + element + ">";
-				//exit position is the end of the opening element tag, so we need to substract the prefix already typed
-				exitOffset = offset+element.length-prefix.length + whitespace.length + 3;
-				proposals.push({proposal: removePrefix(proposalText), description: "<" + proposalText, escapePosition: exitOffset});
-			}
-		}
-
-		//elements with no closing element (e.g., <hr>, <br>, etc)
-		var emptyElements = ["area","base","br","col","hr","input","link","meta","param","keygen","source"];
-		for (i = 0; i < emptyElements.length; i++) {
-			element = emptyElements[i];
-			if (element.indexOf(prefix) === 0) {
-				proposalText = element + "/>";
-				//exit position is the end of the element, so we need to substract the prefix already typed
-				exitOffset = offset+element.length-prefix.length+2;
-				proposals.push({proposal: removePrefix(proposalText), description: "<" + proposalText, escapePosition: exitOffset});
-			}
-		}
-
-		//deluxe handling for very common elements
-		//image
-		if ("img".indexOf(prefix) === 0) {
-			proposalText = "img src=\"\" alt=\"Image\"/>";
-			proposals.push({proposal: removePrefix(proposalText), description: "<" + proposalText, escapePosition: offset+9-prefix.length});
-		}
-		//anchor
-		if (prefix === 'a') {
-			proposals.push({proposal: removePrefix("a href=\"\"></a>"), description: "<a></a> - HTML anchor element", escapePosition: offset+7});
-		}
-		
-		//lists should also insert first element
-		if ("ul".indexOf(prefix) === 0) {
-			proposalText = "ul>\n" + whitespace + "\t<li></li>\n" + whitespace + "</ul>";
-			description = "<ul> - unordered list";
-			//exit position inside first list item
-			exitOffset = offset-prefix.length + whitespace.length + 9;
-			proposals.push({proposal: removePrefix(proposalText), description: description, escapePosition: exitOffset});
-		}
-		if ("ol".indexOf(prefix) === 0) {
-			proposalText = "ol>\n" + whitespace + "\t<li></li>\n" + whitespace + "</ol>";
-			description = "<ol> - ordered list";
-			//exit position inside first list item
-			exitOffset = offset-prefix.length + whitespace.length + 9;
-			proposals.push({proposal: removePrefix(proposalText), description: description, escapePosition: exitOffset});
-		}
-		if ("dl".indexOf(prefix) === 0) {
-			proposalText = "dl>\n" + whitespace + "\t<dt></dt>\n" + whitespace + "\t<dd></dd>\n" + whitespace + "</dl>";
-			description = "<dl> - definition list";
-			//exit position inside first definition term
-			exitOffset = offset-prefix.length + whitespace.length + 9;
-			proposals.push({proposal: removePrefix(proposalText), description: description, escapePosition: exitOffset});
-		}
-		if ("table".indexOf(prefix) === 0) {
-			proposalText = "table>\n" + whitespace + "\t<tr>\n" + whitespace + "\t\t<td></td>\n" + 
-				whitespace + "\t</tr>\n" + whitespace + "</table>";
-			description = "<table> - basic HTML table";
-			//exit position inside first table data
-			exitOffset = offset-prefix.length + (whitespace.length*2) + 19;
-			proposals.push({proposal: removePrefix(proposalText), description: description, escapePosition: exitOffset});
-		}
-
-		return proposals;
-	}
-};
-
-return {
-	HTMLContentAssistProvider: HTMLContentAssistProvider
-};
-
+	return {
+		HTMLContentAssistProvider: HTMLContentAssistProvider
+	};
 });
 
 /*******************************************************************************
@@ -14179,38 +14747,16 @@ return {
  *******************************************************************************/
 /*global define */
 
-define("orion/editor/jsTemplateContentAssist", [], function() {
+define("orion/editor/jsTemplateContentAssist", [ //$NON-NLS-0$
+	'orion/editor/templates', //$NON-NLS-0$
+	'orion/editor/keywords' //$NON-NLS-0$
+], function(mTemplates, mKeywords) {
 
-	/**
-	 * Returns a string of all the whitespace at the start of the current line.
-	 * @param {String} buffer The document
-	 * @param {Integer} offset The current selection offset
-	 */
-	function leadingWhitespace(buffer, offset) {
-		var whitespace = "";
-		offset = offset-1;
-		while (offset > 0) {
-			var c = buffer.charAt(offset--);
-			if (c === '\n' || c === '\r') {
-				//we hit the start of the line so we are done
-				break;
-			}
-			if (/\s/.test(c)) {
-				//we found whitespace to add it to our result
-				whitespace = c.concat(whitespace);
-			} else {
-				//we found non-whitespace, so reset our result
-				whitespace = "";
-			}
-		}
-		return whitespace;
-	}
-	
 	function findPreviousChar(buffer, offset) {
 		var c = "";
 		while (offset >= 0) {
 			c = buffer[offset];
-			if (c === '\n' || c === '\r') {
+			if (c === '\n' || c === '\r') { //$NON-NLS-1$ //$NON-NLS-0$
 				//we hit the start of the line so we are done
 				break;
 			} else if (/\s/.test(c)) {
@@ -14223,161 +14769,136 @@ define("orion/editor/jsTemplateContentAssist", [], function() {
 		return c;
 	}
 	
-	var uninterestingChars = { 
-		':': ':',
-		'!': '!',
-		'@': '@',
-		'#': '#',
-		'$': '$',
-		'^': '^',
-		'&': '&',
-		'*': '*',
-		'.': '.',
-		'?': '?',
-		'<': '<',
-		'>': '>'
-	};
-	
-	/** 
-	 * Determines if the invocation location is a valid place to use
-	 * templates.  We are not being too precise here.  As an approximation,
-	 * just look at the previous character.
-	 *
-	 * @return {Boolean} true iff the current invocation location is 
-	 * a valid place for template proposals to appear.
-	 * This means that the invocation location is at the start of anew statement.
-	 */
-	function isValid(prefix, buffer, offset) {
-		var previousChar = findPreviousChar(buffer, offset-prefix.length-1);
-		return !uninterestingChars[previousChar];
-	}
-	
-	/** 
-	 * Removes prefix from string.
-	 * @param {String} prefix
-	 * @param {String} string
-	 */
-	function chop(prefix, string) {
-		return string.substring(prefix.length);
-	}
-	
-	/**
-	 * Returns proposals for javascript templates
-	 */
-	function getTemplateProposals(prefix, buffer, offset) {
-		//any returned positions need to be offset based on current cursor position and length of prefix
-		var startOffset = offset-prefix.length;
-		var proposals = [];
-		var whitespace = leadingWhitespace(buffer, offset);
-		//common vars for each proposal
-		var text, description, positions, endOffset;
-		if ("if".indexOf(prefix) === 0) {
-			//if statement
-			text = "if (condition) {\n" + whitespace + "\t\n" + whitespace + '}';
-			description = "if - if statement";
-			positions = [{offset: startOffset+4, length: 9}];
-			endOffset = startOffset+whitespace.length+18;//after indentation inside if body
-			proposals.push({proposal: chop(prefix, text), description: description, positions: positions, escapePosition: endOffset});
-			//if/else statement
-			text = "if (condition) {\n" + whitespace + "\t\n" + whitespace + "} else {\n" + whitespace + "\t\n" + whitespace + "}";
-			description = "if - if else statement";
-			positions = [{offset: startOffset+4, length: 9}];
-			endOffset = startOffset+whitespace.length+18;//after indentation inside if body
-			proposals.push({proposal: chop(prefix, text), description: description, positions: positions, escapePosition: endOffset});
-		}
-		if ("for".indexOf(prefix) === 0) {
-			//for loop
-			text = "for (var i = 0; i < array.length; i++) {\n" + whitespace + "\t\n" + whitespace + '}';
-			description = "for - iterate over array";
-			positions = [{offset: startOffset+9, length: 1}, {offset: startOffset+20, length: 5}];
-			endOffset = startOffset+whitespace.length+42;//after indentation inside for loop body
-			proposals.push({proposal: chop(prefix, text), description: description, positions: positions, escapePosition: endOffset});
-			//for ... in statement
-			text = "for (var property in object) {\n" + whitespace + "\tif (object.hasOwnProperty(property)) {\n" + 
-				whitespace + "\t\t\n" + whitespace + "\t}\n" + whitespace + '}';
-			description = "for..in - iterate over properties of an object";
-			positions = [{offset: startOffset+9, length: 8}, {offset: startOffset+21, length: 6}];
-			endOffset = startOffset+(2*whitespace.length)+73;//after indentation inside if statement body
-			proposals.push({proposal: chop(prefix, text), description: description, positions: positions, escapePosition: endOffset});
-		}
-		//while loop
-		if ("while".indexOf(prefix) === 0) {
-			text = "while (condition) {\n" + whitespace + "\t\n" + whitespace + '}';
-			description = "while - while loop with condition";
-			positions = [{offset: startOffset+7, length: 9}];
-			endOffset = startOffset+whitespace.length+21;//after indentation inside while loop body
-			proposals.push({proposal: chop(prefix, text), description: description, positions: positions, escapePosition: endOffset});
-		}
-		//do/while loop
-		if ("do".indexOf(prefix) === 0) {
-			text = "do {\n" + whitespace + "\t\n" + whitespace + "} while (condition);";
-			description = "do - do while loop with condition";
-			positions = [{offset: startOffset+16, length: 9}];
-			endOffset = startOffset+whitespace.length+6;//after indentation inside do/while loop body
-			proposals.push({proposal: chop(prefix, text), description: description, positions: positions, escapePosition: endOffset});
-		}
-		//switch statement
-		if ("switch".indexOf(prefix) === 0) {
-			text = "switch (expression) {\n" + whitespace + "\tcase value1:\n" + whitespace + "\t\t\n" +
-			whitespace + "\t\tbreak;\n" + whitespace + "\tdefault:\n" + whitespace + "}";
-			description = "switch - switch case statement";
-			positions = [{offset: startOffset+8, length: 10}, {offset: startOffset + 28, length: 6}];
-			endOffset = startOffset+(2*whitespace.length)+38;//after indentation inside first case statement
-			proposals.push({proposal: chop(prefix, text), description: description, positions: positions, escapePosition: endOffset});
-		}
-		if ("try".indexOf(prefix) === 0) {
-			//try..catch statement
-			text = "try {\n" + whitespace + "\t\n" + whitespace + "} catch (err) {\n" + whitespace + "}";
-			description = "try - try..catch statement";
-			endOffset = startOffset+whitespace.length+7;//after indentation inside try statement
-			proposals.push({proposal: chop(prefix, text), description: description, escapePosition: endOffset});
-			//try..catch..finally statement
-			text = "try {\n" + whitespace + "\t\n" + whitespace + "} catch (err) {\n" + whitespace +
-				"} finally {\n" + whitespace + "}";
-			description = "try - try..catch statement with finally block";
-			endOffset = startOffset+whitespace.length+7;//after indentation inside try statement
-			proposals.push({proposal: chop(prefix, text), description: description, escapePosition: endOffset});
-		}
-		return proposals;
-	}
+	var uninterestingChars = ":!@#$^&*.?<>"; //$NON-NLS-0$
 
-	/**
-	 * Returns proposals for javascript keywords.
-	 */
-	function getKeyWordProposals(prefix, buffer, offset) {
-		var keywords = ["break", "case", "catch", "continue", "debugger", "default", "delete", "do", "else", "finally", 
-			"for", "function", "if", "in", "instanceof", "new", "return", "switch", "this", "throw", "try", "typeof", 
-			"var", "void", "while", "with"];
-		var proposals = [];
-		for (var i = 0; i < keywords.length; i++) {
-			if (keywords[i].indexOf(prefix) === 0) {
-				proposals.push({proposal: chop(prefix, keywords[i]), description: keywords[i] });
-			}
+	var templates = [
+		{
+			prefix: "if", //$NON-NLS-0$
+			description: "if - if statement",
+			template: "if (${condition}) {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "if", //$NON-NLS-0$
+			description: "if - if else statement",
+			template: "if (${condition}) {\n\t${cursor}\n} else {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "for", //$NON-NLS-0$
+			description: "for - iterate over array",
+			template: "for (var ${i}=0; ${i}<${array}.length; ${i}++) {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "for", //$NON-NLS-0$
+			description: "for - iterate over array with local var",
+			template: "for (var ${i}=0; ${i}<${array}.length; ${i}++) {\n\tvar ${v} = ${array}[${i}];\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "for", //$NON-NLS-0$
+			description: "for..in - iterate over properties of an object",
+			template: "for (var ${property} in ${object} {\n\tif (${object}.hasOwnProperty(${property})) {\n\t\t${cursor}\n\t}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "while", //$NON-NLS-0$
+			description: "while - while loop with condition",
+			template: "while (${condition}) {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "do", //$NON-NLS-0$
+			description: "do - do while loop with condition",
+			template: "do {\n\t${cursor}\n} while (${condition});" //$NON-NLS-0$
+		},
+		{
+			prefix: "switch", //$NON-NLS-0$
+			description: "switch - switch case statement",
+			template: "switch (${expression}) {\n\tcase ${value1}:\n\t\t${cursor}\n\t\tbreak;\n\tdefault:\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "case", //$NON-NLS-0$
+			description: "case - case statement",
+			template: "case ${value}:\n\t${cursor}\n\tbreak;" //$NON-NLS-0$
+		},
+		{
+			prefix: "try", //$NON-NLS-0$
+			description: "try - try..catch statement",
+			template: "try {\n\t${cursor}\n} catch (${err}) {\n}" //$NON-NLS-0$
+			},
+		{
+			prefix: "try", //$NON-NLS-0$
+			description: "try - try..catch statement with finally block",
+			template: "try {\n\t${cursor}\n} catch (${err}) {\n} finally {\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "var", //$NON-NLS-0$
+			description: "var - variable declaration",
+			template: "var ${name};" //$NON-NLS-0$
+		},
+		{
+			prefix: "var", //$NON-NLS-0$
+			description: "var - variable declaration with value",
+			template: "var ${name} = ${value};" //$NON-NLS-0$
+		},
+		{
+			prefix: "let", //$NON-NLS-0$
+			description: "let - local scope variable declaration",
+			template: "let ${name};" //$NON-NLS-0$
+		},
+		{
+			prefix: "let", //$NON-NLS-0$
+			description: "let - local scope variable declaration with value",
+			template: "let ${name} = ${value};" //$NON-NLS-0$
+		},
+		{
+			prefix: "return", //$NON-NLS-0$
+			description: "return - return result",
+			template: "return ${result};" //$NON-NLS-0$
+		},
+		{
+			prefix: "typeof", //$NON-NLS-0$
+			description: "typeof - typeof statement",
+			template: "typeof ${var} = \"${type}\"" //$NON-NLS-0$
+		},
+		{
+			prefix: "instanceof", //$NON-NLS-0$
+			description: "instanceof - instanceof statement",
+			template: "${var} instanceof ${type}" //$NON-NLS-0$
+		},
+		{
+			prefix: "with", //$NON-NLS-0$
+			description: "with - with statement",
+			template: "with (${object}) {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "function", //$NON-NLS-0$
+			description: "function - function declaration",
+			template: "function ${name} (${parameter}) {\n\t${cursor}\n}" //$NON-NLS-0$
+		},
+		{
+			prefix: "log", //$NON-NLS-0$
+			description: "log - console log",
+			template: "console.log(${object});" //$NON-NLS-0$
 		}
-		return proposals;
-	}
+	];
 
 	/**
 	 * @name orion.editor.JSTemplateContentAssistProvider
 	 * @class Provides content assist for JavaScript keywords.
 	 */
+	function JSTemplateContentAssistProvider() {
+	}
+	JSTemplateContentAssistProvider.prototype = new mTemplates.TemplateContentAssist(mKeywords.JSKeywords, templates);
 
-	function JSTemplateContentAssistProvider() {}
-
-	JSTemplateContentAssistProvider.prototype = /** @lends orion.editor.JSTemplateContentAssistProvider.prototype */
-	{
-		computeProposals: function(buffer, offset, context) {
-			var prefix = context.prefix;
-			var proposals = [];
-			if (!isValid(prefix, buffer, offset)) {
-				return proposals;
-			}
-
-			//we are not completing on an object member, so suggest templates and keywords
-			proposals = proposals.concat(getTemplateProposals(prefix, buffer, offset));
-			proposals = proposals.concat(getKeyWordProposals(prefix, buffer, offset));
-			return proposals;
-		}
+	/** 
+	 * Determines if the invocation location is a valid place to use
+	 * templates.  We are not being too precise here.  As an approximation,
+	 * just look at the previous character.
+	 *
+	 * @return {Boolean} true if the current invocation location is 
+	 * a valid place for template proposals to appear.
+	 * This means that the invocation location is at the start of a new statement.
+	 */
+	JSTemplateContentAssistProvider.prototype.isValid = function(prefix, buffer, offset, context) {
+		var previousChar = findPreviousChar(buffer, offset-prefix.length-1);
+		return uninterestingChars.indexOf(previousChar) === -1;
 	};
 
 	return {
@@ -16980,82 +17501,16 @@ define("orion/editor/htmlGrammar", [], function() {
 
 /*global define */
 
-define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnnotations) {
+define("examples/editor/textStyler", [ //$NON-NLS-0$
+	'orion/editor/annotations', //$NON-NLS-0$
+	'orion/editor/keywords' //$NON-NLS-0$
+], function(mAnnotations, mKeywords) {
 
-	var JS_KEYWORDS =
-		["break",
-		 "case", "class", "catch", "continue", "const", 
-		 "debugger", "default", "delete", "do",
-		 "else", "enum", "export", "extends",  
-		 "false", "finally", "for", "function",
-		 "if", "implements", "import", "in", "instanceof", "interface", 
-		 "let",
-		 "new", "null",
-		 "package", "private", "protected", "public",
-		 "return", 
-		 "static", "super", "switch",
-		 "this", "throw", "true", "try", "typeof",
-		 "undefined",
-		 "var", "void",
-		 "while", "with",
-		 "yield"];
+	var JS_KEYWORDS = mKeywords.JSKeywords;
 
-	var JAVA_KEYWORDS =
-		["abstract",
-		 "boolean", "break", "byte",
-		 "case", "catch", "char", "class", "continue",
-		 "default", "do", "double",
-		 "else", "extends",
-		 "false", "final", "finally", "float", "for",
-		 "if", "implements", "import", "instanceof", "int", "interface",
-		 "long",
-		 "native", "new", "null",
-		 "package", "private", "protected", "public",
-		 "return",
-		 "short", "static", "super", "switch", "synchronized",
-		 "this", "throw", "throws", "transient", "true", "try",
-		 "void", "volatile",
-		 "while"];
+	var JAVA_KEYWORDS = mKeywords.JAVAKeywords;
 
-	var CSS_KEYWORDS =
-		["alignment-adjust", "alignment-baseline", "animation", "animation-delay", "animation-direction", "animation-duration",
-		 "animation-iteration-count", "animation-name", "animation-play-state", "animation-timing-function", "appearance",
-		 "azimuth", "backface-visibility", "background", "background-attachment", "background-clip", "background-color",
-		 "background-image", "background-origin", "background-position", "background-repeat", "background-size", "baseline-shift",
-		 "binding", "bleed", "bookmark-label", "bookmark-level", "bookmark-state", "bookmark-target", "border", "border-bottom",
-		 "border-bottom-color", "border-bottom-left-radius", "border-bottom-right-radius", "border-bottom-style", "border-bottom-width",
-		 "border-collapse", "border-color", "border-image", "border-image-outset", "border-image-repeat", "border-image-slice",
-		 "border-image-source", "border-image-width", "border-left", "border-left-color", "border-left-style", "border-left-width",
-		 "border-radius", "border-right", "border-right-color", "border-right-style", "border-right-width", "border-spacing", "border-style",
-		 "border-top", "border-top-color", "border-top-left-radius", "border-top-right-radius", "border-top-style", "border-top-width",
-		 "border-width", "bottom", "box-align", "box-decoration-break", "box-direction", "box-flex", "box-flex-group", "box-lines",
-		 "box-ordinal-group", "box-orient", "box-pack", "box-shadow", "box-sizing", "break-after", "break-before", "break-inside",
-		 "caption-side", "clear", "clip", "color", "color-profile", "column-count", "column-fill", "column-gap", "column-rule",
-		 "column-rule-color", "column-rule-style", "column-rule-width", "column-span", "column-width", "columns", "content", "counter-increment",
-		 "counter-reset", "crop", "cue", "cue-after", "cue-before", "cursor", "direction", "display", "dominant-baseline",
-		 "drop-initial-after-adjust", "drop-initial-after-align", "drop-initial-before-adjust", "drop-initial-before-align", "drop-initial-size",
-		 "drop-initial-value", "elevation", "empty-cells", "fit", "fit-position", "flex-align", "flex-flow", "flex-inline-pack", "flex-order",
-		 "flex-pack", "float", "float-offset", "font", "font-family", "font-size", "font-size-adjust", "font-stretch", "font-style",
-		 "font-variant", "font-weight", "grid-columns", "grid-rows", "hanging-punctuation", "height", "hyphenate-after",
-		 "hyphenate-before", "hyphenate-character", "hyphenate-lines", "hyphenate-resource", "hyphens", "icon", "image-orientation",
-		 "image-rendering", "image-resolution", "inline-box-align", "left", "letter-spacing", "line-height", "line-stacking",
-		 "line-stacking-ruby", "line-stacking-shift", "line-stacking-strategy", "list-style", "list-style-image", "list-style-position",
-		 "list-style-type", "margin", "margin-bottom", "margin-left", "margin-right", "margin-top", "mark", "mark-after", "mark-before",
-		 "marker-offset", "marks", "marquee-direction", "marquee-loop", "marquee-play-count", "marquee-speed", "marquee-style", "max-height",
-		 "max-width", "min-height", "min-width", "move-to", "nav-down", "nav-index", "nav-left", "nav-right", "nav-up", "opacity", "orphans",
-		 "outline", "outline-color", "outline-offset", "outline-style", "outline-width", "overflow", "overflow-style", "overflow-x",
-		 "overflow-y", "padding", "padding-bottom", "padding-left", "padding-right", "padding-top", "page", "page-break-after", "page-break-before",
-		 "page-break-inside", "page-policy", "pause", "pause-after", "pause-before", "perspective", "perspective-origin", "phonemes", "pitch",
-		 "pitch-range", "play-during", "position", "presentation-level", "punctuation-trim", "quotes", "rendering-intent", "resize",
-		 "rest", "rest-after", "rest-before", "richness", "right", "rotation", "rotation-point", "ruby-align", "ruby-overhang", "ruby-position",
-		 "ruby-span", "size", "speak", "speak-header", "speak-numeral", "speak-punctuation", "speech-rate", "stress", "string-set", "table-layout",
-		 "target", "target-name", "target-new", "target-position", "text-align", "text-align-last", "text-decoration", "text-emphasis",
-		 "text-height", "text-indent", "text-justify", "text-outline", "text-shadow", "text-transform", "text-wrap", "top", "transform",
-		 "transform-origin", "transform-style", "transition", "transition-delay", "transition-duration", "transition-property",
-		 "transition-timing-function", "unicode-bidi", "vertical-align", "visibility", "voice-balance", "voice-duration", "voice-family",
-		 "voice-pitch", "voice-pitch-range", "voice-rate", "voice-stress", "voice-volume", "volume", "white-space", "white-space-collapse",
-		 "widows", "width", "word-break", "word-spacing", "word-wrap", "z-index"
-		];
+	var CSS_KEYWORDS = mKeywords.CSSKeywords;
 
 	// Scanner constants
 	var UNKOWN = 1;
@@ -17073,21 +17528,21 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 	var DOC_TAG = 13;
 	var TASK_TAG = 14;
 	
-	var BRACKETS = "{}()[]<>";
+	var BRACKETS = "{}()[]<>"; //$NON-NLS-0$
 
 	// Styles 
-	var singleCommentStyle = {styleClass: "comment"};
-	var multiCommentStyle = {styleClass: "token_multiline_comment"};
-	var docCommentStyle = {styleClass: "token_doc_comment"};
-	var htmlMarkupStyle = {styleClass: "token_doc_html_markup"};
-	var tasktagStyle = {styleClass: "token_task_tag"};
-	var doctagStyle = {styleClass: "token_doc_tag"};
-	var stringStyle = {styleClass: "token_string"};
-	var numberStyle = {styleClass: "token_number"};
-	var keywordStyle = {styleClass: "token_keyword"};
-	var spaceStyle = {styleClass: "token_space"};
-	var tabStyle = {styleClass: "token_tab"};
-	var caretLineStyle = {styleClass: "line_caret"};
+	var singleCommentStyle = {styleClass: "comment"}; //$NON-NLS-0$
+	var multiCommentStyle = {styleClass: "token_multiline_comment"}; //$NON-NLS-0$
+	var docCommentStyle = {styleClass: "token_doc_comment"}; //$NON-NLS-0$
+	var htmlMarkupStyle = {styleClass: "token_doc_html_markup"}; //$NON-NLS-0$
+	var tasktagStyle = {styleClass: "token_task_tag"}; //$NON-NLS-0$
+	var doctagStyle = {styleClass: "token_doc_tag"}; //$NON-NLS-0$
+	var stringStyle = {styleClass: "token_string"}; //$NON-NLS-0$
+	var numberStyle = {styleClass: "token_number"}; //$NON-NLS-0$
+	var keywordStyle = {styleClass: "token_keyword"}; //$NON-NLS-0$
+	var spaceStyle = {styleClass: "token_space"}; //$NON-NLS-0$
+	var tabStyle = {styleClass: "token_tab"}; //$NON-NLS-0$
+	var caretLineStyle = {styleClass: "line_caret"}; //$NON-NLS-0$
 	
 	function Scanner (keywords, whitespacesVisible) {
 		this.keywords = keywords;
@@ -17404,13 +17859,13 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 	};
 	
 	function TextStyler (view, lang, annotationModel) {
-		this.commentStart = "/*";
-		this.commentEnd = "*/";
+		this.commentStart = "/*"; //$NON-NLS-0$
+		this.commentEnd = "*/"; //$NON-NLS-0$
 		var keywords = [];
 		switch (lang) {
-			case "java": keywords = JAVA_KEYWORDS; break;
-			case "js": keywords = JS_KEYWORDS; break;
-			case "css": keywords = CSS_KEYWORDS; break;
+			case "java": keywords = JAVA_KEYWORDS; break; //$NON-NLS-0$
+			case "js": keywords = JS_KEYWORDS; break; //$NON-NLS-0$
+			case "css": keywords = CSS_KEYWORDS; break; //$NON-NLS-0$
 		}
 		this.whitespacesVisible = false;
 		this.detectHyperlinks = true;
@@ -17422,7 +17877,7 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 		this._commentScanner = new CommentScanner(this.whitespacesVisible);
 		this._whitespaceScanner = new WhitespaceScanner();
 		//TODO these scanners are not the best/correct way to parse CSS
-		if (lang === "css") {
+		if (lang === "css") { //$NON-NLS-0$
 			this._scanner.isCSS = true;
 			this._firstScanner.isCSS = true;
 		}
@@ -17452,11 +17907,11 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 		if (model.getBaseModel) {
 			model = model.getBaseModel();
 		}
-		model.addEventListener("Changed", this._listener.onChanged);
-		view.addEventListener("MouseDown", this._listener.onMouseDown);
-		view.addEventListener("Selection", this._listener.onSelection);
-		view.addEventListener("Destroy", this._listener.onDestroy);
-		view.addEventListener("LineStyle", this._listener.onLineStyle);
+		model.addEventListener("Changed", this._listener.onChanged); //$NON-NLS-0$
+		view.addEventListener("MouseDown", this._listener.onMouseDown); //$NON-NLS-0$
+		view.addEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
+		view.addEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+		view.addEventListener("LineStyle", this._listener.onLineStyle); //$NON-NLS-0$
 		this._computeComments ();
 		this._computeFolding();
 		view.redrawLines();
@@ -17470,11 +17925,11 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 				if (model.getBaseModel) {
 					model = model.getBaseModel();
 				}
-				model.removeEventListener("Changed", this._listener.onChanged);
-				view.removeEventListener("MouseDown", this._listener.onMouseDown);
-				view.removeEventListener("Selection", this._listener.onSelection);
-				view.removeEventListener("Destroy", this._listener.onDestroy);
-				view.removeEventListener("LineStyle", this._listener.onLineStyle);
+				model.removeEventListener("Changed", this._listener.onChanged); //$NON-NLS-0$
+				view.removeEventListener("MouseDown", this._listener.onMouseDown); //$NON-NLS-0$
+				view.removeEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
+				view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+				view.removeEventListener("LineStyle", this._listener.onLineStyle); //$NON-NLS-0$
 				this.view = null;
 			}
 		},
@@ -17741,7 +18196,7 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 		},
 		_detectHyperlinks: function(text, offset, styles, s) {
 			var href = null, index, linkStyle;
-			if ((index = text.indexOf("://")) > 0) {
+			if ((index = text.indexOf("://")) > 0) { //$NON-NLS-0$
 				href = text;
 				var start = index;
 				while (start > 0) {
@@ -17752,12 +18207,12 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 					start--;
 				}
 				if (start > 0) {
-					var brackets = "\"\"''(){}[]<>";
+					var brackets = "\"\"''(){}[]<>"; //$NON-NLS-0$
 					index = brackets.indexOf(href.substring(start - 1, start));
 					if (index !== -1 && (index & 1) === 0 && (index = href.lastIndexOf(brackets.substring(index + 1, index + 2))) !== -1) {
 						var end = index;
 						linkStyle = this._clone(s);
-						linkStyle.tagName = "A";
+						linkStyle.tagName = "A"; //$NON-NLS-0$
 						linkStyle.attributes = {href: href.substring(start, end)};
 						styles.push({start: offset, end: offset + start, style: s});
 						styles.push({start: offset + start, end: offset + end, style: linkStyle});
@@ -17765,12 +18220,12 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
 						return null;
 					}
 				}
-			} else if (text.toLowerCase().indexOf("bug#") === 0) {
-				href = "https://bugs.eclipse.org/bugs/show_bug.cgi?id=" + parseInt(text.substring(4), 10);
+			} else if (text.toLowerCase().indexOf("bug#") === 0) { //$NON-NLS-0$
+				href = "https://bugs.eclipse.org/bugs/show_bug.cgi?id=" + parseInt(text.substring(4), 10); //$NON-NLS-0$
 			}
 			if (href) {
 				linkStyle = this._clone(s);
-				linkStyle.tagName = "A";
+				linkStyle.tagName = "A"; //$NON-NLS-0$
 				linkStyle.attributes = {href: href};
 				return linkStyle;
 			}
@@ -18133,7 +18588,7 @@ define("examples/editor/textStyler", ['orion/editor/annotations'], function(mAnn
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
  
-/*globals define */
+/*globals define Node */
 
 define('orion/editor/edit', [ //$NON-NLS-0$
 	
@@ -18165,6 +18620,22 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 ], function(mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations, mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist, mJSContentAssist, mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler) {
 
 	/**	@private */
+	function getDisplay(window, document, element) {
+		var display;
+		var temp = element;
+		while (temp && temp !== document && display !== "none") { //$NON-NLS-0$
+			if (window.getComputedStyle) {
+				var style = window.getComputedStyle(temp, null);
+				display = style.getPropertyValue("display"); //$NON-NLS-0$
+			} else {
+				display = temp.currentStyle.display;
+			}
+			temp = temp.parentNode;
+		}
+		return display;
+	}
+
+	/**	@private */
 	function getTextFromElement(element) {
 		var firstChild = element.firstChild;
 		if (firstChild && firstChild.tagName === "TEXTAREA") { //$NON-NLS-0$
@@ -18172,7 +18643,10 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		}
 		var document = element.ownerDocument;
 		var window = document.defaultView || document.parentWindow;
-		if (!window.getSelection) {
+		if (!window.getSelection ||
+			(element.childNodes.length === 1 && firstChild.nodeType === Node.TEXT_NODE) ||
+			getDisplay(window, document, element) === "none") //$NON-NLS-0$
+		{
 			return element.innerText || element.textContent;
 		}
 		var newRange = document.createRange();
@@ -18367,9 +18841,13 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 			// Create keybindings for generic editing
 			var genericBindings = new mEditorFeatures.TextActions(editor, undoStack);
 			keyModeStack.push(genericBindings);
+
+			// Linked Mode
+			var linkedMode = new mEditorFeatures.LinkedMode(editor, undoStack);
+			keyModeStack.push(linkedMode);
 			
 			// create keybindings for source editing
-			var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist);
+			var codeBindings = new mEditorFeatures.SourceCodeActions(editor, undoStack, contentAssist, linkedMode);
 			keyModeStack.push(codeBindings);
 		};
 			
