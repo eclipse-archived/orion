@@ -1,6 +1,6 @@
 .textview {
 	background-color: white;
-	font-family: 'Lucida Sans Unicode', 'Lucida Grande', Verdana, Arial, Helvetica, Myriad, Tahoma, clean, sans-serif;
+	font-family: "Consolas", "Monaco", "Vera Mono", "monospace";
 	font-size: 10pt;
 	min-width: 50px;
 	min-height: 50px;
@@ -16,6 +16,10 @@
 }
 .textviewRightRuler {
 	border-left: 1px solid #eaeaea;
+}
+.textviewBlockCursor {
+	background: black;
+	opacity: 0.4;
 }
 .ruler {
 }
@@ -266,26 +270,68 @@
 	background-color: transparent;
 }
 .contentassist {
+	font-size:10pt;
+	font-family: "Consolas", "Monaco", "Vera Mono", "monospace";
 	display: none;
-	background-color: #FFFFFF;
-	padding: 2px;
+	background-color: white;
+	position: fixed;
 	top: 100px;
 	left: 100px;
-	border: 1px solid #CCCCCC;
-	z-index:10;
+	border: 1px solid #DDD;
+	z-index:100;
 	cursor: default;
 	overflow: auto;
-	height: 150px;
-	width: 200px;
+	min-width: 70px;
+	min-height: 50px;
+	max-width: 350px;
+	max-height: 150px;
+	white-space: nowrap;
+}
+.contentassist:focus {
+	border: 1px solid #666;
+}
+.contentassist .proposal-emphasis {
+	font-weight: normal;
+}
+.contentassist hr{
+	border: 0;
+    height: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.contentassist .proposal-noemphasis {
+	background-color: aliceblue;
+	font-weight: lighter;
+	color: grey;
+}
+.contentassist .proposal-hr {
+	
+	border: 0;
+    height: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+.contentassist .proposal-default {
+	
 }
 .contentassist .selected {
+	
+	font-weight:bold;
+	padding-bottom: 3px;
+	background-color: #FEC;
+	font-weight: bold;
+}
+.contentassist>div {
+	padding: 1px 3px 0 3px;
+}
+.contentassist>div:hover {
 	background-color: #EAF2FE;
 }
 .token_singleline_comment {
-	color: green;
+	color: #3C802C;
 }
 .token_multiline_comment {
-	color: green;
+	color: #3C802C;
 }
 .token_doc_comment {
 	color: #00008F;
@@ -303,13 +349,13 @@ a.token_singleline_comment, a.token_multiline_comment, a.token_doc_comment {
 	color: #7F9FBF;
 }
 .token_string {
-	color: blue;
+	color: #446fbd;
 }
 .token_number {
 	color: blue;
 }
 .token_keyword {
-	color: darkred;
+	color: #CC4C07;
 	font-weight: bold;
 }
 .token_space {
@@ -328,7 +374,7 @@ a.token_singleline_comment, a.token_multiline_comment, a.token_doc_comment {
 	background-color: #EAF2FE;
 }
 .comment {
-	color: green;
+	color: #3C802C;
 }
 .comment-block-documentation {
 	color: #00008F;
@@ -393,10 +439,10 @@ a.token_singleline_comment, a.token_multiline_comment, a.token_doc_comment {
 	font-weight: bold;
 }
 .entity-name-tag  {
-	color: #3f7f7f;
+	color: #CC4C07;
 }
 .entity-other-attribute-name {
-	color: #7f007f;
+	color: #3C802C;
 }
 .punctuation-definition-comment {
 	color: #3f5fbf;
