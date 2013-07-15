@@ -692,6 +692,7 @@ define('orion/editor/nls/root/messages',{
 	"uppercase": "To Upper Case", //$NON-NLS-1$ //$NON-NLS-0$
 	"lowercase": "To Lower Case", //$NON-NLS-1$ //$NON-NLS-0$
 	"capitalize": "Capitalize", //$NON-NLS-1$ //$NON-NLS-0$
+	"reversecase" : "Reverse Case", //$NON-NLS-1$ //$NON-NLS-0$
 	
 	"toggleWrapMode": "Toggle Wrap Mode", //$NON-NLS-1$ //$NON-NLS-0$
 	"toggleTabMode": "Toggle Tab Mode", //$NON-NLS-1$ //$NON-NLS-0$
@@ -744,6 +745,55 @@ define('orion/editor/nls/root/messages',{
 	"contentAssist": "Content Assist", //$NON-NLS-1$ //$NON-NLS-0$
 	"lineColumn": "Line ${0} : Col ${1}", //$NON-NLS-1$ //$NON-NLS-0$
 	
+	//vi
+	"vi": "vi", //$NON-NLS-1$ //$NON-NLS-0$
+	"vimove": "(Move)", //$NON-NLS-1$ //$NON-NLS-0$
+	"viyank": "(Yank)", //$NON-NLS-1$ //$NON-NLS-0$
+	"videlete": "(Delete)", //$NON-NLS-1$ //$NON-NLS-0$
+	"vichange": "(Change)", //$NON-NLS-1$ //$NON-NLS-0$
+	"viLeft": "${0} Left", //$NON-NLS-1$ //$NON-NLS-0$
+	"viRight": "${0} Right", //$NON-NLS-1$ //$NON-NLS-0$
+	"viUp": "${0} Up", //$NON-NLS-1$ //$NON-NLS-0$
+	"viDown": "${0} Down", //$NON-NLS-1$ //$NON-NLS-0$
+	"viw": "${0} Next Word", //$NON-NLS-1$ //$NON-NLS-0$
+	"vib": "${0} Beginning of Word", //$NON-NLS-1$ //$NON-NLS-0$
+	"viW": "${0} Next Word (ws stop)", //$NON-NLS-1$ //$NON-NLS-0$
+	"viB": "${0} Beginning of Word (ws stop)", //$NON-NLS-1$ //$NON-NLS-0$
+	"vie": "${0} End of Word", //$NON-NLS-1$ //$NON-NLS-0$
+	"viE": "${0} End of Word (ws stop)", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi$": "${0} End of the line", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi^_": "${0} First non-blank Char Current Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi+": "${0} First Char Next Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi-": "${0} First Char Previous Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi|": "${0} nth Column in Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"viH": "${0} Top of Page", //$NON-NLS-1$ //$NON-NLS-0$
+	"viM": "${0} Middle of Page", //$NON-NLS-1$ //$NON-NLS-0$
+	"viL": "${0} Bottom of Page", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi/": "${0} Search Forward", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi?": "${0} Search Backward", //$NON-NLS-1$ //$NON-NLS-0$
+	"vin": "${0} Next Search", //$NON-NLS-1$ //$NON-NLS-0$
+	"viN": "${0} Previous Search", //$NON-NLS-1$ //$NON-NLS-0$
+	"vif": "${0} Search Char Fwd", //$NON-NLS-1$ //$NON-NLS-0$
+	"viF": "${0} Search Char Bckwd", //$NON-NLS-1$ //$NON-NLS-0$
+	"vit": "${0} Search Before Char Fwd", //$NON-NLS-1$ //$NON-NLS-0$
+	"viT": "${0} Search Before Char Bckwd", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi,": "${0} Repeat Reverse Char Search", //$NON-NLS-1$ //$NON-NLS-0$
+	"vi;": "${0} Repeat Char Search", //$NON-NLS-1$ //$NON-NLS-0$
+	"viG": "${0} Go to Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"viycd": "${0} Current Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"via": "Append After Cursor", //$NON-NLS-1$ //$NON-NLS-0$
+	"viA": "Append to End of Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"vii": "Insert Before Cursor", //$NON-NLS-1$ //$NON-NLS-0$
+	"viI": "Insert at Beginning of Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"viO": "Insert Line Above", //$NON-NLS-1$ //$NON-NLS-0$
+	"vio": "Insert Line Below", //$NON-NLS-1$ //$NON-NLS-0$
+	"viR": "Begin Overwriting Text", //$NON-NLS-1$ //$NON-NLS-0$
+	"vis": "Substitute a Character", //$NON-NLS-1$ //$NON-NLS-0$
+	"viS": "Substitute Entire Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"viC": "Change Text Until Line End", //$NON-NLS-1$ //$NON-NLS-0$
+	"vip": "Paste After Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"viP": "Paste Before Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
+
 	"replaceAll": "Replacing all...", //$NON-NLS-1$ //$NON-NLS-0$
 	"replacedMatches": "Replaced ${0} matches", //$NON-NLS-1$ //$NON-NLS-0$
 	"nothingReplaced": "Nothing replaced", //$NON-NLS-1$ //$NON-NLS-0$
@@ -1864,7 +1914,7 @@ define("orion/editor/keyModes", [ //$NON-NLS-0$
 			return this._view;
 		},
 		isActive: function () {
-			return true;
+			return this._view.getKeyModes().indexOf(this) !== -1;
 		},
 		match: function(e) {
 			switch (e.keyCode) {
@@ -3498,50 +3548,48 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var document = child.ownerDocument;
 			var lineChild;
 			var step = data.count < 0 ? -1 : 1;
-			while (data.count !== 0) {
-				if (offset === model.getLineEnd(lineIndex)) {
-					lineChild = child.lastChild;
-					while (lineChild && lineChild.ignoreChars) {
-						lineChild = lineChild.previousSibling;
-					}
-					if (!lineChild) {
-						return lineOffset;
-					}
-					range = document.body.createTextRange();
-					range.moveToElementText(lineChild);
-					length = range.text.length;
-					range.moveEnd(data.unit, data.count);
-					result = offset + range.text.length - length;
-				} else if (offset === lineOffset && data.count < 0) {
-					result = lineOffset;
-				} else {
-					lineChild = child.firstChild;
-					while (lineChild) {
-						var textNode = lineChild.firstChild;
-						var nodeLength = textNode.length;
-						if (lineChild.ignoreChars) {
-							nodeLength -= lineChild.ignoreChars;
-						}
-						if (lineOffset + nodeLength > offset) {
-							range = document.body.createTextRange();
-							if (offset === lineOffset && data.count < 0) {
-								range.moveToElementText(lineChild.previousSibling);
-							} else {
-								range.moveToElementText(lineChild);
-								range.collapse();
-								range.moveEnd("character", offset - lineOffset); //$NON-NLS-0$
-							}
-							length = range.text.length;
-							range.moveEnd(data.unit, data.count);
-							result = offset + range.text.length - length;
-							break;
-						}
-						lineOffset = nodeLength + lineOffset;
-						lineChild = lineChild.nextSibling;
-					}
+			if (offset === model.getLineEnd(lineIndex)) {
+				lineChild = child.lastChild;
+				while (lineChild && lineChild.ignoreChars) {
+					lineChild = lineChild.previousSibling;
 				}
-				data.count -= step;
+				if (!lineChild) {
+					return lineOffset;
+				}
+				range = document.body.createTextRange();
+				range.moveToElementText(lineChild);
+				length = range.text.length;
+				range.moveEnd(data.unit, step);
+				result = offset + range.text.length - length;
+			} else if (offset === lineOffset && data.count < 0) {
+				result = lineOffset;
+			} else {
+				lineChild = child.firstChild;
+				while (lineChild) {
+					var textNode = lineChild.firstChild;
+					var nodeLength = textNode.length;
+					if (lineChild.ignoreChars) {
+						nodeLength -= lineChild.ignoreChars;
+					}
+					if (lineOffset + nodeLength > offset) {
+						range = document.body.createTextRange();
+						if (offset === lineOffset && data.count < 0) {
+							range.moveToElementText(lineChild.previousSibling);
+						} else {
+							range.moveToElementText(lineChild);
+							range.collapse();
+							range.moveEnd("character", offset - lineOffset); //$NON-NLS-0$
+						}
+						length = range.text.length;
+						range.moveEnd(data.unit, step);
+						result = offset + range.text.length - length;
+						break;
+					}
+					lineOffset = nodeLength + lineOffset;
+					lineChild = lineChild.nextSibling;
+				}
 			}
+			data.count -= step;
 			return result;
 		},
 		/** @private */
@@ -4706,12 +4754,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			for (var i=0; i<keyModes.length; i++) {
 				if (keyModes[i] === mode) {
 					keyModes.splice(i, 1);
-					//TODO: API needed for this
-					if (mode._modeRemoved) {
-						mode._modeRemoved();
-					}
 					break;
 				}
+			}
+			//TODO: API needed for this
+			if (mode._modeRemoved) {
+				mode._modeRemoved();
 			}
 		},
 		/**
@@ -6372,6 +6420,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					}
 					line.destroy();
 				} else {
+					if (args.count && args.count > 0) {
+						lineIndex = Math.min (lineIndex  + args.count - 1, model.getLineCount() - 1);
+					}
 					offset = model.getLineEnd(lineIndex);
 				}
 				selection.extend(offset);
@@ -6772,7 +6823,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var line = this._getLine(lineIndex);
 			var rect = line.getBoundingClientRect();
 			line.destroy();
-			return Math.max(1, Math.ceil(rect.bottom - rect.top));
+			return Math.max(1, rect.bottom - rect.top);
 		},
 		_calculateMetrics: function() {
 			var parent = this._clientDiv;
@@ -6969,7 +7020,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				"uppercase": {defaultHandler: function(data) {return self._doCase(merge(data,{type: "upper"}));}, actionDescription: {name: messages.uppercase}}, //$NON-NLS-1$ //$NON-NLS-0$
 				"lowercase": {defaultHandler: function(data) {return self._doCase(merge(data,{type: "lower"}));}, actionDescription: {name: messages.lowercase}}, //$NON-NLS-1$ //$NON-NLS-0$
 				"capitalize": {defaultHandler: function(data) {return self._doCase(merge(data,{unit: "word", type: "capitalize"}));}, actionDescription: {name: messages.capitalize}}, //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-				"reversecase": {defaultHandler: function(data) {return self._doCase(merge(data,{type: "reverse"}));}, actionDescription: {name: messages.reverse}}, //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				"reversecase": {defaultHandler: function(data) {return self._doCase(merge(data,{type: "reverse"}));}, actionDescription: {name: messages.reversecase}}, //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				
 				"toggleOverwriteMode": {defaultHandler: function(data) {return self._doOverwriteMode();}, actionDescription: {name: messages.toggleOverwriteMode}}, //$NON-NLS-0$
 				"toggleTabMode": {defaultHandler: function(data) {return self._doTabMode();}, actionDescription: {name: messages.toggleTabMode}}, //$NON-NLS-0$
@@ -8125,16 +8176,21 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					this._ignoreSelect = true;
 				}
 				if (this._cursorDiv) {
+					range = document.createRange();
 					if (startCaret) {
+						range.setStart(startLineNode, startLineOffset);
 						range.setEnd(startLineNode, startLineOffset);
 					} else {
 						range.setStart(endLineNode, endLineOffset);
+						range.setEnd(endLineNode, endLineOffset);
 					}
 					var rect = range.getClientRects()[0];
 					var cursorParent = this._cursorDiv.parentNode;
 					var clientRect = cursorParent.getBoundingClientRect();
-					this._cursorDiv.style.top = (rect.top - clientRect.top + cursorParent.scrollTop) + "px"; //$NON-NLS-0$
-					this._cursorDiv.style.left = (rect.left - clientRect.left + cursorParent.scrollLeft) + "px"; //$NON-NLS-0$
+					if (rect && clientRect) {
+						this._cursorDiv.style.top = (rect.top - clientRect.top + cursorParent.scrollTop) + "px"; //$NON-NLS-0$
+						this._cursorDiv.style.left = (rect.left - clientRect.left + cursorParent.scrollLeft) + "px"; //$NON-NLS-0$
+					}
 				}
 			} else if (document.selection) {
 				if (!this._hasFocus) { return; }
@@ -8848,11 +8904,11 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 						lineWidth = child.lineWidth = Math.ceil(rect.right - rect.left);
 						var lh = rect.bottom - rect.top;
 						if (this._lineHeight) {
-							this._lineHeight[child.lineIndex] = Math.ceil(lh);
-						} else if (lineHeight !== 0 && lh !== 0 && lineHeight !== lh) {
+							this._lineHeight[child.lineIndex] = lh;
+						} else if (lineHeight !== 0 && lh !== 0 && Math.ceil(lineHeight) !== Math.ceil(lh)) {
 							this._variableLineHeight = true;
 							this._lineHeight = [];
-							this._lineHeight[child.lineIndex] = Math.ceil(lh);
+							this._lineHeight[child.lineIndex] = lh;
 						}
 					}
 					if (this._lineHeight && !foundBottomIndex) {
@@ -8957,7 +9013,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var overlayDiv = this._overlayDiv;
 			var clipLeft, clipTop;
 			if (clipDiv) {
-				clipDiv.scrollLeft = left;			
+				clipDiv.scrollLeft = left;
+				clipDiv.scrollTop = 0;
 				clipLeft = leftWidth + viewPad.left;
 				clipTop = viewPad.top;
 				var clipWidth = clientWidth;
@@ -13021,7 +13078,7 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 		 * @param {Number|String} column
 		 * @param {Number} [end]
 		 */
-		onGotoLine: function(line, column, end) {
+		onGotoLine: function(line, column, end, callback) {
 			if (this._textView) {
 				var model = this.getModel();
 				line = Math.max(0, Math.min(line, model.getLineCount() - 1));
@@ -13042,7 +13099,7 @@ define("orion/editor/editor", ['i18n!orion/editor/nls/messages', 'orion/keyBindi
 					start = Math.min(start, lineLength);
 					end = Math.min(end, lineLength);
 				}
-				this.moveSelection(lineStart + start, lineStart + end);
+				this.moveSelection(lineStart + start, lineStart + end, callback);
 			}
 		},
 		
@@ -13402,7 +13459,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 			var string = this.getFindString();
 			var count;
 			if (tempOptions) {
-				string = tempOptions.findString || this.getFindString();
+				string = tempOptions.findString || string;
 				count =  tempOptions.count;
 			}
 			var savedOptions = this.getOptions();
@@ -13444,6 +13501,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				findAfterReplace: this._findAfterReplace,
 				hideAfterFind: this._hideAfterFind,
 				reverse: this._reverse,
+				findCallback: this._findCallback,
 				start: this._start,
 				end: this._end
 			};
@@ -13547,7 +13605,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 					this._showAll = options.showAll;
 					if (this.isVisible()) {
 						if (this._showAll) {
-							this._markAllOccurrences(true);
+							this._markAllOccurrences();
 						} else {
 							var annotationModel = this._editor.getAnnotationModel();
 							if (annotationModel) {
@@ -13579,6 +13637,9 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				}
 				if (options.reverse === true || options.reverse === false) {
 					this._reverse = options.reverse;
+				}
+				if (options.hasOwnProperty("findCallback")) { //$NON-NLS-0$
+					this._findCallback = options.findCallback;
 				}
 				if (options.hasOwnProperty("start")) { //$NON-NLS-0$	
 					this._start = options.start;
@@ -13659,12 +13720,15 @@ define("orion/editor/find", [ //$NON-NLS-0$
 						}
 						var that = this;
 						this._timer = window.setTimeout(function(){
-							that._markAllOccurrences(!!result, string);
+							that._markAllOccurrences();
 							that._timer = null;
 						}, 500);
 					}
 				}
-				if (result) {
+				if (this._findCallback) {
+					this._findCallback(result);
+				}
+				else if (result) {
 					editor.moveSelection(result.start, result.end, null, false);
 				}
 			}
@@ -13681,7 +13745,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 			editor.setText(newStr, start, end);
 			editor.setSelection(start, start + newStr.length, true);
 		},
-		_markAllOccurrences: function(match, string) {
+		_markAllOccurrences: function() {
 			var annotationModel = this._editor.getAnnotationModel();
 			if (!annotationModel) {
 				return;
@@ -13696,18 +13760,17 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				}
 			}
 			if (this.isVisible()) {
-				if (match && string) {
-					iter = this._editor.getModel().find({
-						string: string,
-						regex: this._regex,
-						wholeWord: this._wholeWord,
-						caseInsensitive: this._caseInsensitive
-					});
-					add = [];
-					while (iter.hasNext()) {
-						var range = iter.next();
-						add.push(mAnnotations.AnnotationType.createAnnotation(type, range.start, range.end));
-					}
+				var string = this.getFindString();
+				iter = this._editor.getModel().find({
+					string: string,
+					regex: this._regex,
+					wholeWord: this._wholeWord,
+					caseInsensitive: this._caseInsensitive
+				});
+				add = [];
+				while (iter.hasNext()) {
+					var range = iter.next();
+					add.push(mAnnotations.AnnotationType.createAnnotation(type, range.start, range.end));
 				}
 			}
 			annotationModel.replaceAnnotations(remove, add);
