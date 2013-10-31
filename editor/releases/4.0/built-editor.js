@@ -418,8 +418,13 @@ define("almond", function(){});
 /*global define*/
 
 define("orion/editor/shim", [], function() { //$NON-NLS-0$
+
+	/**
+	 * Partial ECMAScript 5 shim.
+	 */
 	
 	if (!Object.create) {
+		/* This shim does not properly support the props paramenter. It only works for Deferred.js. */
 		Object.create = function(proto, props) {
 			function N() {}
 			N.prototype = proto;
@@ -471,6 +476,11 @@ define("orion/editor/shim", [], function() { //$NON-NLS-0$
 	}
 
 	
+	if (!Array.isArray) {
+		Array.isArray = function(obj) {
+			return Object.prototype.toString.call(obj) === "[object Array]";
+		};
+	}
 	if (!Array.prototype.indexOf) {
 		Array.prototype.indexOf = function(c) {
 			for (var i=0; i<this.length; i++) {
@@ -518,17 +528,17 @@ define("orion/editor/shim", [], function() { //$NON-NLS-0$
 	
 	if (!String.prototype.trim) {
 		String.prototype.trim = function(){
-			return this.replace(/^\s+/, '');
+			return this.replace(/^\s+|\s+$/g, '');
 		};
 	}
 	if (!String.prototype.trimLeft) {
 		String.prototype.trimLeft = function(){
-			return this.replace(/\s+$/, '');
+			return this.replace(/^\s+/g, '');
 		};
 	}
 	if (!String.prototype.trimRight) {
 		String.prototype.trimRight = function(){
-			return this.replace(/^\s+|\s+$/g, '');
+			return this.replace(/\s+$/g, '');
 		};
 	}
 
@@ -927,6 +937,8 @@ define('orion/editor/nls/root/messages',{
 	"viC": "Change Text Until Line End", //$NON-NLS-1$ //$NON-NLS-0$
 	"vip": "Paste After Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
 	"viP": "Paste Before Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
+	"viStar": "Search Word Under Cursor", //$NON-NLS-1$ //$NON-NLS-0$
+
 
 	"replaceAll": "Replacing all...", //$NON-NLS-1$ //$NON-NLS-0$
 	"replacedMatches": "Replaced ${0} matches", //$NON-NLS-1$ //$NON-NLS-0$
@@ -1122,11 +1134,11 @@ define("orion/editor/eventTarget", [], function() { //$NON-NLS-0$
  * Contributors: IBM Corporation - initial API and implementation
  *******************************************************************************/
 
-/*global define navigator*/
+/*global define navigator document*/
 define('orion/util',[],function() {
 
 	var userAgent = navigator.userAgent;
-	var isIE = parseFloat(userAgent.split("MSIE")[1]) || undefined; //$NON-NLS-0$
+	var isIE = (userAgent.indexOf("MSIE") !== -1 || userAgent.indexOf("Trident") !== -1) ? document.documentMode : undefined; //$NON-NLS-1$ //$NON-NLS-0$
 	var isFirefox = parseFloat(userAgent.split("Firefox/")[1] || userAgent.split("Minefield/")[1]) || undefined; //$NON-NLS-1$ //$NON-NLS-0$
 	var isOpera = userAgent.indexOf("Opera") !== -1; //$NON-NLS-0$
 	var isChrome = parseFloat(userAgent.split("Chrome/")[1]) || undefined; //$NON-NLS-0$
@@ -2824,7 +2836,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		}
 		/**
 		 * Plays this animation.
-		 * @methodOf orion.editor.Animation.prototype
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
 		 * @name play
 		 */
 		Animation.prototype.play = function() {
@@ -2856,7 +2869,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		};
 		/**
 		 * Stops this animation.
-		 * @methodOf orion.editor.Animation.prototype
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
 		 */
 		Animation.prototype.stop = function() {
 			this.options.window.clearInterval(this.interval);
@@ -3487,7 +3501,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					rect = rects[j];
 					if (rect.left <= x && x < rect.right && (!view._wrapMode || (rect.top <= y && y < rect.bottom))) {
 						var range, start, end;
-						var rl = rect.left, fixIE8;
+						var rl = rect.left + lineRect.left, fixIE8;
 						if (util.isIE || view._isRangeRects) {
 							range = view._isRangeRects ? document.createRange() : document.body.createTextRange();
 							var high = nodeLength;
@@ -3753,7 +3767,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var step = data.count < 0 ? -1 : 1;
 			if (offset === model.getLineEnd(lineIndex)) {
 				lineChild = child.lastChild;
-				while (lineChild && lineChild.ignoreChars) {
+				while (lineChild && lineChild.ignoreChars === lineChild.firstChild.length) {
 					lineChild = lineChild.previousSibling;
 				}
 				if (!lineChild) {
@@ -3826,6 +3840,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 	 * @property {Number} [tabSize=8] The number of spaces in a tab.
 	 * @property {Boolean} [overwriteMode=false] whether or not the view is in insert/overwrite mode.
 	 * @property {Boolean} [singleMode=false] whether or not the editor is in single line mode.
+	 * @property {Number} [marginOffset=0] the offset in a line where the print margin should be displayed. <code>0</code> means no print margin.
+	 * @property {Number} [wrapOffset=0] the offset in a line where text should wrap. <code>0</code> means wrap at the client area right edge.
 	 * @property {Boolean} [wrapMode=false] whether or not the view wraps lines.
 	 * @property {Boolean} [wrapable=false] whether or not the view is wrappable.
 	 * @property {Number} [scrollAnimation=0] the time duration in miliseconds for scrolling animation. <code>0</code> means no animation.
@@ -4306,6 +4322,20 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			return {x: x, y: y};
 		},
 		/**
+		 * Returns the next character offset after the given offset and options
+		 *
+		 * @param {Number} offset the offset to start from
+		 * @param {Object} options
+		 *   { unit: the type of unit to advance to (eg "character", "word", "wordend", "wordWS", "wordendWS"),
+		 *    count: the number of units to advance (negative to advance backwards) }
+		 * @returns {Number} the next character offset
+		 */
+		getNextOffset: function(offset, options) {
+		  var selection = new Selection(offset, offset, false);
+		  this._doMove(options, selection);
+		  return selection.getCaret();
+		},
+        /**
 		 * Returns the specified view options.
 		 * <p>
 		 * The returned value is either a <code>orion.editor.TextViewOptions</code> or an option value. An option value is returned when only one string paremeter
@@ -4887,8 +4917,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var div = this._clientDiv;
 			if (!div) { return; }
 			if (ruler) {
-				var location = ruler.getLocation();//"left" or "right"
-				var divRuler = location === "left" ? this._leftDiv : this._rightDiv; //$NON-NLS-0$
+				var divRuler = this._getRulerParent(ruler);
 				div = divRuler.firstChild;
 				while (div) {
 					if (div._ruler === ruler) {
@@ -7144,16 +7173,41 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				var w1 = div1.clientWidth;
 				div1.style.overflow = 'scroll'; //$NON-NLS-0$
 				var w2 = div1.clientWidth;
-				parent.removeChild(div1);
 				scrollWidth = w1 - w2;
 			}
+			parent.removeChild(div1);
 			pad = {
 				left: rect2.left - rect1.left,
 				top: rect2.top - rect1.top,
 				right: rect1.right - rect2.right,
 				bottom: rect1.bottom - rect2.bottom
 			};
-			return {lineHeight: lineHeight, largestFontStyle: style, lineTrim: trim, viewPadding: pad, scrollWidth: scrollWidth, invalid: invalid};
+			var wrapWidth = 0, marginWidth = 0;
+			if (!invalid) {
+				if (this._wrapOffset || this._marginOffset) {
+					div1 = util.createElement(document, "div"); //$NON-NLS-0$
+					div1.style.position = "fixed"; //$NON-NLS-0$
+					div1.style.left = "-1000px"; //$NON-NLS-0$
+					div1.innerHTML = new Array(this._wrapOffset + 1).join(" "); //$NON-NLS-0$
+					parent.appendChild(div1);
+					rect1 = div1.getBoundingClientRect();
+					wrapWidth = Math.ceil(rect1.right - rect1.left);
+					div1.innerHTML = new Array(this._marginOffset + 1).join(" "); //$NON-NLS-0$
+					rect2 = div1.getBoundingClientRect();
+					marginWidth = Math.ceil(rect2.right - rect2.left);
+					parent.removeChild(div1);
+				}
+			}
+			return {
+				lineHeight: lineHeight,
+				largestFontStyle: style,
+				lineTrim: trim,
+				viewPadding: pad,
+				scrollWidth: scrollWidth,
+				wrapWidth: wrapWidth,
+				marginWidth: marginWidth,
+				invalid: invalid
+			};
 		},
 		_cancelAnimation: function() {
 			if (this._animation) {
@@ -7260,20 +7314,35 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				"toggleWrapMode": {defaultHandler: function(data) {return self._doWrapMode();}, actionDescription: {name: messages.toggleWrapMode}} //$NON-NLS-0$
 			};
 		},
+		_createRulerParent: function(className) {
+			var div = util.createElement(document, "div"); //$NON-NLS-0$
+			div.className = className;
+			div.tabIndex = -1;
+			div.style.overflow = "hidden"; //$NON-NLS-0$
+			div.style.MozUserSelect = "none"; //$NON-NLS-0$
+			div.style.WebkitUserSelect = "none"; //$NON-NLS-0$
+			div.style.position = "absolute"; //$NON-NLS-0$
+			div.style.top = "0px"; //$NON-NLS-0$
+			div.style.bottom = "0px"; //$NON-NLS-0$
+			div.style.cursor = "default"; //$NON-NLS-0$
+			div.style.display = "none"; //$NON-NLS-0$
+			div.setAttribute("aria-hidden", "true"); //$NON-NLS-1$ //$NON-NLS-0$
+			this._rootDiv.appendChild(div);
+			return div;
+		},
 		_createRuler: function(ruler, index) {
 			if (!this._clientDiv) { return; }
-			var side = ruler.getLocation();
-			var rulerParent = side === "left" ? this._leftDiv : this._rightDiv; //$NON-NLS-0$
-			rulerParent.style.display = "block"; //$NON-NLS-0$
+			var rulerParent = this._getRulerParent(ruler);
+			if (!rulerParent) { return; }
+			if (rulerParent !== this._marginDiv || this._marginOffset) {
+				rulerParent.style.display = "block"; //$NON-NLS-0$
+			}
 			var div = util.createElement(rulerParent.ownerDocument, "div"); //$NON-NLS-0$
 			div._ruler = ruler;
 			div.rulerChanged = true;
 			div.style.position = "relative"; //$NON-NLS-0$
 			div.style.cssFloat = "left"; //$NON-NLS-0$
 			div.style.styleFloat = "left"; //$NON-NLS-0$
-			div.style.borderWidth = "0px"; //$NON-NLS-0$
-			div.style.margin = "0px"; //$NON-NLS-0$
-			div.style.padding = "0px"; //$NON-NLS-0$
 			div.style.outline = "none"; //$NON-NLS-0$
 			if (index === undefined || index < 0 || index >= rulerParent.children.length) {
 				rulerParent.appendChild(div);
@@ -7303,20 +7372,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			rootDiv.setAttribute("role", "application"); //$NON-NLS-1$ //$NON-NLS-0$
 			parent.appendChild(rootDiv);
 			
-			var leftDiv = util.createElement(document, "div"); //$NON-NLS-0$
-			leftDiv.className = "textviewLeftRuler"; //$NON-NLS-0$
-			this._leftDiv = leftDiv;
-			leftDiv.tabIndex = -1;
-			leftDiv.style.overflow = "hidden"; //$NON-NLS-0$
-			leftDiv.style.MozUserSelect = "none"; //$NON-NLS-0$
-			leftDiv.style.WebkitUserSelect = "none"; //$NON-NLS-0$
-			leftDiv.style.position = "absolute"; //$NON-NLS-0$
-			leftDiv.style.top = "0px"; //$NON-NLS-0$
-			leftDiv.style.bottom = "0px"; //$NON-NLS-0$
-			leftDiv.style.cursor = "default"; //$NON-NLS-0$
-			leftDiv.style.display = "none"; //$NON-NLS-0$
-			leftDiv.setAttribute("aria-hidden", "true"); //$NON-NLS-1$ //$NON-NLS-0$
-			rootDiv.appendChild(leftDiv);
+			var leftDiv = this._leftDiv = this._createRulerParent("textviewLeftRuler"); //$NON-NLS-0$
 
 			var viewDiv = util.createElement(document, "div"); //$NON-NLS-0$
 			viewDiv.className = "textviewScroll"; //$NON-NLS-0$
@@ -7335,21 +7391,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			rootDiv.appendChild(viewDiv);
 			
-			var rightDiv = util.createElement(document, "div"); //$NON-NLS-0$
-			rightDiv.className = "textviewRightRuler"; //$NON-NLS-0$
-			this._rightDiv = rightDiv;
-			rightDiv.tabIndex = -1;
-			rightDiv.style.display = "none"; //$NON-NLS-0$
-			rightDiv.style.overflow = "hidden"; //$NON-NLS-0$
-			rightDiv.style.MozUserSelect = "none"; //$NON-NLS-0$
-			rightDiv.style.WebkitUserSelect = "none"; //$NON-NLS-0$
-			rightDiv.style.position = "absolute"; //$NON-NLS-0$
-			rightDiv.style.top = "0px"; //$NON-NLS-0$
-			rightDiv.style.bottom = "0px"; //$NON-NLS-0$
-			rightDiv.style.cursor = "default"; //$NON-NLS-0$
+			var rightDiv = this._rightDiv = this._createRulerParent("textviewRightRuler"); //$NON-NLS-0$
 			rightDiv.style.right = "0px"; //$NON-NLS-0$
-			rightDiv.setAttribute("aria-hidden", "true"); //$NON-NLS-1$ //$NON-NLS-0$
-			rootDiv.appendChild(rightDiv);
 				
 			var scrollDiv = util.createElement(document, "div"); //$NON-NLS-0$
 			this._scrollDiv = scrollDiv;
@@ -7357,6 +7400,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			scrollDiv.style.borderWidth = "0px"; //$NON-NLS-0$
 			scrollDiv.style.padding = "0px"; //$NON-NLS-0$
 			viewDiv.appendChild(scrollDiv);
+			
+			var marginDiv = this._marginDiv = this._createRulerParent("textviewMarginRuler"); //$NON-NLS-0$
+			marginDiv.style.zIndex = "4"; //$NON-NLS-0$
 			
 			if (!util.isIE && !util.isIOS) {
 				var clipDiv = util.createElement(document, "div"); //$NON-NLS-0$
@@ -7450,6 +7496,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._setReadOnly(this._readonly);
 			this._setThemeClass(this._themeClass, true);
 			this._setTabSize(this._tabSize, true);
+			this._setMarginOffset(this._marginOffset, true);
 			this._hookEvents();
 			var rulers = this._rulers;
 			for (var i=0; i<rulers.length; i++) {
@@ -7470,6 +7517,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				singleMode: {value: false, update: this._setSingleMode},
 				overwriteMode: { value: false, update: this._setOverwriteMode },
 				blockCursorVisible: { value: false, update: this._setBlockCursor},
+				marginOffset: {value: 0, update: this._setMarginOffset},
+				wrapOffset: {value: 0, update: this._setWrapOffset},
 				wrapMode: {value: false, update: this._setWrapMode},
 				wrappable: {value: false, update: null},
 				theme: {value: mTextTheme.TextTheme.getTheme(), update: this._setTheme},
@@ -7477,15 +7526,14 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			};
 		},
 		_destroyRuler: function(ruler) {
-			var side = ruler.getLocation();
-			var rulerParent = side === "left" ? this._leftDiv : this._rightDiv; //$NON-NLS-0$
+			var rulerParent = this._getRulerParent(ruler);
 			if (rulerParent) {
 				var div = rulerParent.firstChild;
 				while (div) {
 					if (div._ruler === ruler) {
 						div._ruler = undefined;
 						rulerParent.removeChild(div);
-						if (rulerParent.children.length === 0) {
+						if (rulerParent.children.length === 0 && (rulerParent !== this._marginDiv || !this._marginOffset)) {
 							rulerParent.style.display = "none"; //$NON-NLS-0$
 						}
 						break;
@@ -7528,6 +7576,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._overlayDiv = null;
 			this._leftDiv = null;
 			this._rightDiv = null;
+			this._marginDiv = null;
+			this._cursorDiv = null;
 			this._vScrollDiv = null;
 			this._hScrollDiv = null;
 		},
@@ -7848,6 +7898,14 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			return Math.max(0, Math.min(lineCount - 1, lineIndex));
 		},
+		_getRulerParent: function(ruler) {
+			switch (ruler.getLocation()) {
+				case "left": return this._leftDiv; //$NON-NLS-0$
+				case "right": return this._rightDiv; //$NON-NLS-0$
+				case "margin": return this._marginDiv; //$NON-NLS-0$
+			}
+			return null;
+		},
 		_getScroll: function(cancelAnimation) {
 			if (cancelAnimation === undefined || cancelAnimation) {
 				this._cancelAnimation();
@@ -7936,6 +7994,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				handlers.push({target: topNode, type: "dragleave", handler: function(e) { return self._handleDragLeave(e ? e : window.event);}}); //$NON-NLS-0$
 				handlers.push({target: topNode, type: "drop", handler: function(e) { return self._handleDrop(e ? e : window.event);}}); //$NON-NLS-0$
 				handlers.push({target: this._clientDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+				if (this._clipDiv) {
+					handlers.push({target: this._clipDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+				}
 				if (util.isFirefox && (!util.isWindows || util.isFirefox >= 15)) {
 					var MutationObserver = window.MutationObserver || window.MozMutationObserver;
 					if (MutationObserver) {
@@ -7956,30 +8017,28 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 			}
 
-			var leftDiv = this._leftDiv, rightDiv = this._rightDiv;
-			if (util.isIE) {
-				handlers.push({target: leftDiv, type: "selectstart", handler: function() {return false;}}); //$NON-NLS-0$
-			}
-			handlers.push({target: leftDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "click", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "dblclick", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "mousemove", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "mouseover", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: leftDiv, type: "mouseout", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			if (util.isIE) {
-				handlers.push({target: rightDiv, type: "selectstart", handler: function() {return false;}}); //$NON-NLS-0$
-			}
-			handlers.push({target: rightDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "click", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "dblclick", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "mousemove", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "mouseover", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
-			handlers.push({target: rightDiv, type: "mouseout", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			this._hookRulerEvents(this._leftDiv, handlers);
+			this._hookRulerEvents(this._rightDiv, handlers);
+			this._hookRulerEvents(this._marginDiv, handlers);
 			
 			for (var i=0; i<handlers.length; i++) {
 				var h = handlers[i];
 				addHandler(h.target, h.type, h.handler, h.capture);
 			}
+		},
+		_hookRulerEvents: function(div, handlers) {
+			if (!div) { return; }
+			var self = this;
+			var window = this._getWindow();
+			if (util.isIE) {
+				handlers.push({target: div, type: "selectstart", handler: function() {return false;}}); //$NON-NLS-0$
+			}
+			handlers.push({target: div, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+			handlers.push({target: div, type: "click", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "dblclick", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "mousemove", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "mouseover", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
+			handlers.push({target: div, type: "mouseout", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
 		},
 		_getWindow: function() {
 			return getWindow(this._parent.ownerDocument);
@@ -8489,7 +8548,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			sel1Div.style.top = (sel1Top - vd) + "px"; //$NON-NLS-0$
 			sel1Div.style.width = Math.max(0, sel1Right - sel1Left) + "px"; //$NON-NLS-0$
 			sel1Div.style.height = Math.max(0, sel1Bottom - sel1Top) + "px"; //$NON-NLS-0$
-			if (startRect.top === endRect.top) {
+			if (startNode.lineIndex === endNode.lineIndex) {
 				sel1Right = Math.min(r, right);
 				sel1Div.style.width = Math.max(0, sel1Right - sel1Left) + "px"; //$NON-NLS-0$
 			} else {
@@ -8502,7 +8561,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				sel3Div.style.top = (sel3Top - vd) + "px"; //$NON-NLS-0$
 				sel3Div.style.width = Math.max(0, sel3Right - sel3Left) + "px"; //$NON-NLS-0$
 				sel3Div.style.height = Math.max(0, sel3Bottom - sel3Top) + "px"; //$NON-NLS-0$
-				if (sel3Top - sel1Bottom > 0) {
+				if (Math.abs(startNode.lineIndex - endNode.lineIndex) > 1) {
 					var sel2Div = this._selDiv2;
 					sel2Div.style.left = (left - hd)  + "px"; //$NON-NLS-0$
 					sel2Div.style.top = (sel1Bottom - vd) + "px"; //$NON-NLS-0$
@@ -8776,6 +8835,21 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 			}
 		},
+		_setMarginOffset: function(marginOffset, init) {
+			this._marginOffset = marginOffset;
+			this._marginDiv.style.display = marginOffset ? "block" : "none"; //$NON-NLS-1$ //$NON-NLS-0$
+			if (!init) {
+				this._metrics = this._calculateMetrics();
+				this._queueUpdate();
+			}
+		},
+		_setWrapOffset: function(wrapOffset, init) {
+			this._wrapOffset = wrapOffset;
+			if (!init) {
+				this._metrics = this._calculateMetrics();
+				this._queueUpdate();
+			}
+		},
 		_setReadOnly: function (readOnly) {
 			this._readonly = readOnly;
 			this._clientDiv.setAttribute("aria-readonly", readOnly ? "true" : "false"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -8995,6 +9069,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				hScrollOnly = false;
 			}
 			var clientDiv = this._clientDiv;
+			var viewDiv = this._viewDiv;
 			if (!clientDiv) { return; }
 			if (this._metrics.invalid) {
 				this._ignoreQueueUpdate = true;
@@ -9006,9 +9081,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var viewPad = this._getViewPadding();
 			var lineCount = model.getLineCount();
 			var lineHeight = this._getLineHeight();
-			var clientWidth = this._getClientWidth();
+			var needUpdate = false;
+			var hScroll = false, vScroll = false;
+			var scrollbarWidth = this._metrics.scrollWidth;
+			
 			if (this._wrapMode) {
-				clientDiv.style.width = clientWidth + "px"; //$NON-NLS-0$
+				clientDiv.style.width = (this._metrics.wrapWidth || this._getClientWidth()) + "px"; //$NON-NLS-0$
 			}
 			
 			/*
@@ -9019,7 +9097,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			*/
 			var topIndex, lineStart, top, topIndexY,
 				leftWidth, leftRect,
-				clientHeight, scrollWidth, scrollHeight,
+				clientWidth, clientHeight, scrollWidth, scrollHeight,
 				totalHeight = 0, totalLineIndex = 0, tempLineHeight;
 			if (this._lineHeight) {
 				while (totalLineIndex < lineCount) {
@@ -9048,15 +9126,20 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var parent = this._parent;
 			var parentWidth = parent.clientWidth;
 			var parentHeight = parent.clientHeight;
-			clientHeight = this._getClientHeight();
 			if (hScrollOnly) {
 				leftWidth = 0;
 				if (this._leftDiv) {
 					leftRect = this._leftDiv.getBoundingClientRect();
 					leftWidth = leftRect.right - leftRect.left;
 				}
+				clientWidth = this._getClientWidth();
+				clientHeight = this._getClientHeight();
 				scrollWidth = clientWidth;
-				if (!this._wrapMode) {
+				if (this._wrapMode) {
+					if (this._metrics.wrapWidth) {
+						scrollWidth = this._metrics.wrapWidth;
+					}
+				} else {
 					scrollWidth = Math.max(this._maxLineWidth, scrollWidth);
 				}
 				while (totalLineIndex < lineCount) {
@@ -9066,8 +9149,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 				scrollHeight = totalHeight;
 			} else {
+				clientHeight = this._getClientHeight();
 
-				var viewDiv = this._viewDiv;
 				var linesPerPage = Math.floor((clientHeight + topIndexY) / lineHeight);
 				var bottomIndex = Math.min(topIndex + linesPerPage, lineCount - 1);
 				var lineEnd = Math.min(bottomIndex + 1, lineCount - 1);
@@ -9181,6 +9264,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				// Update rulers
 				this._updateRuler(this._leftDiv, topIndex, lineEnd, parentHeight);
 				this._updateRuler(this._rightDiv, topIndex, lineEnd, parentHeight);
+				this._updateRuler(this._marginDiv, topIndex, lineEnd, parentHeight);
 				
 				leftWidth = 0;
 				if (this._leftDiv) {
@@ -9198,14 +9282,52 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				/* Need to set the height first in order for the width to consider the vertical scrollbar */
 				var scrollDiv = this._scrollDiv;
 				scrollDiv.style.height = scrollHeight + "px"; //$NON-NLS-0$
-				/*
-				* TODO if frameHeightWithoutHScrollbar < scrollHeight  < frameHeightWithHScrollbar and the horizontal bar is visible, 
-				* then the clientWidth is wrong because the vertical scrollbar is showing. To correct code should hide both scrollbars 
-				* at this point.
-				*/
+				
 				clientWidth = this._getClientWidth();
+				if (!this._singleMode && !this._wrapMode) {
+					var clientHeightNoScroll = clientHeight, clientHeightScroll = clientHeight;
+					var oldHScroll = viewDiv.style.overflowX === "scroll"; //$NON-NLS-0$
+					if (oldHScroll) {
+						clientHeightNoScroll += scrollbarWidth;
+					} else {
+						clientHeightScroll -= scrollbarWidth;
+					}
+					var clientWidthNoScroll = clientWidth, clientWidthScroll = clientWidth;
+					var oldVScroll = viewDiv.style.overflowY === "scroll"; //$NON-NLS-0$
+					if (oldVScroll) {
+						clientWidthNoScroll += scrollbarWidth;
+					} else {
+						clientWidthScroll -= scrollbarWidth;
+					}
+					clientHeight = clientHeightNoScroll;
+					clientWidth = clientWidthNoScroll;
+					if (scrollHeight > clientHeight) {
+						vScroll = true;
+						clientWidth = clientWidthScroll;
+					}
+					if (this._maxLineWidth > clientWidth) {
+						hScroll = true;
+						clientHeight = clientHeightScroll;
+						if (scrollHeight > clientHeight) {
+							vScroll = true;
+							clientWidth = clientWidthScroll;
+						}
+					}
+					if (oldHScroll !== hScroll) {
+						viewDiv.style.overflowX = hScroll ? "scroll" : "hidden"; //$NON-NLS-1$ //$NON-NLS-0$
+					}
+					if (oldVScroll !== vScroll) {
+						viewDiv.style.overflowY = vScroll ? "scroll" : "hidden"; //$NON-NLS-1$ //$NON-NLS-0$
+					}
+					needUpdate = oldHScroll !== hScroll || oldVScroll !== vScroll;
+				}
+				
 				var width = clientWidth;
-				if (!this._wrapMode) {
+				if (this._wrapMode) {
+					if (this._metrics.wrapWidth) {
+						width = this._metrics.wrapWidth;
+					}
+				} else {
 					width = Math.max(this._maxLineWidth, width);
 				}
 				/*
@@ -9238,7 +9360,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var left = scroll.x;	
 			var clipDiv = this._clipDiv;
 			var overlayDiv = this._overlayDiv;
+			var marginDiv = this._marginDiv;
 			var clipLeft, clipTop;
+			if (marginDiv) {
+				marginDiv.style.left = (-left + leftWidth + this._metrics.marginWidth + viewPad.left) + "px"; //$NON-NLS-0$
+				marginDiv.style.bottom = (viewDiv.style.overflowX === "scroll" ? scrollbarWidth : 0) + "px"; //$NON-NLS-1$ //$NON-NLS-0$
+			}
 			if (clipDiv) {
 				clipDiv.scrollLeft = left;
 				clipDiv.scrollTop = 0;
@@ -9288,7 +9415,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				if (scroll.y + clientHeight === scrollHeight) { clipBottom += viewPad.bottom; }
 				clientDiv.style.clip = "rect(" + clipTop + "px," + clipRight + "px," + clipBottom + "px," + clipLeft + "px)"; //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				clientDiv.style.left = (-left + leftWidth + viewPad.left) + "px"; //$NON-NLS-0$
-				clientDiv.style.width = (util.isWebkit ? scrollWidth : clientWidth + left) + "px"; //$NON-NLS-0$
+				clientDiv.style.width = (this._wrapMode || util.isWebkit ? scrollWidth : clientWidth + left) + "px"; //$NON-NLS-0$
 				if (!hScrollOnly) {
 					clientDiv.style.top = (-top + viewPad.top) + "px"; //$NON-NLS-0$
 					clientDiv.style.height = (clientHeight + top) + "px"; //$NON-NLS-0$
@@ -9305,20 +9432,13 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			this._updateDOMSelection();
 
-			/*
-			* If the client height changed during the update page it means that scrollbar has either been shown or hidden.
-			* When this happens update page has to run again to ensure that the top and bottom lines div are correct.
-			* 
-			* Note: On IE, updateDOMSelection() has to be called before getting the new client height because it
-			* forces the client area to be recomputed.
-			*/
-			var ensureCaretVisible = this._ensureCaretVisible;
-			this._ensureCaretVisible = false;
-			if (clientHeight !== this._getClientHeight()) {
-				this._update();
+			if (needUpdate) {
+				var ensureCaretVisible = this._ensureCaretVisible;
+				this._ensureCaretVisible = false;
 				if (ensureCaretVisible) {
 					this._showCaret();
 				}
+				this._queueUpdate();
 			}
 		},
 		_updateOverflow: function() {
@@ -9327,13 +9447,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				viewDiv.style.overflowX = "hidden"; //$NON-NLS-0$
 				viewDiv.style.overflowY = "scroll"; //$NON-NLS-0$
 			} else {
-				if (this._singleMode) {
-					viewDiv.style.overflowX = "hidden"; //$NON-NLS-0$
-					viewDiv.style.overflowY = "hidden"; //$NON-NLS-0$
-				} else {
-					viewDiv.style.overflowX = "auto"; //$NON-NLS-0$
-					viewDiv.style.overflowY = "auto"; //$NON-NLS-0$
-				}
+				viewDiv.style.overflow = "hidden"; //$NON-NLS-0$
 			}
 		},
 		_updateRuler: function (divRuler, topIndex, bottomIndex, parentHeight) {
@@ -11181,7 +11295,7 @@ define("orion/editor/tooltip", [ //$NON-NLS-0$
 				var options = view.getOptions();
 				options.wrapMode = false;
 				options.parent = tooltipContents;
-				var tooltipTheme = "tooltip"; //$NON-NLS-0$
+				var tooltipTheme = "tooltipTheme"; //$NON-NLS-0$
 				var theme = options.themeClass;
 				if (theme) {
 					theme = theme.replace(tooltipTheme, "");
@@ -12675,7 +12789,7 @@ define("orion/editor/undoStack", [], function() { //$NON-NLS-0$
  
 /*global define */
 
-define("orion/editor/textDND", [], function() { //$NON-NLS-0$
+define("orion/editor/textDND", ['orion/util'], function(util) { //$NON-NLS-1$ //$NON-NLS-0$
 
 	function TextDND(view, undoStack) {
 		this._view = view;
@@ -12743,10 +12857,16 @@ define("orion/editor/textDND", [], function() { //$NON-NLS-0$
 			}
 		},
 		_onDragEnd: function(e) {
-			var view = this._view;
 			if (this._dragSelection) {
+				var view = this._view;
+				var dropEffect = e.event.dataTransfer.dropEffect;
+				if (!util.isFirefox) {
+					if (dropEffect !== "none" || this._dropText) { //$NON-NLS-0$
+						dropEffect = e.event.dataTransfer.dropEffect = this._dropEffect;
+					}
+				}
 				if (this._undoStack) { this._undoStack.startCompoundChange(); }
-				var move = e.event.dataTransfer.dropEffect === "move"; //$NON-NLS-0$
+				var move = dropEffect === "move"; //$NON-NLS-0$
 				if (move) {
 					view.setText("", this._dragSelection.start, this._dragSelection.end);
 				}
@@ -12774,13 +12894,20 @@ define("orion/editor/textDND", [], function() { //$NON-NLS-0$
 		},
 		_onDragOver: function(e) {
 			var types = e.event.dataTransfer.types;
-			if (types) {
-				var allowed = !this._view.getOptions("readonly"); //$NON-NLS-0$
-				if (allowed) {
-					allowed = types.contains ? types.contains("text/plain") : types.indexOf("text/plain") !== -1; //$NON-NLS-1$ //$NON-NLS-0$
-				}
-				if (!allowed) {
-					e.event.dataTransfer.dropEffect = "none"; //$NON-NLS-0$
+			var allowed = !this._view.getOptions("readonly"); //$NON-NLS-0$
+			if (allowed) {
+				if (types) {
+					allowed = types.contains ? 
+						types.contains("text/plain") || types.contains("Text") : //$NON-NLS-1$ //$NON-NLS-0$
+						types.indexOf("text/plain") !== -1 || types.indexOf("Text") !== -1; //$NON-NLS-1$ //$NON-NLS-0$
+					}
+			}
+			if (!allowed) {
+				e.event.dataTransfer.dropEffect = "none"; //$NON-NLS-0$
+			} else {
+				if (!util.isFirefox) {
+					var copy = util.isMac ? e.event.altKey : e.event.ctrlKey;
+					this._dropEffect = e.event.dataTransfer.dropEffect = copy ? "copy" : "move"; //$NON-NLS-1$ //$NON-NLS-0$
 				}
 			}
 		},
@@ -12788,6 +12915,9 @@ define("orion/editor/textDND", [], function() { //$NON-NLS-0$
 			var view = this._view;
 			var text = e.event.dataTransfer.getData("Text"); //$NON-NLS-0$
 			if (text) {
+				if (!util.isFirefox) {
+					e.event.dataTransfer.dropEffect = this._dropEffect; //$NON-NLS-1$ //$NON-NLS-0$
+				}
 				var offset = view.getOffsetAtLocation(e.x, e.y);
 				if (this._dragSelection) {
 					this._dropOffset = offset;
@@ -12801,6 +12931,77 @@ define("orion/editor/textDND", [], function() { //$NON-NLS-0$
 	};
 
 	return {TextDND: TextDND};
+});
+
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2013 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: IBM Corporation - initial API and implementation
+ ******************************************************************************/
+/*global define*/
+define('orion/objects',[], function() {
+	function mixin(target/*, source..*/) {
+		for (var j = 1; j < arguments.length; j++) {
+			var source = arguments[j];
+			for (var key in source) {
+				if (Object.prototype.hasOwnProperty.call(source, key)) {
+					target[key] = source[key];
+				}
+			}
+		}
+		return target;
+	}
+
+	/**
+	 * @name orion.objects
+	 * @class Object-oriented helpers.
+	 */
+	return {
+		/**
+		 * Creates a shallow clone of the given <code>object</code>.
+		 * @name orion.objects.clone
+		 * @function
+		 * @static
+		 * @param {Object|Array} object The object to clone. Must be a "normal" Object or Array. Other built-ins,
+		 * host objects, primitives, etc, will not work.
+		 * @returns {Object|Array} A clone of <code>object</code>.
+		 */
+		clone: function(object) {
+			if (Array.isArray(object)) {
+				return Array.prototype.slice.call(object);
+			}
+			var clone = Object.create(Object.getPrototypeOf(object));
+			mixin(clone, object);
+			return clone;
+		},
+		/**
+		 * Mixes all <code>source</code>'s own enumerable properties into <code>target</code>. Multiple source objects
+		 * can be passed as varags.
+		 * @name orion.objects.mixin
+		 * @function
+		 * @static
+		 * @param {Object} target
+		 * @param {Object} source
+		 */
+		mixin: mixin,
+		/**
+		 * Wraps an object into an Array if necessary.
+		 * @name orion.objects.toArray
+		 * @function
+		 * @static
+		 * @param {Object} obj An object.
+		 * @returns {Array} Returns <code>obj</code> unchanged, if <code>obj</code> is an Array. Otherwise returns a 1-element Array
+		 * whose sole element is <code>obj</code>.
+		 */
+		toArray: function(o) {
+			return Array.isArray(o) ? o : [o];
+		}
+	};
 });
 
 /*******************************************************************************
@@ -12821,27 +13022,166 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 	'orion/editor/eventTarget', //$NON-NLS-0$
 	'orion/editor/tooltip', //$NON-NLS-0$
 	'orion/editor/annotations', //$NON-NLS-0$
+	'orion/objects', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
-], function(messages, mEventTarget, mTooltip, mAnnotations, util) {
+], function(messages, mEventTarget, mTooltip, mAnnotations, objects, util) {
 
-	/**	@private */
-	function merge(obj1, obj2) {
-		if (obj2) {
-			for (var p in obj2) {
-				if (obj2.hasOwnProperty(p)) {
-					obj1[p] = obj2[p];
-				}
-			}
-		}
-		return obj1;
-	}
-		
 	var AT = mAnnotations.AnnotationType;
 
 	var HIGHLIGHT_ERROR_ANNOTATION = "orion.annotation.highlightError"; //$NON-NLS-0$
+	
+	/**
+	 * @name orion.editor.BaseEditor
+	 * @class This is the base interface for text and visual editors based on a text buffer.
+	 * 
+	 * @description Creates a new Base Editor with the given options.
+	 * @param {Object} options Creation options for this editor.
+	 * @param {Object} options.domNode
+	 * @param {Object} options.statusReporter
+	 *
+	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
+	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
+	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
+	 */
+	function BaseEditor(options) {
+		options = options || {};
+		this._domNode = options.domNode;
+		this._statusReporter = options.statusReporter;
+		this._dirty = false;
+		this._title = null;
+	}
+	BaseEditor.prototype = /** @lends orion.editor.BaseEditor.prototype */ {
+		/**
+		 * Destroys the editor. Uninstall the editor view.
+		 */
+		destroy: function() {
+			this.uninstall();
+			this._statusReporter = this._domNode = null;
+		},
+		/**
+		 * Focus the the editor view. The default implementation does nothing.
+		 */
+		focus: function() {
+		},
+		/**
+		 * Returns the text model of the editor.
+		 *
+		 * @returns {orion.editor.TextModel} the text model of the view.
+		 */
+		getModel: function() {
+			return this._model;	
+		},
+		/**
+		 * Returns the text for the given range.
+		 * <p>
+		 * The text does not include the character at the end offset.
+		 * </p>
+		 *
+		 * @param {Number} [start=0] the start offset of text range.
+		 * @param {Number} [end=char count] the end offset of text range.
+		 *
+		 * @see orion.editor.TextView#setText
+		 */
+		getText: function(start, end) {
+			return this.getModel().getText(start, end);
+		},
+		/**
+		 * Returns the editor title. 
+		 *
+		 * @returns {String} the editor title.
+		 */
+		getTitle: function() {
+			return this._title;
+		},
+		/**
+		 * Creates the DOM hierarchy of the editor and add it to the document.
+		 */
+		install: function() {
+		},
+		/**
+		 * Returns <code>true</code> if the editor is dirty; <code>false</code> otherwise.
+		 * @returns {Boolean} whether the editor is dirty
+		 */
+		isDirty: function() {
+			return this._dirty;
+		},
+		/** 
+		 * Marks the current state of the editor as clean. Meaning there are no unsaved modifications.
+		 */
+		markClean: function() {
+			this.setDirty(false);	
+		},
+		/**
+		 * Called when the dirty state of the editor changes.
+		 * @param {Event} dirtyChangedEvent
+		 */
+		onDirtyChanged: function(dirtyChangedEvent) {
+			return this.dispatchEvent(dirtyChangedEvent);
+		},
+		/**
+		 * Called when the editor's contents have been changed or saved.
+		 * @param {Event} inputChangedEvent
+		 */
+		onInputChanged: function (inputChangedEvent) {
+			return this.dispatchEvent(inputChangedEvent);
+		},
+		/**
+		 * Report the message to the user.
+		 * 
+		 * @param {String} message the message to show
+		 * @param {String} [type] the message type. Either normal or "progress" or "error";
+		 * @param {Boolean} [isAccessible] If <code>true</code>, a screen reader will read this message.
+		 * Otherwise defaults to the domNode default.
+		 */
+		reportStatus: function(message, type, isAccessible) {
+			if (this._statusReporter) {
+				this._statusReporter(message, type, isAccessible);
+			}
+		},
+		/**
+		 * Resizes the editor view. The default implementation does nothing.
+		 */
+		resize: function() {
+		},
+		/**
+		 * Sets whether the editor is dirty.
+		 *
+		 * @param {Boolean} dirty
+		 */
+		setDirty: function(dirty) {
+			if (this._dirty === dirty) { return; }
+			this._dirty = dirty;
+			this.onDirtyChanged({type: "DirtyChanged"}); //$NON-NLS-0$
+		},
+		/**
+		 * Sets the editor's contents.
+		 *
+		 * @param {String} title the editor title
+		 * @param {String} message an error message
+		 * @param {String} contents the editor contents
+		 * @param {Boolean} contentsSaved whether the editor contents was saved.
+		 */
+		setInput: function(title, message, contents, contentsSaved) {
+			this._title = title;
+			this.onInputChanged({
+				type: "InputChanged", //$NON-NLS-0$
+				title: title,
+				message: message,
+				contents: contents,
+				contentsSaved: contentsSaved
+			});
+		},
+		/**
+		 * Removes the DOM hierarchy of the editor from the document.
+		 */
+		uninstall: function() {
+		}
+	};
+	mEventTarget.EventTarget.addMixin(BaseEditor.prototype);
 
 	/**
 	 * @name orion.editor.Editor
+	 * @augments orion.editor.BaseEditor
 	 * @class An <code>Editor</code> is a user interface for editing text that provides additional features over the basic {@link orion.editor.TextView}.
 	 * Some of <code>Editor</code>'s features include:
 	 * <ul>
@@ -12864,12 +13204,10 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 	 * @param {Object} options.textViewFactory
 	 * @param {Object} options.undoStackFactory
 	 * @param {Object} options.textDNDFactory
-	 *
-	 * @borrows orion.editor.EventTarget#addEventListener as #addEventListener
-	 * @borrows orion.editor.EventTarget#removeEventListener as #removeEventListener
-	 * @borrows orion.editor.EventTarget#dispatchEvent as #dispatchEvent
 	 */
 	function Editor(options) {
+		options = options || {};
+		BaseEditor.call(this, options);
 		this._textViewFactory = options.textViewFactory;
 		this._undoStackFactory = options.undoStackFactory;
 		this._textDNDFactory = options.textDNDFactory;
@@ -12878,8 +13216,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		this._lineNumberRulerFactory = options.lineNumberRulerFactory;
 		this._contentAssistFactory = options.contentAssistFactory;
 		this._keyBindingFactory = options.keyBindingFactory;
-		this._statusReporter = options.statusReporter;
-		this._domNode = options.domNode;
 		
 		this._annotationStyler = null;
 		this._annotationModel = null;
@@ -12887,20 +13223,18 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		this._lineNumberRuler = null;
 		this._overviewRuler = null;
 		this._foldingRuler = null;
-		this._dirty = false;
 		this._contentAssist = null;
-		this._title = null;
 	}
-	Editor.prototype = /** @lends orion.editor.Editor.prototype */ {
+	Editor.prototype = new BaseEditor();
+	objects.mixin(Editor.prototype, /** @lends orion.editor.Editor.prototype */ {
 		/**
 		 * Destroys the editor.
 		 */
 		destroy: function() {
-			this.uninstallTextView();
+			BaseEditor.prototype.destroy.call(this);
 			this._textViewFactory = this._undoStackFactory = this._textDNDFactory = 
 			this._annotationFactory = this._foldingRulerFactory = this._lineNumberRulerFactory = 
-			this._contentAssistFactory = this._keyBindingFactory = this._statusReporter =
-			this._domNode = null;
+			this._contentAssistFactory = this._keyBindingFactory = null;
 		},
 		/**
 		 * Returns the annotation model of the editor. 
@@ -12978,14 +13312,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			return this._textView;
 		},
 		/**
-		 * Returns the editor title. 
-		 *
-		 * @returns {String} the editor title.
-		 */
-		getTitle: function() {
-			return this._title;
-		},
-		/**
 		 * Returns the editor undo stack. 
 		 *
 		 * @returns {orion.editor.UndoStack} the editor undo stack.
@@ -13033,12 +13359,16 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				this._textView.focus();
 			}
 		},
+		markClean: function() {
+			this.getUndoStack().markClean();
+		},
 		/**
-		 * Returns <code>true</code> if the editor is dirty; <code>false</code> otherwise.
-		 * @returns {Boolean} 
+		 * Resizes the text view.
 		 */
-		isDirty: function() {
-			return this._dirty;
+		resize: function() {
+			if (this._textView) {
+				this._textView.resize();
+			}
 		},
 		/**
 		 * Sets whether the annotation ruler is visible.
@@ -13072,16 +13402,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			} else {
 				textView.removeRuler(this._foldingRuler);
 			}
-		},
-		/**
-		 * Sets whether the editor is dirty.
-		 *
-		 * @param {Boolean} dirty
-		 */
-		setDirty: function(dirty) {
-			if (this._dirty === dirty) { return; }
-			this._dirty = dirty;
-			this.onDirtyChanged({type: "DirtyChanged"}); //$NON-NLS-0$
 		},
 		/**
 		 * Sets whether the line numbering ruler is visible.
@@ -13138,15 +13458,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				selection.end = model.mapOffset(selection.end);
 			}
 			return selection;
-		},
-		
-		getText: function(start, end) {
-			var textView = this._textView;
-			var model = textView.getModel();
-			if (model.getBaseModel) {
-				model = model.getBaseModel();
-			}
-			return model.getText(start, end);
 		},
 		
 		_expandOffset: function(offset) {
@@ -13229,15 +13540,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			this.setDirty(!this._undoStack.isClean());
 		},
 		
-		/**
-		 * @private
-		 */
-		reportStatus: function(message, type, isAccessible) {
-			if (this._statusReporter) {
-				this._statusReporter(message, type, isAccessible);
-			}
-		},
-		
 		/** @private */
 		_getTooltipInfo: function(x, y) {
 			var textView = this._textView;			
@@ -13296,6 +13598,10 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			}
 			this._currentLineAnnotation = annotation;
 			annotationModel.replaceAnnotations(remove, add);
+		},
+		
+		install: function() {
+			this.installTextView();
 		},
 		
 		/**
@@ -13492,6 +13798,10 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			};
 			this.dispatchEvent(textViewInstalledEvent);
 		},
+
+		uninstall: function() {
+			this.uninstallTextView();
+		},
 		
 		/**
 		 * Destroys the underlying TextView.
@@ -13623,12 +13933,13 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			}
 			var createGroup = function() {
 				var annotation = mAnnotations.AnnotationType.createAnnotation(this.groupType, this.start, this.end, this.title);
-				annotation.style = merge({}, annotation.style);
-				annotation.style.style = merge({}, annotation.style.style);
+				annotation.style = objects.mixin({}, annotation.style);
+				annotation.style.style = objects.mixin({}, annotation.style.style);
 				annotation.style.style.backgroundColor = "";
 				this.groupAnnotation = annotation;
 				annotation.blame = this.blame;
 				annotation.html = this.html;
+				annotation.creatorID = this.creatorID;
 				return annotation;
 			};
 			var title = function() {
@@ -13646,15 +13957,16 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			};
 			var model = this.getModel();
 			this.showAnnotations(blameMarkers, [
-				AT.ANNOTATION_BLAME
+				AT.ANNOTATION_BLAME,
+				AT.ANNOTATION_CURRENT_BLAME
 			], function (blameMarker) {
 				var start = model.getLineStart(blameMarker.Start - 1);
 				var end = model.getLineEnd(blameMarker.End - 1, true);
 				var annotation = mAnnotations.AnnotationType.createAnnotation(AT.ANNOTATION_BLAME, start, end, title);
 				var blameColor = blameRGB.slice(0);
 				blameColor.push(blameMarker.Shade);
-				annotation.style = merge({}, annotation.style);
-				annotation.style.style = merge({}, annotation.style.style);
+				annotation.style = objects.mixin({}, annotation.style);
+				annotation.style.style = objects.mixin({}, annotation.style.style);
 				annotation.style.style.backgroundColor = "rgba(" + blameColor.join() + ")"; //$NON-NLS-0$ //$NON-NLS-1$
 				annotation.groupId = blameMarker.Name;
 				annotation.groupType = AT.ANNOTATION_CURRENT_BLAME;
@@ -13702,7 +14014,6 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		 * @param {Boolean} contentsSaved
 		 */
 		setInput: function(title, message, contents, contentsSaved) {
-			this._title = title;
 			if (this._textView) {
 				if (!contentsSaved) {
 					if (message) {
@@ -13719,20 +14030,7 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				}
 				this.checkDirty();
 			}
-			this.onInputChanged({
-				type: "InputChanged", //$NON-NLS-0$
-				title: title,
-				message: message,
-				contents: contents,
-				contentsSaved: contentsSaved
-			});
-		},
-		/**
-		 * Called when the editor's contents have changed.
-		 * @param {Event} inputChangedEvent
-		 */
-		onInputChanged: function (inputChangedEvent) {
-			return this.dispatchEvent(inputChangedEvent);
+			BaseEditor.prototype.setInput.call(this, title, message, contents, contentsSaved);
 		},
 		/**
 		 * Reveals a line in the editor, and optionally selects a portion of the line.
@@ -13763,26 +14061,18 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 				}
 				this.moveSelection(lineStart + start, lineStart + end, callback);
 			}
-		},
-		
-		/**
-		 * Called when the dirty state of the editor changes.
-		 * @param {Event} dirtyChangedEvent
-		 */
-		onDirtyChanged: function(dirtyChangedEvent) {
-			return this.dispatchEvent(dirtyChangedEvent);
 		}
-	};
-	mEventTarget.EventTarget.addMixin(Editor.prototype);
+	});
 
 	return {
+		BaseEditor: BaseEditor,
 		Editor: Editor
 	};
 });
 
 /*******************************************************************************
  * @license
- * Copyright (c) 2011 IBM Corporation and others.
+ * Copyright (c) 2011, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -13794,13 +14084,14 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 /*global define */
 /*jslint browser:true regexp:false*/
 /**
- * @name orion.editor.regex
+ * @name orion.regex
  * @class Utilities for dealing with regular expressions.
  * @description Utilities for dealing with regular expressions.
  */
 define("orion/regex", [], function() { //$NON-NLS-0$
 	/**
-	 * @methodOf orion.editor.regex
+	 * @memberOf orion.regex
+	 * @function
 	 * @static
 	 * @description Escapes regex special characters in the input string.
 	 * @param {String} str The string to escape.
@@ -13811,7 +14102,8 @@ define("orion/regex", [], function() { //$NON-NLS-0$
 	}
 
 	/**
-	 * @methodOf orion.editor.regex
+	 * @memberOf orion.regex
+	 * @function
 	 * @static
 	 * @description Parses a pattern and flags out of a regex literal string.
 	 * @param {String} str The string to parse. Should look something like <code>"/ab+c/"</code> or <code>"/ab+c/i"</code>.
@@ -13835,64 +14127,6 @@ define("orion/regex", [], function() { //$NON-NLS-0$
 	return {
 		escape: escape,
 		parse: parse
-	};
-});
-
-/*******************************************************************************
- * @license
- * Copyright (c) 2013 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
- * Contributors: IBM Corporation - initial API and implementation
- ******************************************************************************/
-/*global define*/
-define('orion/objects',[], function() {
-	function mixin(target/*, source..*/) {
-		for (var j = 1; j < arguments.length; j++) {
-			var source = arguments[j];
-			for (var key in source) {
-				if (source.hasOwnProperty(key)) {
-					target[key] = source[key];
-				}
-			}
-		}
-	}
-
-	/**
-	 * @name orion.objects
-	 * @class Object-oriented helpers.
-	 */
-	return {
-		/**
-		 * Creates a shallow clone of the given <code>object</code>.
-		 * @name orion.objects.clone
-		 * @function
-		 * @static
-		 * @param {Object|Array} object The object to clone. Must be a "normal" Object or Array. Other built-ins,
-		 * host objects, primitives, etc, will not work.
-		 * @returns {Object|Array} A clone of <code>object</code>.
-		 */
-		clone: function(object) {
-			if (Array.isArray(object)) {
-				return Array.prototype.slice.call(object);
-			}
-			var clone = Object.create(Object.getPrototypeOf(object));
-			mixin(clone, object);
-			return clone;
-		},
-		/**
-		 * Mixes all <code>source</code>'s own enumerable properties into <code>target</code>. Multiple source objects
-		 * can be passed as varags.
-		 * @name orion.objects.mixin
-		 * @function
-		 * @static
-		 * @param {Object} target
-		 * @param {Object} source
-		 */
-		mixin: mixin
 	};
 });
 
@@ -14145,7 +14379,11 @@ define("orion/editor/find", [ //$NON-NLS-0$
 		},
 		getFindString: function() {
 			var selection = this._editor.getSelection();
-			return this._editor.getText(selection.start, selection.end) || this._lastString;
+			var searchString = this._editor.getText(selection.start, selection.end);
+			if (this._regex) {
+				searchString = mRegex.escape(searchString);
+			}
+			return searchString || this._lastString;
 		},
 		getOptions: function() {
 			return {
@@ -14181,6 +14419,36 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				textView.focus();
 			}
 		},
+		_processReplaceString: function(str) {
+			var newStr = str;
+			if (this._regex) {
+				newStr = "";
+				var escape = false;
+				var delimiter = this._editor.getModel().getLineDelimiter();
+				for (var i=0; i<str.length; i++) {
+					var c = str.substring(i, i + 1);
+					if (escape) {
+						switch (c) {
+							case "R": newStr += delimiter; break;
+							case "r": newStr += "\r"; break;
+							case "n": newStr += "\n"; break;
+							case "t": newStr += "\t"; break;
+							case "\\": newStr += "\\"; break;
+							default: newStr += "\\" + c;
+						}
+						escape = false;
+					} else if (c === "\\") {
+						escape = true;
+					} else {
+						newStr += c;
+					}
+				}
+				if (escape) {
+					newStr += "\\";
+				}
+			}
+			return newStr;
+		},
 		isVisible: function() {
 			return this._visible;
 		},
@@ -14188,7 +14456,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 			var string = this.getFindString();
 			if (string) {
 				var editor = this._editor;
-				var replaceString = this.getReplaceString();
+				var replaceString = this._processReplaceString(this.getReplaceString());
 				var selection = editor.getSelection();
 				var start = selection.start;
 				var result = editor.getModel().find({
@@ -14217,7 +14485,7 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				var editor = this._editor;
 				var textView = editor.getTextView();
 				editor.reportStatus(messages.replaceAll);
-				var replaceString = this.getReplaceString();
+				var replaceString = this._processReplaceString(this.getReplaceString());
 				var self = this;
 				window.setTimeout(function() {
 					var startPos = 0;
@@ -14339,15 +14607,8 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				this._undoStack.endCompoundChange();
 			}
 		},
-		_doFind: function(string, startOffset, count, noWrap) {
-			count = count || 1;
-			var editor = this._editor;
-			if (!string) {
-				this._removeAllAnnotations();
-				return null;
-			}
-			this._lastString = string;
-			var iterator = editor.getModel().find({
+		_find: function(string, startOffset, noWrap) {
+			return this._editor.getModel().find({
 				string: string,
 				start: startOffset,
 				end: this._end,
@@ -14357,7 +14618,26 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				wholeWord: this._wholeWord,
 				caseInsensitive: this._caseInsensitive
 			});
-			var result;
+		},
+		_doFind: function(string, startOffset, count, noWrap) {
+			count = count || 1;
+			var editor = this._editor;
+			if (!string) {
+				this._removeAllAnnotations();
+				return null;
+			}
+			this._lastString = string;
+			var result, iterator;
+			if (this._regex) {
+				try {
+					iterator = this._find(string, startOffset, noWrap);
+				} catch (ex) {
+					editor.reportStatus(ex.message, "error"); //$NON-NLS-0$
+					return;
+				}
+			} else {
+				iterator = this._find(string, startOffset, noWrap);
+			}
 			for (var i=0; i<count && iterator.hasNext(); i++) {
 				result = iterator.next();
 			}
@@ -14477,6 +14757,8 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 	'orion/editor/find', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
 ], function(messages, mKeyBinding, mAnnotations, mTooltip, mFind, util) {
+
+	var AT = mAnnotations.AnnotationType;
 
 	var exports = {};
 
@@ -14868,8 +15150,8 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var editor = this.editor;
 			var annotationModel = editor.getAnnotationModel();
 			if (!annotationModel) { return true; }
-			var styler = editor.getAnnotationStyler();
-			if (!styler) { return true; }
+			var list = editor.getOverviewRuler() || editor.getAnnotationStyler();
+			if (!list) { return true; }
 			var model = editor.getModel();
 			var currentOffset = editor.getCaretOffset();
 			var annotations = annotationModel.getAnnotations(forward ? currentOffset : 0, forward ? model.getCharCount() : currentOffset);
@@ -14881,7 +15163,12 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				} else {
 					if (annotation.start >= currentOffset) { continue; }
 				}
-				if (!(annotation.rangeStyle && styler.isAnnotationTypeVisible(annotation.type))) {
+				if (
+					annotation.lineStyle ||
+					annotation.type === AT.ANNOTATION_MATCHING_BRACKET ||
+					annotation.type === AT.ANNOTATION_CURRENT_BRACKET ||
+					!list.isAnnotationTypeVisible(annotation.type)
+				) {
 					continue;
 				}
 				foundAnnotation = annotation;
@@ -15026,6 +15313,17 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				return this.skipClosingBracket(']'); //$NON-NLS-0$
 			}.bind(this));
 
+			// Autocomplete angle brackets <>
+			textView.setKeyBinding(new mKeyBinding.KeyBinding("<", false, false, false, false, "keypress"), "autoPairAngleBracket"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("autoPairAngleBracket", function() { //$NON-NLS-0$
+				return this.autoPairBrackets("<", ">"); //$NON-NLS-1$ //$NON-NLS-0$
+			}.bind(this));
+
+			textView.setKeyBinding(new mKeyBinding.KeyBinding('>', false, false, false, false, "keypress"), "skipClosingAngleBracket"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			textView.setAction("skipClosingAngleBracket", function() { //$NON-NLS-0$
+				return this.skipClosingBracket('>'); //$NON-NLS-0$
+			}.bind(this));
+
 			// Autocomplete parentheses ()
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("(", false, false, false, false, "keypress"), "autoPairParentheses"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			textView.setAction("autoPairParentheses", function() { //$NON-NLS-0$
@@ -15089,8 +15387,8 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				var lineTextAfterCaret = lineText.substring(lineOffset);
 				var text;
 				// If the character before the caret is an opening brace, smart indent the next line.
-				var prevCharIdx = lineTextBeforeCaret.trimRight().length - 1;
-				if (this.smartIndentation && lineText.charCodeAt(prevCharIdx) === 123) {
+				var prevCharIdx;
+				if (this.smartIndentation && lineText.charCodeAt(prevCharIdx = lineTextBeforeCaret.trimRight().length - 1) === 123) {
 					// Remove any extra whitespace
 					var whitespaceBeforeCaret = lineOffset - prevCharIdx - 1;
 					var whitespaceAfterCaret = lineTextAfterCaret.length - lineTextAfterCaret.trimLeft().length;
@@ -15104,7 +15402,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					return true;
 				// Proceed with autocompleting multi-line comment if the text before the caret matches
 				// the start or comment delimiter (*) of a multi-line comment
-				} else if ((!matchCommentEnd.test(lineTextBeforeCaret)) &&
+				} else if (this.autoCompleteComments && !matchCommentEnd.test(lineTextBeforeCaret) &&
 							(matchCommentStart.test(lineTextBeforeCaret) || matchCommentDelimiter.test(lineTextBeforeCaret))) {
 					var caretOffset;
 
@@ -15212,7 +15510,16 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		 * Automatically inserts the specified opening and closing brackets around the caret or selected text.
 		 */
 		autoPairBrackets: function(openBracket, closeBracket) {
-			if (!this.autoPairing) { return false; }
+			if (openBracket === "[" && !this.autoPairSquareBrackets) {
+				return false;
+			} else if (openBracket === "{" && !this.autoPairBraces) {
+				return false;
+			} else if (openBracket === "(" && !this.autoPairParentheses) {
+				return false;
+			} else if (openBracket === "<" && !this.autoPairAngleBrackets) {
+				return false;
+			}
+
 			var editor = this.editor;
 			var textView = editor.getTextView();
 			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
@@ -15242,7 +15549,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		 * Automatically inserts a pair of the specified quotation around the caret the caret or selected text.
 		 */
 		autoPairQuotations: function(quotation) {
-			if (!this.autoPairing) { return false; }
+			if (!this.autoPairQuotation) { return false; }
 			var editor = this.editor;
 			var textView = editor.getTextView();
 			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
@@ -15545,14 +15852,40 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 				this.undoStack.endCompoundChange();
 			}
 		},
-		setAutoPairing: function(enabled) {
-			this.autoPairing = enabled;
+		setAutoPairParentheses: function(enabled) {
+			this.autoPairParentheses = enabled;
+		},
+		setAutoPairBraces: function(enabled) {
+			this.autoPairBraces = enabled;
+		},
+		setAutoPairSquareBrackets: function(enabled) {
+			this.autoPairSquareBrackets = enabled;
+		},
+		setAutoPairAngleBrackets: function(enabled) {
+			this.autoPairAngleBrackets = enabled;
+		},
+		setAutoPairQuotations: function(enabled) {
+			this.autoPairQuotation = enabled;
+		},
+		setAutoCompleteComments: function(enabled) {
+			this.autoCompleteComments = enabled;
 		},
 		setSmartIndentation: function(enabled) {
 			this.smartIndentation = enabled;
 		}
 	};
 	exports.SourceCodeActions = SourceCodeActions;
+
+	if (!String.prototype.trimLeft) {
+		String.prototype.trimLeft = function(){
+			return this.replace(/^\s+/g, '');
+		};
+	}
+	if (!String.prototype.trimRight) {
+		String.prototype.trimRight = function(){
+			return this.replace(/\s+$/g, '');
+		};
+	}
 
 	return exports;
 });
@@ -15832,9 +16165,10 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				if (this.ignoreVerify) { return; }
 
 				// Get the position being modified
+				var start = this.editor.mapOffset(event.start);
 				var model = this.linkedModeModel, positionChanged, changed;
 				while (model) {
-					positionChanged = this._getPositionChanged(model, event.start, event.start + event.removedCharCount);
+					positionChanged = this._getPositionChanged(model, start, start + event.removedCharCount);
 					changed = positionChanged.position;
 					if (changed === undefined || changed.model !== model) {
 						// The change has been done outside of the positions, exit the Linked Mode
@@ -15853,7 +16187,7 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				for (var i = 0; i < sortedPositions.length; ++i) {
 					pos = sortedPositions[i];
 					position = pos.position;
-					var inside = position.offset <= event.start && event.start <= position.offset + position.length;
+					var inside = position.offset <= start && start <= position.offset + position.length;
 					if (inside && !pos.ansestor) {
 						position.offset += deltaCount;
 						position.length += changeCount;
@@ -15875,9 +16209,12 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				if (this.ignoreVerify) { return; }
 
 				// Get the position being modified
+				var editor = this.editor;
+				var start = editor.mapOffset(event.start);
+				var end = this.editor.mapOffset(event.end);
 				var model = this.linkedModeModel, positionChanged, changed;
 				while (model) {
-					positionChanged = this._getPositionChanged(model, event.start, event.end);
+					positionChanged = this._getPositionChanged(model, start, end);
 					changed = positionChanged.position;
 					if (changed === undefined || changed.model !== model) {
 						// The change has been done outside of the positions, exit the Linked Mode
@@ -15904,9 +16241,9 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				
 				// Update position offsets taking into account all positions in the same changing group
 				var deltaCount = 0;
-				var changeCount = event.text.length - (event.end - event.start);
+				var changeCount = event.text.length - (end - start);
 				var sortedPositions = positionChanged.positions, position, pos;
-				var deltaStart = event.start - changed.position.offset, deltaEnd = event.end - changed.position.offset;
+				var deltaStart = start - changed.position.offset, deltaEnd = end - changed.position.offset;
 				for (var i = 0; i < sortedPositions.length; ++i) {
 					pos = sortedPositions[i];
 					position = pos.position;
@@ -15928,11 +16265,10 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				
 				// Cancel this modification and apply same modification to all positions in changing group
 				this.ignoreVerify = true;
-				var textView = this.editor.getTextView();
 				for (i = sortedPositions.length - 1; i >= 0; i--) {
 					pos = sortedPositions[i];
 					if (pos.model === model && pos.group === changed.group) {
-						textView.setText(event.text, pos.oldOffset + deltaStart , pos.oldOffset + deltaEnd);
+						editor.setText(event.text, pos.oldOffset + deltaStart , pos.oldOffset + deltaEnd);
 					}
 				}
 				this.ignoreVerify = false;
@@ -16025,7 +16361,8 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				this.linkedModeModel.nextModel = undefined;
 			}
 			if (!this.linkedModeModel) {
-				var textView = this.editor.getTextView();
+				var editor = this.editor;
+				var textView = editor.getTextView();
 				textView.removeKeyMode(this);
 				textView.removeEventListener("Verify", this.linkedModeListener.onVerify); //$NON-NLS-0$
 				textView.removeEventListener("ModelChanged", this.linkedModeListener.onModelChanged); //$NON-NLS-0$
@@ -16034,7 +16371,7 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				contentAssist.offset = undefined;
 				this.editor.reportStatus(messages.linkedModeExited, null, true);
 				if (escapePosition) {
-					textView.setCaretOffset(model.escapePosition, false);
+					editor.setCaretOffset(model.escapePosition, false);
 				}
 			}
 			this.selectLinkedGroup(0);
@@ -16069,19 +16406,19 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 				model.selectedGroupIndex = index;
 				var group = model.groups[index];
 				var position = group.positions[0];
-				var textView = this.editor.getTextView();
-				textView.setSelection(position.offset, position.offset + position.length);
+				var editor = this.editor;
+				editor.setSelection(position.offset, position.offset + position.length);
 				var contentAssist = this.contentAssist;
 				if (contentAssist) {
 					contentAssist.offset = undefined;
 					if (group.data && group.data.type === "link" && group.data.values) { //$NON-NLS-0$
 						var provider = this._groupContentAssistProvider = new mTemplates.TemplateContentAssist(group.data.values);
 						provider.getPrefix = function() {
-							var selection = textView.getSelection();
+							var selection = editor.getSelection();
 							if (selection.start === selection.end) {
-								var caretOffset = textView.getCaretOffset();
+								var caretOffset = editor.getCaretOffset();
 								if (position.offset <= caretOffset && caretOffset <= position.offset + position.length) {
-									return textView.getText(position.offset, caretOffset);
+									return editor.getText(position.offset, caretOffset);
 								}
 							}
 							return "";
@@ -16314,36 +16651,16 @@ define("orion/editor/factories", [ //$NON-NLS-0$
  *
  * Contributors:
  *     IBM Corporation - initial API and implementation
- *******************************************************************************/
+ ******************************************************************************/
 /*global define */
 
 define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 	'orion/editor/factories', //$NON-NLS-0$
 	'orion/editor/actions', //$NON-NLS-0$
-	'orion/editor/linkedMode' //$NON-NLS-0$
-], function(mFactories, mActions, mLinkedMode) {
-
-	var exports = {};
-
-	exports.KeyBindingsFactory = mFactories.KeyBindingsFactory;
-	
-	exports.UndoFactory = mFactories.UndoFactory;
-
-	exports.LineNumberRulerFactory = mFactories.LineNumberRulerFactory;
-
-	exports.FoldingRulerFactory = mFactories.FoldingRulerFactory;
-
-	exports.AnnotationFactory = mFactories.AnnotationFactory;
-
-	exports.TextDNDFactory = mFactories.TextDNDFactory;
-
-	exports.TextActions = mActions.TextActions;
-
-	exports.SourceCodeActions = mActions.SourceCodeActions;
-	
-	exports.LinkedMode = mLinkedMode.LinkedMode;
-
-	return exports;
+	'orion/editor/linkedMode', //$NON-NLS-0$
+	'orion/objects' //$NON-NLS-0$
+], function(mFactories, mActions, mLinkedMode, objects) {
+	return objects.mixin({}, mFactories, mActions, mLinkedMode);
 });
 
 /*******************************************************************************
@@ -16359,328 +16676,387 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
 /*global exports module define setTimeout*/
 
 (function(root, factory) { // UMD
-	if (typeof define === "function" && define.amd) { //$NON-NLS-0$
-		define('orion/Deferred',factory);
-	} else if (typeof exports === "object") { //$NON-NLS-0$
-		module.exports = factory();
-	} else {
-		root.orion = root.orion || {};
-		root.orion.Deferred = factory();
-	}
+    if (typeof define === "function" && define.amd) { //$NON-NLS-0$
+        define('orion/Deferred',factory);
+    } else if (typeof exports === "object") { //$NON-NLS-0$
+        module.exports = factory();
+    } else {
+        root.orion = root.orion || {};
+        root.orion.Deferred = factory();
+    }
 }(this, function() {
-	var syncQueue = [],
-		asyncQueue = [],
-		running = false;
+    var queue = [],
+        running = false;
 
-	function run() {
-		var fn;
-		while ((fn = syncQueue.shift() || asyncQueue.shift())) { //empty the sync queue first!!
-			fn();
-		}
-		running = false;
-	}
+    function run() {
+        var fn;
+        while ((fn = queue.shift())) {
+            fn();
+        }
+        running = false;
+    }
 
-	function enqueue(fn, async) {
-		var queue = async ? asyncQueue : syncQueue;
-		queue.push(fn);
-		if (!running) {
-			running = true;
-			if (async) {
-				setTimeout(run, 0);
-			} else {
-				run();
-			}
-		}
-	}
+    function enqueue(fn) {
+        queue.push(fn);
+        if (!running) {
+            running = true;
+            setTimeout(run, 0);
+        }
+    }
 
-	function noReturn(fn) {
-		return function() {
-			fn.apply(null, arguments);
-		};
-	}
+    function noReturn(fn) {
+        return function() {
+            fn.apply(undefined, arguments);
+        };
+    }
 
-	function noop() {}
+    /**
+     * @name orion.Promise
+     * @class Interface representing an eventual value.
+     * @description Promise is an interface that represents an eventual value returned from the single completion of an operation.
+     *
+     * <p>For a concrete class that implements Promise and provides additional API, see {@link orion.Deferred}.</p>
+     * @see orion.Deferred
+     * @see orion.Deferred#promise
+     */
+    /**
+     * @name then
+     * @function
+     * @memberOf orion.Promise.prototype
+     * @description Adds handlers to be called on fulfillment or progress of this promise.
+     * @param {Function} [onResolve] Called when this promise is resolved.
+     * @param {Function} [onReject] Called when this promise is rejected.
+     * @param {Function} [onProgress] May be called to report progress events on this promise.
+     * @returns {orion.Promise} A new promise that is fulfilled when the given <code>onResolve</code> or <code>onReject</code>
+     * callback is finished. The callback's return value gives the fulfillment value of the returned promise.
+     */
+    /**
+     * Cancels this promise.
+     * @name cancel
+     * @function
+     * @memberOf orion.Promise.prototype
+     * @param {Object} reason The reason for canceling this promise.
+     * @param {Boolean} [strict]
+     */
 
-	function createCancelError() {
-		var cancelError = new Error("Cancel"); //$NON-NLS-0$
-		cancelError.name = "Cancel"; //$NON-NLS-0$
-		return cancelError;
-	}
+    /**
+     * @name orion.Deferred
+     * @borrows orion.Promise#then as #then
+     * @borrows orion.Promise#cancel as #cancel
+     * @class Provides abstraction over asynchronous operations.
+     * @description Deferred provides abstraction over asynchronous operations.
+     *
+     * <p>Because Deferred implements the {@link orion.Promise} interface, a Deferred may be used anywhere a Promise is called for.
+     * However, in most such cases it is recommended to use the Deferred's {@link #promise} field instead, which exposes a 
+     * simplified, minimally <a href="https://github.com/promises-aplus/promises-spec">Promises/A+</a>-compliant interface to callers.</p>
+     */
+    function Deferred() {
+        var result, state, listeners = [],
+            _this = this,
+            _protected = {};
 
-	/**
-	 * @name orion.Promise
-	 * @class Interface representing an eventual value.
-	 * @description Promise is an interface that represents an eventual value returned from the single completion of an operation.
-	 *
-	 * <p>For a concrete class that implements Promise and provides additional API, see {@link orion.Deferred}.</p>
-	 * @see orion.Deferred
-	 * @see orion.Deferred#promise
-	 */
-	/**
-	 * @name then
-	 * @methodOf orion.Promise.prototype
-	 * @description Adds handlers to be called on fulfillment or progress of this promise.
-	 * @param {Function} [onResolve] Called when this promise is resolved.
-	 * @param {Function} [onReject] Called when this promise is rejected.
-	 * @param {Function} [onProgress] May be called to report progress events on this promise.
-	 * @returns {orion.Promise} A new promise that is fulfilled when the given <code>onResolve</code> or <code>onReject</code>
-	 * callback is finished. The callback's return value gives the fulfillment value of the returned promise.
-	 */
-	/**
-	 * Cancels this promise.
-	 * @name cancel
-	 * @methodOf orion.Promise.prototype
-	 * @param {Object} reason The reason for canceling this promise.
-	 * @param {Boolean} [strict]
-	 */
+        Object.defineProperty(this, "_protected", {
+            value: function(secret) {
+                if (secret !== queue) {
+                    throw new Error("protected");
+                }
+                return _protected;
+            }
+        });
 
-	/**
-	 * @name orion.Deferred
-	 * @borrows orion.Promise#then as #then
-	 * @borrows orion.Promise#cancel as #cancel
-	 * @class Provides abstraction over asynchronous operations.
-	 * @description Deferred provides abstraction over asynchronous operations.
-	 *
-	 * <p>Because Deferred implements the {@link orion.Promise} interface, a Deferred may be used anywhere a Promise is called for.
-	 * However, in most such cases it is recommended to use the Deferred's {@link #promise} field instead, which exposes a 
-	 * simplified, minimally <a href="https://github.com/promises-aplus/promises-spec">Promises/A+</a>-compliant interface to callers.</p>
-	 */
-	function Deferred() {
-		var result, state, listeners = [],
-			_this = this;
+        function notify() {
+            var listener;
+            while ((listener = listeners.shift())) {
+                var deferred = listener.deferred;
+                var methodName = state === "fulfilled" ? "resolve" : "reject"; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
+                if (typeof listener[methodName] === "function") { //$NON-NLS-0$
+                    try {
+                        var fn = listener[methodName];
+                        var listenerResult = fn(result);
+                        var listenerThen = listenerResult && (typeof listenerResult === "object" || typeof listenerResult === "function") && listenerResult.then;
+                        if (typeof listenerThen === "function") {
+                            if (listenerResult === deferred.promise) {
+                                deferred.reject(new TypeError());
+                            } else {
+                                var listenerResultCancel = listenerResult.cancel;
+                                if (typeof listenerResultCancel === "function") {
+                                    deferred._protected(queue).parentCancel = listenerResultCancel.bind(listenerResult);
+                                } else {
+                                    delete deferred._protected(queue).parentCancel;
+                                }
+                                listenerThen.call(listenerResult, noReturn(deferred.resolve), noReturn(deferred.reject), noReturn(deferred.progress));
+                            }
+                        } else {
+                            deferred.resolve(listenerResult);
+                        }
+                    } catch (e) {
+                        deferred.reject(e);
+                    }
+                } else {
+                    deferred[methodName](result);
+                }
+            }
+        }
 
-		function notify() {
-			var listener;
-			while ((listener = listeners.shift())) {
-				var deferred = listener.deferred;
-				var methodName = state === "resolved" ? "resolve" : "reject"; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
-				if (typeof listener[methodName] === "function") { //$NON-NLS-0$
-					try {
-						var listenerResult = listener[methodName](result);
-						if (listenerResult && typeof listenerResult.then === "function") { //$NON-NLS-0$
-							deferred.cancel = listenerResult.cancel || noop;
-							listenerResult.then(noReturn(deferred.resolve), noReturn(deferred.reject), deferred.progress);
-						} else {
-							deferred.resolve(listenerResult);
-						}
-					} catch (e) {
-						deferred.reject(e);
-					}
-				} else {
-					deferred[methodName](result);
-				}
-			}
-		}
+        function _reject(error) {
+            delete _protected.parentCancel;
+            state = "rejected";
+            result = error;
+            if (listeners.length) {
+                enqueue(notify);
+            }
+        }
 
-		/**
-		 * Rejects this Deferred.
-		 * @name reject
-		 * @methodOf orion.Deferred.prototype
-		 * @param {Object} error
-		 * @param {Boolean} [strict]
-		 * @returns {orion.Promise}
-		 */
-		this.reject = function(error, strict) {
-			if (!state) {
-				state = "rejected"; //$NON-NLS-0$
-				result = error;
-				if (listeners.length) {
-					enqueue(notify);
-				}
-			}
-			return _this.promise;
-		};
+        function _resolve(value) {
+            var called = false;
 
-		/**
-		 * Resolves this Deferred.
-		 * @name resolve
-		 * @methodOf orion.Deferred.prototype
-		 * @param {Object} value
-		 * @param {Boolean} [strict]
-		 * @returns {orion.Promise}
-		 */
-		this.resolve = function(value, strict) {
-			if (!state) {
-				state = "resolved"; //$NON-NLS-0$
-				result = value;
-				if (listeners.length) {
-					enqueue(notify);
-				}
-			}
-			return _this.promise;
-		};
+            function once(fn) {
+                return function(value) {
+                    if (!called) {
+                        called = true;
+                        fn(value);
+                    }
+                };
+            }
+            delete _protected.parentCancel;
+            try {
+                var valueThen = value && (typeof value === "object" || typeof value === "function") && value.then;
+                if (typeof valueThen === "function") {
+                    if (value === _this) {
+                        _reject(new TypeError());
+                    } else {
+                        state = "assumed";
+                        var valueCancel = value && value.cancel;
+                        if (typeof valueCancel !== "function") {
+                            var deferred = new Deferred();
+                            value = deferred.promise;
+                            try {
+                                valueThen(deferred.resolve, deferred.reject, deferred.progress);
+                            } catch (thenError) {
+                                deferred.reject(thenError);
+                            }
+                            valueCancel = value.cancel;
+                            valueThen = value.then;
+                        }
+                        result = value;
+                        valueThen.call(value, once(_resolve), once(_reject));
+                        _protected.parentCancel = valueCancel.bind(value);
+                    }
+                } else {
+                    state = "fulfilled";
+                    result = value;
+                    if (listeners.length) {
+                        enqueue(notify);
+                    }
+                }
+            } catch (error) {
+                once(_reject)(error);
+            }
+        }
 
-		/**
-		 * Notifies listeners of progress on this Deferred.
-		 * @name progress
-		 * @methodOf orion.Deferred.prototype
-		 * @param {Object} update The progress update.
-		 * @param {Boolean} [strict]
-		 * @returns {orion.Promise}
-		 */
-		this.progress = function(update, strict) {
-			if (!state) {
-				listeners.forEach(function(listener) {
-					if (listener.progress) {
-						listener.progress(update);
-					}
-				});
-			}
-			return _this.promise;
-		};
+        function cancel() {
+            var parentCancel = _protected.parentCancel;
+            if (parentCancel) {
+                delete _protected.parentCancel;
+                parentCancel();
+            } else if (!state) {
+                var cancelError = new Error("Cancel");
+                cancelError.name = "Cancel";
+                _reject(cancelError);
+            }
+        }
 
-		this.cancel = function() {
-			if (!state) {
-				_this.reject(createCancelError());
-			}
-		};
 
-		// Note: "then" ALWAYS returns before having onResolve or onReject called as per http://promises-aplus.github.com/promises-spec/
-		this.then = function(onResolve, onReject, onProgress) {
-			var listener = {
-				resolve: onResolve,
-				reject: onReject,
-				progress: onProgress,
-				deferred: new Deferred()
-			};
-			var deferred = listener.deferred;
-			var propagated = false;
-			var propagateCancel = function() {
-				if (propagated) {
-					return;
-				}
-				propagated = true;
-				enqueue(function() {
-					var cancel = deferred.cancel === propagateCancel ? _this.cancel : deferred.cancel;
-					if (typeof cancel === "function") {
-						cancel();
-					}
-				}, true);
-			};
-			deferred.cancel = propagateCancel;
-			listeners.push(listener);
-			if (state) {
-				enqueue(notify, true); //runAsync
-			}
-			return deferred.promise;
-		};
+        /**
+         * Resolves this Deferred.
+         * @name resolve
+         * @function
+         * @memberOf orion.Deferred.prototype
+         * @param {Object} value
+         * @returns {orion.Promise}
+         */
+        this.resolve = function(value) {
+            if (!state) {
+                _resolve(value);
+            }
+            return _this;
+        };
 
-		/**
-		 * The promise exposed by this Deferred.
-		 * @name promise
-		 * @fieldOf orion.Deferred.prototype
-		 * @type orion.Promise
-		 */
-		this.promise = Object.create(Object.prototype, {
-			then: {
-				value: _this.then
-			},
-			cancel: {
-				get: function() {
-					return _this.cancel;
-				},
-				set: function(value) {
-					_this.cancel = value;
-				}
-			}
-		});
-	}
+        /**
+         * Rejects this Deferred.
+         * @name reject
+         * @function
+         * @memberOf orion.Deferred.prototype
+         * @param {Object} error
+         * @param {Boolean} [strict]
+         * @returns {orion.Promise}
+         */
+        this.reject = function(error) {
+            if (!state) {
+                _reject(error);
+            }
+            return _this;
+        };
 
-	/**
-	 * Returns a promise that represents the outcome of all the input promises.
-	 * <p>When <code>all</code> is called with a single parameter, the returned promise has <dfn>eager</dfn> semantics,
-	 * meaning that if any input promise rejects, the returned promise immediately rejects, without waiting for the rest of the
-	 * input promises to fulfill.</p>
-	 *
-	 * To obtain <dfn>lazy</dfn> semantics (meaning the returned promise waits for every input promise to fulfill), pass the
-	 * optional parameter <code>optOnError</code>.
-	 * @name all
-	 * @methodOf orion.Deferred
-	 * @static
-	 * @param {orion.Promise[]} promises The input promises.
-	 * @param {Function} [optOnError] Handles a rejected input promise. <code>optOnError</code> is invoked for every rejected
-	 * input promise, and is passed the reason the input promise was rejected. <p><code>optOnError</code> can return a value, which
-	 * allows it to act as a transformer: the return value serves as the final fulfillment value of the rejected promise in the 
-	 * results array generated by <code>all</code>.
-	 * @returns {orion.Promise} A new promise. The returned promise is generally fulfilled to an <code>Array</code> whose elements
-	 * give the fulfillment values of the input promises. <p>However, if an input promise rejects and eager semantics is used, the 
-	 * returned promise will instead be fulfilled to a single error value.</p>
-	 */
-	Deferred.all = function(promises, optOnError) {
-		var count = promises.length,
-			result = [],
-			rejected = false,
-			deferred = new Deferred();
+        /**
+         * Notifies listeners of progress on this Deferred.
+         * @name progress
+         * @function
+         * @memberOf orion.Deferred.prototype
+         * @param {Object} update The progress update.
+         * @returns {orion.Promise}
+         */
+        this.progress = function(update) {
+            if (!state) {
+                listeners.forEach(function(listener) {
+                    if (listener.progress) {
+                        try {
+                            listener.progress(update);
+                        } catch (ignore) {
+                            // ignore
+                        }
+                    }
+                });
+            }
+            return _this.promise;
+        };
 
-		deferred.then(null, function() {
-			rejected = true;
-			promises.forEach(function(promise) {
-				if (promise.cancel) {
-					promise.cancel();
-				}
-			});
-		});
+        this.cancel = function() {
+            if (_protected.parentCancel) {
+                setTimeout(cancel, 0);
+            } else {
+                cancel();
+            }
 
-		function onResolve(i, value) {
-			if (!rejected) {
-				result[i] = value;
-				if (--count === 0) {
-					deferred.resolve(result);
-				}
-			}
-		}
+            return _this;
+        };
 
-		function onReject(i, error) {
-			if (!rejected) {
-				if (optOnError) {
-					try {
-						onResolve(i, optOnError(error));
-						return;
-					} catch (e) {
-						error = e;
-					}
-				}
-				deferred.reject(error);
-			}
-		}
+        // Note: "then" ALWAYS returns before having onResolve or onReject called as per http://promises-aplus.github.com/promises-spec/
+        this.then = function(onFulfill, onReject, onProgress) {
+            var listener = {
+                resolve: onFulfill,
+                reject: onReject,
+                progress: onProgress,
+                deferred: new Deferred()
+            };
+            listeners.push(listener);
+            listener.deferred._protected(queue).parentCancel = _this.promise.cancel.bind(_this);
+            if (state === "fulfilled" || state === "rejected") {
+                enqueue(notify);
+            }
+            return listener.deferred.promise;
+        };
 
-		if (count === 0) {
-			deferred.resolve(result);
-		} else {
-			promises.forEach(function(promise, i) {
-				promise.then(onResolve.bind(null, i), onReject.bind(null, i));
-			});
-		}
-		return deferred.promise;
-	};
+        /**
+         * The promise exposed by this Deferred.
+         * @name promise
+         * @field
+         * @memberOf orion.Deferred.prototype
+         * @type orion.Promise
+         */
+        this.promise = {
+            then: _this.then,
+            cancel: _this.cancel
+        };
+    }
 
-	/**
-	 * Applies callbacks to a promise or to a regular object.
-	 * @name when
-	 * @methodOf orion.Deferred
-	 * @static
-	 * @param {Object|orion.Promise} value Either a {@link orion.Promise}, or a normal value.
-	 * @param {Function} onResolve Called when the <code>value</code> promise is resolved. If <code>value</code> is not a promise,
-	 * this function is called immediately.
-	 * @param {Function} onReject Called when the <code>value</code> promise is rejected. If <code>value</code> is not a promise, 
-	 * this function is never called.
-	 * @param {Function} onProgress Called when the <code>value</code> promise provides a progress update. If <code>value</code> is
-	 * not a promise, this function is never called.
-	 * @returns {orion.Promise} A new promise.
-	 */
-	Deferred.when = function(value, onResolve, onReject, onProgress) {
-		var promise, deferred;
-		if (value && typeof value.then === "function") { //$NON-NLS-0$
-			promise = value;
-		} else {
-			deferred = new Deferred();
-			deferred.resolve(value);
-			promise = deferred.promise;
-		}
-		return promise.then(onResolve, onReject, onProgress);
-	};
+    /**
+     * Returns a promise that represents the outcome of all the input promises.
+     * <p>When <code>all</code> is called with a single parameter, the returned promise has <dfn>eager</dfn> semantics,
+     * meaning that if any input promise rejects, the returned promise immediately rejects, without waiting for the rest of the
+     * input promises to fulfill.</p>
+     *
+     * To obtain <dfn>lazy</dfn> semantics (meaning the returned promise waits for every input promise to fulfill), pass the
+     * optional parameter <code>optOnError</code>.
+     * @name all
+     * @function
+     * @memberOf orion.Deferred
+     * @static
+     * @param {orion.Promise[]} promises The input promises.
+     * @param {Function} [optOnError] Handles a rejected input promise. <code>optOnError</code> is invoked for every rejected
+     * input promise, and is passed the reason the input promise was rejected. <p><code>optOnError</code> can return a value, which
+     * allows it to act as a transformer: the return value serves as the final fulfillment value of the rejected promise in the 
+     * results array generated by <code>all</code>.
+     * @returns {orion.Promise} A new promise. The returned promise is generally fulfilled to an <code>Array</code> whose elements
+     * give the fulfillment values of the input promises. <p>However, if an input promise rejects and eager semantics is used, the 
+     * returned promise will instead be fulfilled to a single error value.</p>
+     */
+    Deferred.all = function(promises, optOnError) {
+        var count = promises.length,
+            result = [],
+            rejected = false,
+            deferred = new Deferred();
 
-	return Deferred;
+        deferred.then(undefined, function() {
+            rejected = true;
+            promises.forEach(function(promise) {
+                if (promise.cancel) {
+                    promise.cancel();
+                }
+            });
+        });
+
+        function onResolve(i, value) {
+            if (!rejected) {
+                result[i] = value;
+                if (--count === 0) {
+                    deferred.resolve(result);
+                }
+            }
+        }
+
+        function onReject(i, error) {
+            if (!rejected) {
+                if (optOnError) {
+                    try {
+                        onResolve(i, optOnError(error));
+                        return;
+                    } catch (e) {
+                        error = e;
+                    }
+                }
+                deferred.reject(error);
+            }
+        }
+
+        if (count === 0) {
+            deferred.resolve(result);
+        } else {
+            promises.forEach(function(promise, i) {
+                promise.then(onResolve.bind(undefined, i), onReject.bind(undefined, i));
+            });
+        }
+        return deferred.promise;
+    };
+
+    /**
+     * Applies callbacks to a promise or to a regular object.
+     * @name when
+     * @function
+     * @memberOf orion.Deferred
+     * @static
+     * @param {Object|orion.Promise} value Either a {@link orion.Promise}, or a normal value.
+     * @param {Function} onResolve Called when the <code>value</code> promise is resolved. If <code>value</code> is not a promise,
+     * this function is called immediately.
+     * @param {Function} onReject Called when the <code>value</code> promise is rejected. If <code>value</code> is not a promise, 
+     * this function is never called.
+     * @param {Function} onProgress Called when the <code>value</code> promise provides a progress update. If <code>value</code> is
+     * not a promise, this function is never called.
+     * @returns {orion.Promise} A new promise.
+     */
+    Deferred.when = function(value, onResolve, onReject, onProgress) {
+        var promise, deferred;
+        if (value && typeof value.then === "function") { //$NON-NLS-0$
+            promise = value;
+        } else {
+            deferred = new Deferred();
+            deferred.resolve(value);
+            promise = deferred.promise;
+        }
+        return promise.then(onResolve, onReject, onProgress);
+    };
+
+    return Deferred;
 }));
 
 /*******************************************************************************
@@ -16694,8 +17070,8 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
-/*jslint maxerr:150 browser:true devel:true */
+/*global console define */
+/*jslint browser:true */
 
 define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
@@ -16712,7 +17088,8 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	 * @class Interface defining a provider of content assist proposals.
 	 */
 	/**
-	 * @methodOf orion.editor.ContentAssistProvider.prototype
+	 * @memberOf orion.editor.ContentAssistProvider.prototype
+	 * @function
 	 * @name computeProposals
 	 * @param {String} buffer The buffer being edited.
 	 * @param {Number} offset The position in the buffer at which content assist is being requested.
@@ -16766,6 +17143,18 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	 * @name orion.editor.ContentAssist#ProposalsComputedEvent
 	 * @event
 	 */
+
+	/**
+	 * Flattens an array of arrays into a one-dimensional array.
+	 * @param {Array[]} array
+	 * @returns {Array}
+	 */
+	function flatten(array) {
+		return array.reduce(function(prev, curr) {
+			return Array.isArray(curr) ? prev.concat(curr) : prev;
+		}, []);
+	}
+
 	// INACTIVE --Ctrl+Space--> ACTIVE --ModelChanging--> FILTERING
 	var State = {
 		INACTIVE: 1,
@@ -16809,7 +17198,9 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		};
 		textView.setKeyBinding(util.isMac ? new mKeyBinding.KeyBinding(' ', false, false, false, true) : new mKeyBinding.KeyBinding(' ', true), "contentAssist"); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		textView.setAction("contentAssist", function() { //$NON-NLS-0$
-			self.activate();
+			if (!textView.getOptions("readonly")) { //$NON-NLS-0$
+				self.activate();
+			}
 			return true;
 		}, {name: messages.contentAssist});
 	}
@@ -16827,21 +17218,28 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			// now handle prefixes
 			// if there is a non-empty selection, then replace it,
 			// if overwrite is truthy, then also replace the prefix
-			var sel = this.textView.getSelection();
-			var start = Math.min(sel.start, sel.end);
-			var end = Math.max(sel.start, sel.end);
+			var view = this.textView;
+			var sel = view.getSelection();
+			var start = Math.min(sel.start, sel.end), mapStart = start;
+			var end = Math.max(sel.start, sel.end), mapEnd = end;
+			var model = view.getModel();
+			if (model.getBaseModel) {
+				mapStart = model.mapOffset(mapStart);
+				mapEnd = model.mapOffset(mapEnd);
+				model = model.getBaseModel();
+			}
 			if (proposal.overwrite) {
-				start = this.getPrefixStart(start);
+				start = this.getPrefixStart(model, mapStart);
 			}
 
 			var data = {
 				proposal: proposal,
-				start: start,
-				end: end
+				start: mapStart,
+				end: mapEnd
 			};
 			this.setState(State.INACTIVE);
 			var proposalText = typeof proposal === "string" ? proposal : proposal.proposal; //$NON-NLS-0$
-			this.textView.setText(proposalText, start, end);
+			view.setText(proposalText, start, end);
 			this.dispatchEvent({type: "ProposalApplied", data: data}); //$NON-NLS-0$
 			return true;
 		},
@@ -16919,9 +17317,9 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			});
 		},
 		/** @private */
-		getPrefixStart: function(end) {
+		getPrefixStart: function(model, end) {
 			var index = end;
-			while (index > 0 && /[A-Za-z0-9_]/.test(this.textView.getText(index - 1, index))) {
+			while (index > 0 && /[A-Za-z0-9_]/.test(model.getText(index - 1, index))) {
 				index--;
 			}
 			return index;
@@ -16929,7 +17327,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		handleError: function(error) {
 			if (typeof console !== "undefined") { //$NON-NLS-0$
 				console.log("Error retrieving content assist proposals"); //$NON-NLS-0$
-				console.log(error);
+				console.log(error && error.stack);
 			}
 		},
 		/**
@@ -16940,9 +17338,16 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		 */
 		_computeProposals: function(offset) {
 			var providers = this.providers;
-			var textView = this.textView, textModel = textView.getModel();
-			var buffer = textView.getText();
-			var line = textModel.getLine(textModel.getLineAtOffset(offset));
+			var textView = this.textView;
+			var sel = textView.getSelection();
+			var model = textView.getModel(), mapOffset = offset;
+			if (model.getBaseModel) {
+				mapOffset = model.mapOffset(mapOffset);
+				sel.start = model.mapOffset(sel.start);
+				sel.end = model.mapOffset(sel.end);
+				model = model.getBaseModel();
+			}
+			var line = model.getLine(model.getLineAtOffset(mapOffset));
 			var index = 0;
 			while (index < line.length && /\s/.test(line.charAt(index))) {
 				index++;
@@ -16952,32 +17357,43 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			var tab = options.expandTab ? new Array(options.tabSize + 1).join(" ") : "\t"; //$NON-NLS-1$ //$NON-NLS-0$
 			var context = {
 				line: line,
-				prefix: textView.getText(this.getPrefixStart(offset), offset),
-				selection: textView.getSelection(),
-				delimiter: textModel.getLineDelimiter(),
+				offset: mapOffset,
+				prefix: model.getText(this.getPrefixStart(model, mapOffset), mapOffset),
+				selection: sel,
+				delimiter: model.getLineDelimiter(),
 				tab: tab,
 				indentation: indentation
 			};
 			var self = this;
 			var promises = providers.map(function(provider) {
-				//prefer computeProposals but support getProposals for backwards compatibility
-				var func = provider.computeProposals || provider.getProposals;
 				var proposals;
 				try {
-					if (typeof func === "function") { //$NON-NLS-0$
-						proposals = self.progress ? self.progress.progress(func.apply(provider, [buffer, offset, context]), "Generating content assist proposal"): func.apply(provider, [buffer, offset, context]);
+					var func, promise;
+					if ((func = provider.computeContentAssist)) {
+						var editorContext = self.editorContextProvider && self.editorContextProvider();
+						promise = func.apply(provider, [editorContext, context]);
+					} else if ((func = provider.getProposals || provider.computeProposals)) {
+						// old API
+						promise = func.apply(provider, [model.getText(), mapOffset, context]);
 					}
+					proposals = self.progress ? self.progress.progress(promise, "Generating content assist proposal") : promise; //$NON-NLS-0$
 				} catch (e) {
 					self.handleError(e);
 				}
 				return Deferred.when(proposals);
 			});
-			return Deferred.all(promises, this.handleError).then(function(proposalArrays) {
-				return proposalArrays.reduce(function(prev, curr) {
-					return (curr instanceof Array) ? prev.concat(curr) : prev;
-				}, []);
-			});
+			return Deferred.all(promises, this.handleError).then(flatten);
 		},
+
+		/**
+		 * Sets the editor context factory that this ContentAssist will invoke to generate an <code>{@link orion.edit.EditorContext}</code>.
+		 * The EditorContext is passed to providers that implement the v4.0 content assist API.
+		 * @param {Function} editorContextProvider A function that returns an {@link orion.edit.EditorContext}.
+		 */
+		setEditorContextFactory: function(editorContextFactory) {
+			this.editorContextProvider = editorContextFactory;
+		},
+
 		/**
 		 * Sets the content assist providers that this ContentAssist will consult to obtain proposals.
 		 * @param {orion.editor.ContentAssistProvider[]} providers The providers.
@@ -17170,7 +17586,8 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		var self = this;
 		this.textViewListener = {
 			onMouseDown: function(event) {
-				if (event.event.target.parentElement !== self.parentNode) {
+				var target = event.event.target || event.event.srcElement;
+				if (target.parentElement !== self.parentNode) {
 					self.contentAssist.deactivate();
 				}
 				// ignore the event if this is a click inside of the parentNode
@@ -17362,9 +17779,19 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		},
 		position: function() {
 			var contentAssist = this.contentAssist;
-			var offset = contentAssist.offset !== undefined ? contentAssist.offset : this.textView.getCaretOffset();
-			var caretLocation = this.textView.getLocationAtOffset(offset);
-			caretLocation.y += this.textView.getLineHeight();
+			var offset;
+			var view = this.textView;
+			if (contentAssist.offset !== undefined) {
+				offset = contentAssist.offset;
+				var model = view.getModel();
+				if (model.getBaseModel) {
+					offset = model.mapOffset(offset, true);
+				}
+			} else {
+				offset = this.textView.getCaretOffset();
+			}
+			var caretLocation = view.getLocationAtOffset(offset);
+			caretLocation.y += view.getLineHeight();
 			this.textView.convert(caretLocation, "document", "page"); //$NON-NLS-1$ //$NON-NLS-0$
 			this.parentNode.style.position = "fixed"; //$NON-NLS-0$
 			this.parentNode.style.left = caretLocation.x + "px"; //$NON-NLS-0$
@@ -17868,7 +18295,7 @@ define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mT
 
 	HTMLContentAssistProvider.prototype.getPrefix = function(buffer, offset, context) {
 		var index = offset;
-		while (index && /[A-Za-z<]/.test(buffer.charAt(index - 1))) {
+		while (index && /[A-Za-z0-9<]/.test(buffer.charAt(index - 1))) {
 			index--;
 			if (buffer.charAt(index) === "<") { //$NON-NLS-0$
 				break;
@@ -18078,7 +18505,7 @@ define("orion/editor/jsTemplateContentAssist", [ //$NON-NLS-0$
 	 */
 	JSTemplateContentAssistProvider.prototype.isValid = function(prefix, buffer, offset, context) {
 		var previousChar = findPreviousChar(buffer, offset-prefix.length-1);
-		return uninterestingChars.indexOf(previousChar) === -1;
+		return !previousChar || uninterestingChars.indexOf(previousChar) === -1;
 	};
 
 	return {
@@ -18230,7 +18657,7 @@ define("orion/editor/AsyncStyler", ['i18n!orion/editor/nls/messages', 'orion/edi
 			var min = Number.MAX_VALUE, max = -1;
 			var model = this.textView.getModel();
 			for (var lineIndex in style) {
-				if (style.hasOwnProperty(lineIndex)) {
+				if (Object.prototype.hasOwnProperty.call(style, lineIndex)) {
 					this.lineStyles[lineIndex] = style[lineIndex];
 					min = Math.min(min, lineIndex);
 					max = Math.max(max, lineIndex);
@@ -18391,7 +18818,7 @@ define("orion/editor/AsyncStyler", ['i18n!orion/editor/nls/messages', 'orion/edi
 
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -18400,7 +18827,7 @@ define("orion/editor/AsyncStyler", ['i18n!orion/editor/nls/messages', 'orion/edi
  * Contributors:
  *     IBM Corporation - initial API and implementation
  *******************************************************************************/
-/*global define */
+/*global define console*/
 /*jslint browser:true forin:true*/
 define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/eventTarget", "orion/editor/annotations"], function(messages, mEventTarget, mAnnotations) {
 	// TODO this affects indentation, which we don't support. Should be a parameter.
@@ -18494,6 +18921,17 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 	};
 
 	/**
+	 * Creates a mode that consumes a stream and generates no tokens.
+	 */
+	function NullModeFactory(cmConfig, modeConfig) {
+		return {
+			token: function(stream, state) {
+				return stream.skipToEnd();
+			}
+		};
+	}
+
+	/**
 	 * @name orion.mirror.Mirror
 	 * @class A shim for CodeMirror's <code>CodeMirror</code> API.
 	 * @description A Mirror is a partial implementation of the API provided by the <code><a href="http://codemirror.net/doc/manual.html#api">CodeMirror object</a></code>.
@@ -18520,6 +18958,9 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 		// Expose Stream as a property named "StringStream". This is required to support CodeMirror's Perl mode,
 		// which monkey-patches CodeMirror.StringStream.prototype and will fail if that object doesn't exist.
 		this.StringStream = Stream;
+
+		this.defineMode("null", NullModeFactory);
+		this.defineMIME("text/plain", "null");
 	}
 	function keys(obj) {
 		var k = [];
@@ -18552,6 +18993,13 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 			}
 			return newState;
 		},
+		/**
+		 * Alias for mode.startState().
+		 * @returns {Object} The start state returned by <code>mode</code>.
+		 */
+		startState: function(/**Object*/ mode, /**Number?*/ basecolumn) {
+			return mode.startState(basecolumn);
+		},
 		/** @see <a href="http://codemirror.net/doc/manual.html#modeapi">http://codemirror.net/doc/manual.html#modeapi</a> */
 		defineMode: function(/**String*/ name, /**Function(options, config)*/ modeFactory) {
 			this._modes[name] = modeFactory;
@@ -18580,7 +19028,11 @@ define("orion/editor/mirror", ["i18n!orion/editor/nls/messages", "orion/editor/e
 			}
 			modeFactory = modeFactory || this._modes[modeSpec];
 			if (typeof modeFactory !== "function") {
-				throw "Mode not found " + modeSpec;
+				if (typeof console !== "undefined" && console) {
+					console.log("Mode not found: " + modeSpec);
+				}
+				// Return the null mode here for compatibility with CodeMirror
+				return this.getMode(options, "null");
 			}
 			return modeFactory(options, config);
 		},
@@ -22047,7 +22499,16 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 			if (ruler && options.firstLineIndex !== undefined) {
 				ruler.setFirstLine(options.firstLineIndex);
 			}
-			editor.getSourceCodeActions().setAutoPairing(options.autoPairing);
+			var sourceCodeActions = editor.getSourceCodeActions();
+			if (sourceCodeActions) {
+				sourceCodeActions.setAutoPairParentheses(options.autoPairParentheses);
+				sourceCodeActions.setAutoPairBraces(options.autoPairBraces);
+				sourceCodeActions.setAutoPairSquareBrackets(options.autoPairSquareBrackets);
+				sourceCodeActions.setAutoPairAngleBrackets(options.autoPairAngleBrackets);
+				sourceCodeActions.setAutoPairQuotations(options.autoPairQuotations);
+				sourceCodeActions.setAutoCompleteComments(options.autoCompleteComments);
+				sourceCodeActions.setSmartIndentation(options.smartIndentation);
+			}
 		});
 		
 		var contents = options.contents;
