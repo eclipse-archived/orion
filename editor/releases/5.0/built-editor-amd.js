@@ -13609,8 +13609,9 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 		 * @param {String} message
 		 * @param {String} contents
 		 * @param {Boolean} contentsSaved
+		 * @param {Boolean} noFocus
 		 */
-		setInput: function(title, message, contents, contentsSaved) {
+		setInput: function(title, message, contents, contentsSaved, noFocus) {
 			if (this._textView) {
 				if (!contentsSaved) {
 					if (message) {
@@ -13623,7 +13624,9 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 						}
 					}
 					this._undoStack.reset();
-					this._textView.focus();
+					if (!noFocus) {
+						this._textView.focus();
+					}
 				}
 				this.checkDirty();
 			}
@@ -21966,6 +21969,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		return options;
 	}
 	
+	/**	@private */
 	function getParents(document, className) {
 		if (document.getElementsByClassName) {
 			return document.getElementsByClassName(className);
@@ -22003,6 +22007,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @property {Boolean} [showAnnotationRuler=true] whether or not the annotation ruler is shown.
 	 * @property {Boolean} [showOverviewRuler=true] whether or not the overview ruler is shown.
 	 * @property {Boolean} [showFoldingRuler=true] whether or not the folding ruler is shown.
+	 * @property {Boolean} [noFocus=false] whether or not to focus the editor on creation.
 	 * @property {Number} [firstLineIndex=1] the line index displayed for the first line of text.
 	 */
 	/**
@@ -22022,8 +22027,10 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				var parents = getParents(doc, options.className);
 				if (parents) {
 					options.className = undefined;
+					// Do not focus editors by default when creating multiple editors
+					if (parents.length > 1 && options.noFocus === undefined) { options.noFocus = true; }
 					var editors = [];
-					for (var i = 0; i < parents.length; i++) {
+					for (var i = parents.length - 1; i >= 0; i--) {
 						options.parent = parents[i];
 						editors.push(edit(options));
 					}
@@ -22144,7 +22151,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		editor.setAnnotationRulerVisible(options.showAnnotationRuler === undefined || options.showFoldingRuler);
 		editor.setOverviewRulerVisible(options.showOverviewRuler === undefined || options.showOverviewRuler);
 		editor.setFoldingRulerVisible(options.showFoldingRuler === undefined || options.showFoldingRuler);
-		editor.setInput(options.title, null, contents);
+		editor.setInput(options.title, null, contents, false, options.noFocus);
 		
 		syntaxHighlighter.highlight(options.lang, editor);
 		if (contentAssist) {
