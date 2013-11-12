@@ -7372,7 +7372,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			rootDiv.setAttribute("role", "application"); //$NON-NLS-1$ //$NON-NLS-0$
 			parent.appendChild(rootDiv);
 			
-			var leftDiv = this._leftDiv = this._createRulerParent("textviewLeftRuler"); //$NON-NLS-0$
+			var leftDiv = this._createRulerParent("textviewLeftRuler"); //$NON-NLS-0$
+			this._leftDiv = leftDiv;
 
 			var viewDiv = util.createElement(document, "div"); //$NON-NLS-0$
 			viewDiv.className = "textviewScroll"; //$NON-NLS-0$
@@ -7391,7 +7392,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			rootDiv.appendChild(viewDiv);
 			
-			var rightDiv = this._rightDiv = this._createRulerParent("textviewRightRuler"); //$NON-NLS-0$
+			var rightDiv = this._createRulerParent("textviewRightRuler"); //$NON-NLS-0$
+			this._rightDiv = rightDiv;
 			rightDiv.style.right = "0px"; //$NON-NLS-0$
 				
 			var scrollDiv = util.createElement(document, "div"); //$NON-NLS-0$
@@ -14787,17 +14789,31 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			};
 			textView.addEventListener("ModelChanged", this._lastEditListener.onModelChanged); //$NON-NLS-0$
 
-			textView.setAction("undo", function() { //$NON-NLS-0$
+			textView.setAction("undo", function(data) { //$NON-NLS-0$
 				if (this.undoStack) {
-					this.undoStack.undo();
+					var count = 1;
+					if (data && data.count) {
+						count = data.count;
+					}
+					while (count > 0) {
+						this.undoStack.undo();
+						--count;
+					}
 					return true;
 				}
 				return false;
 			}.bind(this), {name: messages.undo});
 
-			textView.setAction("redo", function() { //$NON-NLS-0$
+			textView.setAction("redo", function(data) { //$NON-NLS-0$
 				if (this.undoStack) {
-					this.undoStack.redo();
+					var count = 1;
+					if (data && data.count) {
+						count = data.count;
+					}
+					while (count > 0) {
+						this.undoStack.redo();
+						--count;
+					}
 					return true;
 				}
 				return false;
@@ -22355,6 +22371,17 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		return options;
 	}
 	
+	function getParents(document, className) {
+		if (document.getElementsByClassName) {
+			return document.getElementsByClassName(className);
+		}
+		className = className.replace(/ *$/, '');
+		if (document.querySelectorAll) {
+			return document.querySelectorAll((' ' + className).replace(/ +/g, '.')); //$NON-NLS-1$ //$NON-NLS-0$
+		}
+		return null;
+	}
+	
 	/**	@private */
 	function getHeight(node) {
 		return node.clientHeight;
@@ -22389,14 +22416,15 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @param {orion.editor.EditOptions} options the editor options.
 	 */
 	function edit(options) {
+		var doc = options.document || document;
 		var parent = options.parent;
 		if (!parent) { parent = "editor"; } //$NON-NLS-0$
 		if (typeof(parent) === "string") { //$NON-NLS-0$
-			parent = (options.document || document).getElementById(parent);
+			parent = doc.getElementById(parent);
 		}
 		if (!parent) {
 			if (options.className) {
-				var parents = (options.document || document).getElementsByClassName(options.className);
+				var parents = getParents(doc, options.className);
 				if (parents) {
 					options.className = undefined;
 					var editors = [];
