@@ -3995,6 +3995,20 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			return offset;
 		},
 		/**
+		 * @name getLineAtOffset
+		 * @description Compute the editor line number for the given offset
+		 * @function
+		 * @public
+		 * @memberof orion.editor.TextView
+		 * @param {Number} offset The offset into the editor
+		 * @returns {Number} Returns the line number in the editor corresponding to the given offset or <code>-1</code> if the offset is 
+		 * out of range
+		 * @since 5.0
+		 */
+		getLineAtOffset: function(offset) {
+			this.getModel().getLineAtOffset(offset);
+		},
+		/**
 		 * Get the view rulers.
 		 *
 		 * @returns {orion.editor.Ruler[]} the view rulers
@@ -12603,7 +12617,7 @@ define('orion/objects',[], function() {
 
 /*******************************************************************************
  * @license
- * Copyright (c) 2009, 2012 IBM Corporation and others.
+ * Copyright (c) 2009, 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -13041,7 +13055,19 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			}
 			return offset;
 		},
-		
+		/**
+		 * @name getLineAtOffset
+		 * @description Returns the line number corresponding to the given offset in the source
+		 * @function
+		 * @public
+		 * @memberof orion.editor.Editor
+		 * @param {Number} offset The offset into the source
+		 * @returns {Number} The line number corresponding to the given offset or <code>-1</code> if out of range
+		 * @since 5.0
+		 */
+		getLineAtOffset: function(offset) {
+			return this.getModel().getLineAtOffset(this.mapOffset(offset));	
+		},
 		getCaretOffset: function() {
 			return this.mapOffset(this._textView.getCaretOffset());
 		},
@@ -21999,6 +22025,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	 * @property {Number} [tabSize=4] The number of spaces in a tab.
 	 * @property {Boolean} [singleMode=false] whether or not the editor is in single line mode.
 	 * @property {Boolean} [wrapMode=false] whether or not the view wraps lines.
+	 * @property {Boolean} [wrapable=false] whether or not the view is wrappable.
 	 * @property {Function} [statusReporter] a status reporter.
 	 * @property {String} [title=""] the editor title.
 	 * @property {String} [contents=""] the editor contents.
@@ -22067,7 +22094,8 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				singleMode: options.singleMode,
 				themeClass: options.themeClass,
 				theme: options.theme,
-				wrapMode: options.wrapMode
+				wrapMode: options.wrapMode,
+				wrappable: options.wrappable
 			});
 		};
 
