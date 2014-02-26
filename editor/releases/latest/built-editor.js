@@ -1211,6 +1211,8 @@ define('orion/util',[],function() {
 	var isMac = navigator.platform.indexOf("Mac") !== -1; //$NON-NLS-0$
 	var isWindows = navigator.platform.indexOf("Win") !== -1; //$NON-NLS-0$
 	var isLinux = navigator.platform.indexOf("Linux") !== -1; //$NON-NLS-0$
+	var isTouch = "ontouchstart" in document.createElement("input"); //$NON-NLS-1$ //$NON-NLS-0$
+	
 	var platformDelimiter = isWindows ? "\r\n" : "\n"; //$NON-NLS-1$ //$NON-NLS-0$
 
 	function formatMessage(msg) {
@@ -1247,7 +1249,10 @@ define('orion/util',[],function() {
 		isMac: isMac,
 		isWindows: isWindows,
 		isLinux: isLinux,
-		
+
+		/** Capabilities */
+		isTouch: isTouch,
+
 		platformDelimiter: platformDelimiter
 	};
 });
@@ -6187,17 +6192,27 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (util.isIE || util.isOpera) {
 				pixelY = (-e.wheelDelta / 40) * lineHeight;
 			} else if (util.isFirefox) {
-				var pixel;
-				if (util.isMac) {
-					pixel = e.detail * 3;
+				var limit = 256;
+				if (e.type === "wheel") { //$NON-NLS-0$
+					if (e.deltaMode) { // page or line
+						pixelX = Math.max(-limit, Math.min(limit, e.deltaX)) * lineHeight;
+						pixelY = Math.max(-limit, Math.min(limit, e.deltaY)) * lineHeight;
+					} else {
+						pixelX = e.deltaX;
+						pixelY = e.deltaY;
+					}
 				} else {
-					var limit = 256;
-					pixel = Math.max(-limit, Math.min(limit, e.detail)) * lineHeight;
-				}
-				if (e.axis === e.HORIZONTAL_AXIS) {
-					pixelX = pixel;
-				} else {
-					pixelY = pixel;
+					var pixel;
+					if (util.isMac) {
+						pixel = e.detail * 3;
+					} else {
+						pixel = Math.max(-limit, Math.min(limit, e.detail)) * lineHeight;
+					}
+					if (e.axis === e.HORIZONTAL_AXIS) {
+						pixelX = pixel;
+					} else {
+						pixelY = pixel;
+					}
 				}
 			} else {
 				//Webkit
@@ -6251,7 +6266,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			* Note: Using a timer is not a solution, because the timeout needs to
 			* be at least as long as the gesture (which is too long).
 			*/
-			if (util.isSafari) {
+			if (util.isSafari || (util.isChrome && util.isMac)) {
 				var lineDiv = e.target;
 				while (lineDiv && lineDiv.lineIndex === undefined) {
 					lineDiv = lineDiv.parentNode;
@@ -8099,9 +8114,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				handlers.push({target: topNode, type: "dragover", handler: function(e) { return self._handleDragOver(e ? e : window.event);}}); //$NON-NLS-0$
 				handlers.push({target: topNode, type: "dragleave", handler: function(e) { return self._handleDragLeave(e ? e : window.event);}}); //$NON-NLS-0$
 				handlers.push({target: topNode, type: "drop", handler: function(e) { return self._handleDrop(e ? e : window.event);}}); //$NON-NLS-0$
-				handlers.push({target: this._clientDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+				handlers.push({target: this._clientDiv, type: util.isFirefox > 26 ? "wheel" : util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				if (this._clipDiv) {
-					handlers.push({target: this._clipDiv, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+					handlers.push({target: this._clipDiv, type: util.isFirefox > 26 ? "wheel" : util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				}
 				if (util.isFirefox && (!util.isWindows || util.isFirefox >= 15)) {
 					var MutationObserver = window.MutationObserver || window.MozMutationObserver;
@@ -8139,7 +8154,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (util.isIE) {
 				handlers.push({target: div, type: "selectstart", handler: function() {return false;}}); //$NON-NLS-0$
 			}
-			handlers.push({target: div, type: util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-1$ //$NON-NLS-0$
+			handlers.push({target: div, type: util.isFirefox > 26 ? "wheel" : util.isFirefox ? "DOMMouseScroll" : "mousewheel", handler: function(e) { return self._handleMouseWheel(e ? e : window.event); }}); //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 			handlers.push({target: div, type: "click", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
 			handlers.push({target: div, type: "dblclick", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
 			handlers.push({target: div, type: "mousemove", handler: function(e) { self._handleRulerEvent(e ? e : window.event); }}); //$NON-NLS-0$
@@ -19667,6 +19682,9 @@ define("orion/editor/stylers/application_javascript/syntax", ["orion/editor/styl
 				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				name: "keyword.control.js" //$NON-NLS-0$
 			}, {
+				match: "/(?![\\s])(?:\\\\.|[^/])+/(?![/*])(?:[gim]\\b)?", //$NON-NLS-0$
+				name: "string.regexp.js" //$NON-NLS-0$
+			}, {
 				begin: "(['\"])(?:\\\\.|[^\\\\\\1])*\\\\$", //$NON-NLS-0$
 				end: "^(?:$|(?:\\\\.|[^\\\\\\1])*(\\1|[^\\\\]$))", //$NON-NLS-0$
 				name: "string.quoted.multiline.js" //$NON-NLS-0$
@@ -24236,23 +24254,9 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 			{
 				include: "#comment"
 			}, {
-				include: "#xmlDeclaration"
+				include: "#doctype"
 			}, {
-				begin: "<!(?:doctype|DOCTYPE)",
-				end: ">",
-				captures: {
-					0: {name: "entity.name.tag.doctype.xml"},
-				},
-				patterns: [
-					{
-						include: "#comment"
-					}, {
-						include: "orion.lib#string_doubleQuote"
-					}, {
-						include: "orion.lib#string_singleQuote"
-					}
-				],
-				name: "meta.tag.doctype.xml",
+				include: "#xmlDeclaration"
 			}, {
 				begin: "</?[A-Za-z0-9]+",
 				end: "/?>",
@@ -24287,6 +24291,23 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 							2: {name: "keyword.other.documentation.task"},
 							4: {name: "comment.line"}
 						}
+					}
+				]
+			},
+			doctype: {
+				begin: "<!(?:doctype|DOCTYPE)",
+				end: ">",
+				name: "meta.tag.doctype.xml",
+				captures: {
+					0: {name: "entity.name.tag.doctype.xml"},
+				},
+				patterns: [
+					{
+						include: "#comment"
+					}, {
+						include: "orion.lib#string_doubleQuote"
+					}, {
+						include: "orion.lib#string_singleQuote"
 					}
 				]
 			},
