@@ -189,7 +189,7 @@
 .entity.name.function, .entity.name.type, .entity-name-function, .entity-name-type {
 	font-weight: bold;
 }
-.entity.name.tag, .entity-name-tag {
+.entity.name, .entity-name-tag {
 	color: #CC4C07;
 }
 .entity.other.attribute.name, .entity-other-attribute-name {

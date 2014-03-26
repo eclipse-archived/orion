@@ -2697,7 +2697,7 @@ define("orion/editor/util", [], function() { //$NON-NLS-0$
  *		Mihai Sucan (Mozilla Foundation) - fix for Bug#334583 Bug#348471 Bug#349485 Bug#350595 Bug#360726 Bug#361180 Bug#362835 Bug#362428 Bug#362286 Bug#354270 Bug#361474 Bug#363945 Bug#366312 Bug#370584
  ******************************************************************************/
 
-/*global define document*/
+/*global define */
 
 define("orion/editor/textView", [ //$NON-NLS-0$
 	'i18n!orion/editor/nls/messages', //$NON-NLS-0$
@@ -2892,6 +2892,49 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		}
 		return trim;
 	}
+	/** @private */
+	function DOMReady(document, parent, className, callback) {
+		className = "_" + className + "DOMReady"; //$NON-NLS-1$ //$NON-NLS-0$
+		parent.classList.add(className); //$NON-NLS-0$
+		parent.__DOMReady = callback;
+		var id = className + "Style"; //$NON-NLS-0$
+		if (document.getElementById(id)) { return; }
+		var animationName = className + "Animation"; //$NON-NLS-0$
+		function insertListener(event) {
+			if (event.animationName === animationName) {
+				var target = event.target;
+				if (typeof target.__DOMReady === "function") { //$NON-NLS-0$
+					getWindow(document).setTimeout(function() {
+						target.__DOMReady();
+					}, 0);
+				}
+			}
+		}
+		function template(className, animationName) {
+			var props = ["", "-webkit-", "-moz-", "-ms-", "-o-"]; //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+			var frames = "", classRule = "body ." + className + " {\n"; //$NON-NLS-1$ //$NON-NLS-0$
+			for (var i=0; i<props.length; i++) {
+				frames +=
+				"@" + props[i] + "keyframes " + animationName + " {\n" + //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				"from { opacity: 0.99; }\n" + //$NON-NLS-0$
+				"to { opacity: 1; }\n" + //$NON-NLS-0$
+				"}\n"; //$NON-NLS-0$
+				classRule +=
+				props[i] + "animation-duration: 0.001s;\n" + //$NON-NLS-0$
+				props[i] + "animation-name: " + animationName + ";\n"; //$NON-NLS-1$ //$NON-NLS-0$
+			}
+			classRule += "}"; //$NON-NLS-0$
+			return frames + classRule;
+		}
+		document.addEventListener("animationstart", insertListener, false); //$NON-NLS-0$
+		document.addEventListener("MSAnimationStart", insertListener, false);  //$NON-NLS-0$
+		document.addEventListener("webkitAnimationStart", insertListener, false); //$NON-NLS-0$
+		var style = document.createElement("style"); //$NON-NLS-0$
+		style.id = id;
+		var head = document.getElementsByTagName("head")[0] || document.documentElement; //$NON-NLS-0$
+		style.appendChild(document.createTextNode(template(className, animationName)));
+		head.insertBefore(style, head.firstChild);
+	}
 	
 	/**
 	 * @class
@@ -3083,10 +3126,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var lineText = model.getLine(lineIndex);
 			var lineStart = model.getLineStart(lineIndex);
 			var e = {type:"LineStyle", textView: view, lineIndex: lineIndex, lineText: lineText, lineStart: lineStart}; //$NON-NLS-0$
-			if (lineText.length < 2000) {
-				view.onLineStyle(e);
-			}
-			var lineDiv = div || util.createElement(parent.ownerDocument, "div"); //$NON-NLS-0$
+			view.onLineStyle(e);
+			var document = parent.ownerDocument;
+			var lineDiv = div || util.createElement(document, "div"); //$NON-NLS-0$
 			if (!div || !compare(div.viewStyle, e.style)) {
 				applyStyle(e.style, lineDiv, div);
 				if (div) { div._trim = null; }
@@ -3094,6 +3136,13 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				lineDiv.setAttribute("role", "presentation"); //$NON-NLS-1$ //$NON-NLS-0$
 			}
 			lineDiv.lineIndex = lineIndex;
+			
+			if (div && lineDiv.viewLineText === lineText && compare(e.ranges, lineDiv.viewRanges)) {
+				return lineDiv;
+			}
+			lineDiv.viewRanges = e.ranges;
+			lineDiv.viewLineText = lineText;
+			
 			var ranges = [];
 			var data = {tabOffset: 0, ranges: ranges};
 			this._createRanges(e.ranges, lineText, 0, lineText.length, lineStart, data);
@@ -3121,71 +3170,88 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			} else {
 				ranges.splice(ranges.length - 1, 0, range);
 			}
-			
-			var span, style, oldSpan, oldStyle, text, oldText, end = 0, oldEnd = 0, next;
-			var changeCount, changeStart;
-			if (div) {
-				var modelChangedEvent = div.modelChangedEvent;
-				if (modelChangedEvent) {
-					if (modelChangedEvent.removedLineCount === 0 && modelChangedEvent.addedLineCount === 0) {
-						changeStart = modelChangedEvent.start - lineStart;
-						changeCount = modelChangedEvent.addedCharCount - modelChangedEvent.removedCharCount;
-					} else {
-						changeStart = -1;
-					}
-					div.modelChangedEvent = undefined;
-				}
-				oldSpan = div.firstChild;
-			}
-			for (var i = 0; i < ranges.length; i++) {
-				range = ranges[i];
-				text = range.text;
-				end += text.length;
-				style = range.style;
-				if (oldSpan) {
-					oldText = oldSpan.firstChild.data;
-					oldStyle = oldSpan.viewStyle;
-					if (oldText === text && compare(style, oldStyle)) {
-						oldEnd += oldText.length;
-						oldSpan._rectsCache = undefined;
-						span = oldSpan = oldSpan.nextSibling;
-						continue;
-					} else {
-						while (oldSpan) {
-							if (changeStart !== -1) {
-								var spanEnd = end;
-								if (spanEnd >= changeStart) {
-									spanEnd -= changeCount;
-								}
-								var t = oldSpan.firstChild.data;
-								var length = t ? t.length : 0;
-								if (oldEnd + length > spanEnd) { break; }
-								oldEnd += length;
-							}
-							next = oldSpan.nextSibling;
-							lineDiv.removeChild(oldSpan);
-							oldSpan = next;
-						}
-					}
-				}
-				span = this._createSpan(lineDiv, text, style, range.ignoreChars);
-				if (oldSpan) {
-					lineDiv.insertBefore(span, oldSpan);
-				} else {
-					lineDiv.appendChild(span);
-				}
+		
+			var span, style, oldSpan, oldStyle, text, oldText, end = 0, oldEnd = 0, next, i;
+			if (util.isFirefox && lineText.length > 2000) {
 				if (div) {
+					lineDiv.innerHTML = "";
 					div.lineWidth = undefined;
 				}
-			}
-			if (div) {
-				var tmp = span ? span.nextSibling : null;
-				while (tmp) {
-					next = tmp.nextSibling;
-					div.removeChild(tmp);
-					tmp = next;
+				var frag = document.createDocumentFragment();
+				for (i = 0; i < ranges.length; i++) {
+					range = ranges[i];
+					text = range.text;
+					style = range.style;
+					span = this._createSpan(lineDiv, text, style, range.ignoreChars);
+					frag.appendChild(span);
 				}
+				lineDiv.appendChild(frag);
 			} else {
+				var changeCount, changeStart;
+				if (div) {
+					var modelChangedEvent = div.modelChangedEvent;
+					if (modelChangedEvent) {
+						if (modelChangedEvent.removedLineCount === 0 && modelChangedEvent.addedLineCount === 0) {
+							changeStart = modelChangedEvent.start - lineStart;
+							changeCount = modelChangedEvent.addedCharCount - modelChangedEvent.removedCharCount;
+						} else {
+							changeStart = -1;
+						}
+						div.modelChangedEvent = undefined;
+					}
+					oldSpan = div.firstChild;
+				}
+				for (i = 0; i < ranges.length; i++) {
+					range = ranges[i];
+					text = range.text;
+					end += text.length;
+					style = range.style;
+					if (oldSpan) {
+						oldText = oldSpan.firstChild.data;
+						oldStyle = oldSpan.viewStyle;
+						if (oldText === text && compare(style, oldStyle)) {
+							oldEnd += oldText.length;
+							oldSpan._rectsCache = undefined;
+							span = oldSpan = oldSpan.nextSibling;
+							continue;
+						} else {
+							while (oldSpan) {
+								if (changeStart !== -1) {
+									var spanEnd = end;
+									if (spanEnd >= changeStart) {
+										spanEnd -= changeCount;
+									}
+									var t = oldSpan.firstChild.data;
+									var length = t ? t.length : 0;
+									if (oldEnd + length > spanEnd) { break; }
+									oldEnd += length;
+								}
+								next = oldSpan.nextSibling;
+								lineDiv.removeChild(oldSpan);
+								oldSpan = next;
+							}
+						}
+					}
+					span = this._createSpan(lineDiv, text, style, range.ignoreChars);
+					if (oldSpan) {
+						lineDiv.insertBefore(span, oldSpan);
+					} else {
+						lineDiv.appendChild(span);
+					}
+					if (div) {
+						div.lineWidth = undefined;
+					}
+				}
+				if (div) {
+					var tmp = span ? span.nextSibling : null;
+					while (tmp) {
+						next = tmp.nextSibling;
+						div.removeChild(tmp);
+						tmp = next;
+					}
+				}
+			}
+			if (!lineDiv.parentNode) {
 				parent.appendChild(lineDiv);
 			}
 			return lineDiv;
@@ -3263,20 +3329,19 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				tagName = style.tagName.toLowerCase();
 			}
 			var isLink = tagName === "a"; //$NON-NLS-0$
-			if (isLink) { parent.hasLink = true; }
+			if (isLink) { this.hasLink = true; }
 			if (isLink && !view._linksVisible) {
 				tagName = "span"; //$NON-NLS-0$
 			}
 			var document = parent.ownerDocument;
 			var child = util.createElement(parent.ownerDocument, tagName);
+			child.appendChild(document.createTextNode(style && style.text ? style.text : text));
 			if (style && style.html) {
 				child.innerHTML = style.html;
 				child.ignore = true;
 			} else if (style && style.node) {
 				child.appendChild(style.node);
 				child.ignore = true;
-			} else {
-				child.appendChild(document.createTextNode(style && style.text ? style.text : text));
 			}
 			applyStyle(style, child);
 			if (tagName === "a") { //$NON-NLS-0$
@@ -3306,17 +3371,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var result = null;
 			if (offset < model.getLineEnd(lineIndex)) {
 				var lineOffset = model.getLineStart(lineIndex);
-				var lineChild = child.firstChild;
-				while (lineChild) {
-					if (lineChild.ignore) {
-						lineChild = lineChild.nextSibling;
-						continue;
-					}
+				this.forEach(function(lineChild) {
 					var textNode = lineChild.firstChild;
-					var nodeLength = textNode.length; 
-					if (lineChild.ignoreChars) {
-						nodeLength -= lineChild.ignoreChars;
-					}
+					var nodeLength = this._nodeLength(lineChild); 
 					if (lineOffset + nodeLength > offset) {
 						var index = offset - lineOffset;
 						var range;
@@ -3376,11 +3433,11 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 							result.top = result.top * yFactor;
 							result.bottom = result.bottom * yFactor;
 						}
-						break;
+						return false;
 					}
 					lineOffset += nodeLength;
-					lineChild = lineChild.nextSibling;
-				}
+					return true;
+				});
 			}
 			var rect = this.getBoundingClientRect();
 			if (!result) {
@@ -3405,6 +3462,19 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			return result;
 		},
+		forEach: function(callback) {
+			var child = this._ensureCreated();
+			var lineChild = child.firstChild;
+			while (lineChild) {
+				var next = lineChild.nextSibling;
+				if (!lineChild.ignore) {
+					if (!callback.call(this, lineChild)) {
+						break;
+					}
+				}
+				lineChild = next;
+			}
+		},
 		/** @private */
 		_getClientRects: function(element, parentRect) {
 			var rects, newRects, rect, i;
@@ -3427,21 +3497,16 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			return newRects;
 		},
-		/** @private */
 		getClientRects: function(lineIndex) {
 			if (!this.view._wrapMode) { return [this.getBoundingClientRect()]; }
 			var child = this._ensureCreated();
 			//TODO [perf] cache rects
 			var result = [];
-			var lineChild = child.firstChild, i, r, parentRect = child.getBoundingClientRect();
-			while (lineChild) {
-				if (lineChild.ignore) {
-					lineChild = lineChild.nextSibling;
-					continue;
-				}
+			var parentRect = child.getBoundingClientRect();
+			this.forEach(function(lineChild) {
 				var rects = this._getClientRects(lineChild, parentRect);
-				for (i = 0; i < rects.length; i++) {
-					var rect = rects[i], j;
+				for (var i = 0; i < rects.length; i++) {
+					var rect = rects[i], j, r;
 					if (rect.top === rect.bottom) { continue; }
 					var center = rect.top + (rect.bottom - rect.top) / 2;
 					for (j = 0; j < result.length; j++) {
@@ -3459,8 +3524,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 						if (rect.bottom > r.bottom) { r.bottom = rect.bottom; }
 					}
 				}
-				lineChild = lineChild.nextSibling;
-			}
+				return true;
+			});
 			if (lineIndex !== undefined) {
 				return result[lineIndex];
 			}
@@ -3510,10 +3575,100 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		/** @private */
 		getLineStart: function (lineIndex) {
 			if (!this.view._wrapMode || lineIndex === 0) {
-				return this.view._model.getLineStart(lineIndex);
+				return this.view._model.getLineStart(this.lineIndex);
 			}
 			var rects = this.getClientRects();
 			return this.getOffset(rects[lineIndex].left + 1, rects[lineIndex].top + 1);
+		},
+		_nodeLength: function(lineChild) {
+			if (!lineChild || lineChild.ignore) return 0;
+			var length = lineChild.firstChild.length; 
+			if (lineChild.ignoreChars) {
+				length -= lineChild.ignoreChars;
+			}
+			return length;
+		},
+		getModelOffset: function(node, offset) {
+			if (!node) { return 0; }
+			var lineOffset = 0;
+			this.forEach(function(lineChild) {
+				var textNode = lineChild.firstChild;
+				if (textNode === node) {
+					if (lineChild.ignoreChars) { lineOffset -= lineChild.ignoreChars; }
+					lineOffset += offset;
+					return false;
+				}
+				if (lineChild.ignoreChars) { lineOffset -= lineChild.ignoreChars; }
+				lineOffset += textNode.data.length;
+				return true;
+			});
+			return Math.max(0, lineOffset) + this.view._model.getLineStart(this.lineIndex);
+		},
+		getNodeOffset: function(modelOffset) {
+			var offset = 0;
+			var lineNode, lineNodeOffset;
+			var model = this.view._model;
+			var lineStart = model.getLineStart(this.lineIndex);
+			var lineOffset = modelOffset - lineStart;
+			var end = model.getLineEnd(this.lineIndex) - lineStart;
+			this.forEach(function(lineChild) {
+				var node = lineChild.firstChild;
+				var nodeLength = this._nodeLength(lineChild);
+				if (nodeLength + offset > lineOffset || offset + nodeLength >= end) {
+					lineNode = node;
+					lineNodeOffset = lineOffset - offset;
+					if (lineChild.ignoreChars && nodeLength > 0 && lineNodeOffset === nodeLength) {
+						lineNodeOffset += lineChild.ignoreChars; 
+					}
+					return false;
+				}
+				offset += nodeLength;
+				return true;
+			});
+			return {node: lineNode, offset: lineNodeOffset};
+		},
+		getText: function(offsetNode) {
+			var text = "", offset = 0;
+			this.forEach(function(lineChild) {
+				var textNode;
+				if (lineChild.ignoreChars) {
+					textNode = lineChild.lastChild;
+					var ignored = 0, childText = [], childOffset = -1;
+					while (textNode) {
+						var data = textNode.data;
+						if (data) {
+							for (var i = data.length - 1; i >= 0; i--) {
+								var ch = data.substring(i, i + 1);
+								if (ignored < lineChild.ignoreChars && (ch === " " || ch === "\uFEFF")) { //$NON-NLS-1$ //$NON-NLS-0$
+									ignored++;
+								} else {
+									childText.push(ch === "\u00A0" ? "\t" : ch); //$NON-NLS-1$ //$NON-NLS-0$
+								}
+							}
+						}
+						if (offsetNode === textNode) {
+							childOffset = childText.length;
+						}
+						textNode = textNode.previousSibling;
+					}
+					childText = childText.reverse().join("");
+					if (childOffset !== -1) {
+						offset = text.length + childText.length - childOffset;
+					}
+					text += childText;
+				} else {
+					textNode = lineChild.firstChild;
+					while (textNode) {
+						if (offsetNode === textNode) {
+							offset = text.length;
+						}
+						text += textNode.data;
+						textNode = textNode.nextSibling;
+					}
+				}
+				return true;
+			});
+			return {text: text, offset: offset};
 		},
 		/** @private */
 		getOffset: function(x, y) {
@@ -3526,7 +3681,148 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				return lineStart;
 			}
 			var child = this._ensureCreated();
-			var lineRect = this.getBoundingClientRect(), rects, rect;
+			var lineRect = this.getBoundingClientRect();
+			
+			var self = this;
+			function hitChild(lineChild, offset, rect) {
+				var textNode = lineChild.firstChild;
+				var nodeLength = self._nodeLength(lineChild);
+				var document = child.ownerDocument;
+				var window = getWindow(document);
+				var xFactor = util.isIE ? window.screen.logicalXDPI / window.screen.deviceXDPI : 1;
+				var yFactor = util.isIE ? window.screen.logicalYDPI / window.screen.deviceYDPI : 1;
+				var rangeLeft, rangeTop, rangeRight, rangeBottom;
+				var range, start, end;
+				var rl = rect.left + lineRect.left, fixIE8, rects;
+				if (util.isIE || view._isRangeRects) {
+					range = view._isRangeRects ? document.createRange() : document.body.createTextRange();
+					var high = nodeLength;
+					var low = -1;
+					while ((high - low) > 1) {
+						var mid = Math.floor((high + low) / 2);
+						start = low + 1;
+						end = mid === nodeLength - 1 && lineChild.ignoreChars ? textNode.length : mid + 1;
+						/*
+						* Bug in IE8. TextRange.getClientRects() and TextRange.getBoundingClientRect() fails
+						* if the line child is not the first element in the line and if the start offset is 0. 
+						* The fix is to use Node.getClientRects() left edge instead.
+						*/
+						fixIE8 = start === 0 && util.isIE === 8;
+						if (view._isRangeRects) {
+							range.setStart(textNode, start);
+							range.setEnd(textNode, end);
+						} else {
+							if (fixIE8) { start = 1; } 
+							range.moveToElementText(lineChild);
+							range.move("character", start); //$NON-NLS-0$
+							range.moveEnd("character", end - start); //$NON-NLS-0$
+						}
+						rects = range.getClientRects();
+						var found = false;
+						for (var k = 0; k < rects.length; k++) {
+							rect = rects[k];
+							rangeLeft = (fixIE8 ? rl : rect.left) * xFactor - lineRect.left;
+							rangeRight = rect.right * xFactor - lineRect.left;
+							rangeTop = rect.top * yFactor - lineRect.top;
+							rangeBottom = rect.bottom * yFactor - lineRect.top;
+							if (rangeLeft <= x && x < rangeRight && (!view._wrapMode || (rangeTop <= y && y < rangeBottom))) {
+								found = true;
+								break;
+							}
+						}
+						if (found) {
+							high = mid;
+						} else {
+							low = mid;
+						}
+					}
+					offset += high;
+					start = high;
+					end = high === nodeLength - 1 && lineChild.ignoreChars ? textNode.length : Math.min(high + 1, textNode.length);
+					if (view._isRangeRects) {
+						range.setStart(textNode, start);
+						range.setEnd(textNode, end);
+					} else {
+						range.moveToElementText(lineChild);
+						range.move("character", start); //$NON-NLS-0$
+						range.moveEnd("character", end - start); //$NON-NLS-0$
+					}
+					rects = range.getClientRects();
+					var trailing = false;
+					if (rects.length > 0) {
+						rect = rects[0];
+						rangeLeft = (fixIE8 ? rl : rect.left) * xFactor - lineRect.left;
+						rangeRight = rect.right * xFactor - lineRect.left;
+						//TODO test for character trailing (wrong for bidi)
+						trailing = x > (rangeLeft + (rangeRight - rangeLeft) / 2);
+					}
+					// Handle Unicode surrogates
+					var offsetInLine = offset - lineStart;
+					var lineText = model.getLine(lineIndex);
+					var c = lineText.charCodeAt(offsetInLine);
+					if (0xD800 <= c && c <= 0xDBFF && trailing) {
+						if (offsetInLine < lineText.length) {
+							c = lineText.charCodeAt(offsetInLine + 1);
+							if (0xDC00 <= c && c <= 0xDFFF) {
+								offset += 1;
+							}
+						}
+					} else if (0xDC00 <= c && c <= 0xDFFF && !trailing) {
+						if (offsetInLine > 0) {
+							c = lineText.charCodeAt(offsetInLine - 1);
+							if (0xD800 <= c && c <= 0xDBFF) {
+								offset -= 1;
+							}
+						}
+					}
+					if (trailing) {
+						offset++;
+					}
+				} else {
+					var newText = [];
+					for (var q = 0; q < nodeLength; q++) {
+						newText.push("<span>"); //$NON-NLS-0$
+						if (q === nodeLength - 1) {
+							newText.push(textNode.data.substring(q));
+						} else {
+							newText.push(textNode.data.substring(q, q + 1));
+						}
+						newText.push("</span>"); //$NON-NLS-0$
+					}
+					lineChild.innerHTML = newText.join("");
+					var rangeChild = lineChild.firstChild;
+					while (rangeChild) {
+						rect = rangeChild.getBoundingClientRect();
+						rangeLeft = rect.left - lineRect.left;
+						rangeRight = rect.right - lineRect.left;
+						if (rangeLeft <= x && x < rangeRight) {
+							//TODO test for character trailing (wrong for bidi)
+							if (x > rangeLeft + (rangeRight - rangeLeft) / 2) {
+								offset++;
+							}
+							break;
+						}
+						offset++;
+						rangeChild = rangeChild.nextSibling;
+					}
+					if (!self._createdDiv) {
+						lineChild.innerHTML = "";
+						lineChild.appendChild(textNode);
+						/*
+						 * Removing the element node that holds the selection start or end
+						 * causes the selection to be lost. The fix is to detect this case
+						 * and restore the selection. 
+						 */
+						var s = view._getSelection();
+						if ((offset <= s.start && s.start < offset + nodeLength) || (offset <= s.end && s.end < offset + nodeLength)) {
+							view._updateDOMSelection();
+						}
+					}
+				}
+				return offset;
+			}
+			
+			var rects, rect;
 			if (view._wrapMode) {
 				rects = this.getClientRects();
 				if (y < rects[0].top) {
@@ -3544,161 +3840,70 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				if (x < 0) { x = 0; }
 				if (x > (lineRect.right - lineRect.left)) { x = lineRect.right - lineRect.left; }
 			}
-			var document = child.ownerDocument;
-			var window = getWindow(document);
-			var xFactor = util.isIE ? window.screen.logicalXDPI / window.screen.deviceXDPI : 1;
-			var yFactor = util.isIE ? window.screen.logicalYDPI / window.screen.deviceYDPI : 1;
-			var offset = lineStart;
-			var lineChild = child.firstChild;
-			done:
-			while (lineChild) {
-				if (lineChild.ignore) {
-					lineChild = lineChild.nextSibling;
-					continue;
-				}
-				var textNode = lineChild.firstChild;
-				var nodeLength = textNode.length;
-				if (lineChild.ignoreChars) {
-					nodeLength -= lineChild.ignoreChars;
-				}
-				var rangeLeft, rangeTop, rangeRight, rangeBottom;
-				rects = this._getClientRects(lineChild, lineRect);
+			
+			function hitRects(child) {
+				if (child.ignore) return null;
+				var rects = self._getClientRects(child, lineRect);
 				for (var j = 0; j < rects.length; j++) {
-					rect = rects[j];
+					var rect = rects[j];
 					if (rect.left <= x && x < rect.right && (!view._wrapMode || (rect.top <= y && y < rect.bottom))) {
-						var range, start, end;
-						var rl = rect.left + lineRect.left, fixIE8;
-						if (util.isIE || view._isRangeRects) {
-							range = view._isRangeRects ? document.createRange() : document.body.createTextRange();
-							var high = nodeLength;
-							var low = -1;
-							while ((high - low) > 1) {
-								var mid = Math.floor((high + low) / 2);
-								start = low + 1;
-								end = mid === nodeLength - 1 && lineChild.ignoreChars ? textNode.length : mid + 1;
-								/*
-								* Bug in IE8. TextRange.getClientRects() and TextRange.getBoundingClientRect() fails
-								* if the line child is not the first element in the line and if the start offset is 0. 
-								* The fix is to use Node.getClientRects() left edge instead.
-								*/
-								fixIE8 = start === 0 && util.isIE === 8;
-								if (view._isRangeRects) {
-									range.setStart(textNode, start);
-									range.setEnd(textNode, end);
-								} else {
-									if (fixIE8) { start = 1; } 
-									range.moveToElementText(lineChild);
-									range.move("character", start); //$NON-NLS-0$
-									range.moveEnd("character", end - start); //$NON-NLS-0$
-								}
-								rects = range.getClientRects();
-								var found = false;
-								for (var k = 0; k < rects.length; k++) {
-									rect = rects[k];
-									rangeLeft = (fixIE8 ? rl : rect.left) * xFactor - lineRect.left;
-									rangeRight = rect.right * xFactor - lineRect.left;
-									rangeTop = rect.top * yFactor - lineRect.top;
-									rangeBottom = rect.bottom * yFactor - lineRect.top;
-									if (rangeLeft <= x && x < rangeRight && (!view._wrapMode || (rangeTop <= y && y < rangeBottom))) {
-										found = true;
-										break;
-									}
-								}
-								if (found) {
-									high = mid;
-								} else {
-									low = mid;
-								}
-							}
-							offset += high;
-							start = high;
-							end = high === nodeLength - 1 && lineChild.ignoreChars ? textNode.length : Math.min(high + 1, textNode.length);
-							if (view._isRangeRects) {
-								range.setStart(textNode, start);
-								range.setEnd(textNode, end);
-							} else {
-								range.moveToElementText(lineChild);
-								range.move("character", start); //$NON-NLS-0$
-								range.moveEnd("character", end - start); //$NON-NLS-0$
-							}
-							rects = range.getClientRects();
-							var trailing = false;
-							if (rects.length > 0) {
-								rect = rects[0];
-								rangeLeft = (fixIE8 ? rl : rect.left) * xFactor - lineRect.left;
-								rangeRight = rect.right * xFactor - lineRect.left;
-								//TODO test for character trailing (wrong for bidi)
-								trailing = x > (rangeLeft + (rangeRight - rangeLeft) / 2);
-							}
-							// Handle Unicode surrogates
-							var offsetInLine = offset - lineStart;
-							var lineText = model.getLine(lineIndex);
-							var c = lineText.charCodeAt(offsetInLine);
-							if (0xD800 <= c && c <= 0xDBFF && trailing) {
-								if (offsetInLine < lineText.length) {
-									c = lineText.charCodeAt(offsetInLine + 1);
-									if (0xDC00 <= c && c <= 0xDFFF) {
-										offset += 1;
-									}
-								}
-							} else if (0xDC00 <= c && c <= 0xDFFF && !trailing) {
-								if (offsetInLine > 0) {
-									c = lineText.charCodeAt(offsetInLine - 1);
-									if (0xD800 <= c && c <= 0xDBFF) {
-										offset -= 1;
-									}
-								}
-							}
-							if (trailing) {
-								offset++;
-							}
-						} else {
-							var newText = [];
-							for (var q = 0; q < nodeLength; q++) {
-								newText.push("<span>"); //$NON-NLS-0$
-								if (q === nodeLength - 1) {
-									newText.push(textNode.data.substring(q));
-								} else {
-									newText.push(textNode.data.substring(q, q + 1));
-								}
-								newText.push("</span>"); //$NON-NLS-0$
-							}
-							lineChild.innerHTML = newText.join("");
-							var rangeChild = lineChild.firstChild;
-							while (rangeChild) {
-								rect = rangeChild.getBoundingClientRect();
-								rangeLeft = rect.left - lineRect.left;
-								rangeRight = rect.right - lineRect.left;
-								if (rangeLeft <= x && x < rangeRight) {
-									//TODO test for character trailing (wrong for bidi)
-									if (x > rangeLeft + (rangeRight - rangeLeft) / 2) {
-										offset++;
-									}
-									break;
-								}
-								offset++;
-								rangeChild = rangeChild.nextSibling;
-							}
-							if (!this._createdDiv) {
-								lineChild.innerHTML = "";
-								lineChild.appendChild(textNode);
-								/*
-								 * Removing the element node that holds the selection start or end
-								 * causes the selection to be lost. The fix is to detect this case
-								 * and restore the selection. 
-								 */
-								var s = view._getSelection();
-								if ((offset <= s.start && s.start < offset + nodeLength) || (offset <= s.end && s.end < offset + nodeLength)) {
-									view._updateDOMSelection();
-								}
-							}
-						}
-						break done;
+						return rect;
 					}
 				}
-				offset += nodeLength;
-				lineChild = lineChild.nextSibling;
+				return null;
 			}
+			
+			var offset, lineChild;
+			if (this._lastHitChild && this._lastHitChild.parentNode) {
+				// Search last hit child first, then search around the last hit child
+				offset = this._lastHitOffset;
+				lineChild = this._lastHitChild;
+				rect = hitRects(lineChild);
+				if (!rect ) {
+					var previousOffset = offset, nextOffset = offset + this._nodeLength(lineChild);
+					var previousChild = lineChild.previousSibling, nextChild = lineChild.nextSibling;
+					while (previousChild || nextChild) {
+						if (previousChild) {
+							previousOffset -= this._nodeLength(previousChild);
+							if (rect = hitRects(previousChild)) {
+								lineChild = previousChild;
+								offset = previousOffset;
+								break;
+							}
+							previousChild = previousChild.previousSibling;
+						}
+						if (nextChild) {
+							if (rect = hitRects(nextChild)) {
+								lineChild = nextChild;
+								offset = nextOffset;
+								break;
+							}
+							nextOffset += this._nodeLength(nextChild);
+							nextChild = nextChild.nextSibling;
+						}
+					}
+				}
+			} else {
+				// Start searching from the beginning of the line
+				offset = lineStart;
+				this.forEach(function(c) {
+					lineChild = c;
+					if (rect = hitRects(lineChild)) {
+						return false;
+					}
+					offset += this._nodeLength(lineChild);
+					return true;
+				});
+			}
+			
+			if (lineChild && rect) {
+				// Cache the last hit child
+				this._lastHitChild = lineChild;
+				this._lastHitOffset = offset;
+
+				offset = hitChild(lineChild, offset, rect);
+			}
+
 			return Math.min(lineEnd, Math.max(lineStart, offset));
 		},
 		/** @private */
@@ -3849,11 +4054,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			} else {
 				lineChild = child.firstChild;
 				while (lineChild) {
-					var textNode = lineChild.firstChild;
-					var nodeLength = textNode.length;
-					if (lineChild.ignoreChars) {
-						nodeLength -= lineChild.ignoreChars;
-					}
+					var nodeLength = this._nodeLength(lineChild);
 					if (lineOffset + nodeLength > offset) {
 						range = document.body.createTextRange();
 						if (offset === lineOffset && data.count < 0) {
@@ -3882,6 +4083,18 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			data.count -= step;
 			return result;
+		},
+		updateLinks: function() {
+			var child = this._ensureCreated();
+			if (!this.hasLink) { return; }
+			var self = this;
+			this.forEach(function(span) {
+				var style = span.viewStyle;
+				if (style && style.tagName && style.tagName.toLowerCase() === "a") { //$NON-NLS-0$
+					child.replaceChild(self._createSpan(child, span.firstChild.data, style), span);
+				}
+				return true;
+			});
 		},
 		/** @private */
 		destroy: function() {
@@ -5358,14 +5571,14 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._modifyContent({text: text, start: start, end: end, _code: true}, !reset);
 			if (reset) {
 				this._columnX = -1;
-				this._setSelection(new Selection (0, 0, false), true);
+				this._setSelection(new Selection(0, 0, false), true);
 				
 				/*
 				* Bug in Firefox.  For some reason, the caret does not show after the
 				* view is refreshed.  The fix is to toggle the contentEditable state and
 				* force the clientDiv to loose and receive focus if it is focused.
 				*/
-				if (util.isFirefox) {
+				if (util.isFirefox < 13) {
 					this._fixCaret();
 				}
 			}
@@ -5417,7 +5630,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		update: function(styleChanged, sync) {
 			if (!this._clientDiv) { return; }
-			if (styleChanged) {
+			if (styleChanged || this._metrics.invalid) {
 				this._updateStyle();
 			}
 			if (sync === undefined || sync) {
@@ -5430,7 +5643,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		/**************************************** Event handlers *********************************/
 		_handleRootMouseDown: function (e) {
 			if (this._ignoreEvent(e)) { return; }
-			if (util.isFirefox && e.which === 1) {
+			if (util.isFirefox < 13 && e.which === 1) {
 				this._clientDiv.contentEditable = false;
 				(this._overlayDiv || this._clientDiv).draggable = true;
 				this._ignoreBlur = true;
@@ -5464,7 +5677,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		_handleRootMouseUp: function (e) {
 			if (this._ignoreEvent(e)) { return; }
-			if (util.isFirefox && e.which === 1) {
+			if (util.isFirefox < 13 && e.which === 1) {
 				this._clientDiv.contentEditable = true;
 				(this._overlayDiv || this._clientDiv).draggable = false;
 				
@@ -5588,7 +5801,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		_handleDragStart: function (e) {
 			if (this._ignoreEvent(e)) { return; }
-			if (util.isFirefox) {
+			if (util.isFirefox < 13) {
 				var self = this;
 				var window = this._getWindow();
 				window.setTimeout(function() {
@@ -5619,7 +5832,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (this.isListening("DragEnd")) { //$NON-NLS-0$
 				this.onDragEnd(this._createMouseEvent("DragEnd", e)); //$NON-NLS-0$
 			}
-			if (util.isFirefox) {
+			if (util.isFirefox < 13) {
 				this._fixCaret();
 				/*
 				* Bug in Firefox.  For some reason, Firefox stops showing the caret when the 
@@ -6172,17 +6385,17 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				* mouse down and ungrab on mouse move when the button 1 is not set.
 				*/
 				if (this._isW3CEvents) { this._setGrab(null); }
-
-				/*
-				* Note that there cases when Firefox sets the DOM selection in mouse up.
-				* This happens for example after a cancelled drag operation.
-				*
-				* Note that on Chrome and IE, the caret stops blicking if mouse up is
-				* prevented.
-				*/
-				if (util.isFirefox) {
-					e.preventDefault();
-				}
+			}
+			/*
+			* Note that there cases when Firefox sets the DOM selection in mouse up.
+			* This happens for example after a cancelled drag operation.
+			*
+			* Note that on Chrome and IE, the caret stops blicking if mouse up is
+			* prevented.
+			*/
+			if (left && util.isFirefox) {
+				this._updateDOMSelection();
+				e.preventDefault();
 			}
 		},
 		_handleMouseWheel: function (e) {
@@ -6419,23 +6632,10 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			} else {
 				lineNode = node.parentNode.parentNode;
 			}
-			var lineOffset = 0;
-			var lineIndex = lineNode.lineIndex;
-			if (node.tagName !== "DIV") { //$NON-NLS-0$
-				var child = lineNode.firstChild;
-				while (child) {
-					var textNode = child.firstChild;
-					if (textNode === node) {
-						if (child.ignoreChars) { lineOffset -= child.ignoreChars; }
-						lineOffset += offset;
-						break;
-					}
-					if (child.ignoreChars) { lineOffset -= child.ignoreChars; }
-					lineOffset += textNode.data.length;
-					child = child.nextSibling;
-				}
+			if (!lineNode._line) {
+				return 0;
 			}
-			return Math.max(0, lineOffset) + this._model.getLineStart(lineIndex);
+			return lineNode._line._getModelOffset (node, offset);
 		},
 		_updateSelectionFromDOM: function() {
 			var window = this._getWindow();
@@ -7305,7 +7505,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					div1 = util.createElement(document, "div"); //$NON-NLS-0$
 					div1.style.position = "fixed"; //$NON-NLS-0$
 					div1.style.left = "-1000px"; //$NON-NLS-0$
-					div1.innerHTML = new Array(this._wrapOffset + 1).join(" "); //$NON-NLS-0$
+					div1.innerHTML = new Array(this._wrapOffset + 1 + (util.isWebkit ? 0 : 1)).join(" "); //$NON-NLS-0$
 					parent.appendChild(div1);
 					rect1 = div1.getBoundingClientRect();
 					wrapWidth = Math.ceil(rect1.right - rect1.left);
@@ -7431,7 +7631,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				"toggleWrapMode": {defaultHandler: function(data) {return self._doWrapMode();}, actionDescription: {name: messages.toggleWrapMode}} //$NON-NLS-0$
 			};
 		},
-		_createRulerParent: function(className) {
+		_createRulerParent: function(document, className) {
 			var div = util.createElement(document, "div"); //$NON-NLS-0$
 			div.className = className;
 			div.tabIndex = -1;
@@ -7489,7 +7689,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			rootDiv.setAttribute("role", "application"); //$NON-NLS-1$ //$NON-NLS-0$
 			parent.appendChild(rootDiv);
 			
-			var leftDiv = this._createRulerParent("textviewLeftRuler"); //$NON-NLS-0$
+			var leftDiv = this._createRulerParent(document, "textviewLeftRuler"); //$NON-NLS-0$
 			this._leftDiv = leftDiv;
 
 			var viewDiv = util.createElement(document, "div"); //$NON-NLS-0$
@@ -7509,7 +7709,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			rootDiv.appendChild(viewDiv);
 			
-			var rightDiv = this._createRulerParent("textviewRightRuler"); //$NON-NLS-0$
+			var rightDiv = this._createRulerParent(document, "textviewRightRuler"); //$NON-NLS-0$
 			this._rightDiv = rightDiv;
 			rightDiv.style.right = "0px"; //$NON-NLS-0$
 				
@@ -7520,7 +7720,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			scrollDiv.style.padding = "0px"; //$NON-NLS-0$
 			viewDiv.appendChild(scrollDiv);
 			
-			var marginDiv = this._marginDiv = this._createRulerParent("textviewMarginRuler"); //$NON-NLS-0$
+			var marginDiv = this._marginDiv = this._createRulerParent(document, "textviewMarginRuler"); //$NON-NLS-0$
 			marginDiv.style.zIndex = "4"; //$NON-NLS-0$
 			
 			if (!util.isIE && !util.isIOS) {
@@ -7622,6 +7822,18 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				this._createRuler(rulers[i]);
 			}
 			this._update();
+			// Detect when the parent is attached to the DOM or display
+			var self = this;
+			function checkDOMReady() {
+				if (!self._rootDiv) { return; }
+				self.update(true);
+				if (self._metrics.invalid) {
+					self._getWindow().setTimeout(function() {
+						checkDOMReady();
+					}, 100);
+				}
+			}
+			DOMReady(document, rootDiv, "textview", checkDOMReady); //$NON-NLS-0$
 		},
 		_defaultOptions: function() {
 			return {
@@ -7852,52 +8064,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			return "";
 		},
 		_getDOMText: function(child, offsetNode) {
-			var lineChild = child.firstChild;
-			var text = "", offset = 0;
-			while (lineChild) {
-				var textNode;
-				if (lineChild.ignore) {
-					lineChild = lineChild.nextSibling;
-					continue;
-				}
-				if (lineChild.ignoreChars) {
-					textNode = lineChild.lastChild;
-					var ignored = 0, childText = [], childOffset = -1;
-					while (textNode) {
-						var data = textNode.data;
-						if (data) {
-							for (var i = data.length - 1; i >= 0; i--) {
-								var ch = data.substring(i, i + 1);
-								if (ignored < lineChild.ignoreChars && (ch === " " || ch === "\u200B" || ch === "\uFEFF")) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-									ignored++;
-								} else {
-									childText.push(ch === "\u00A0" ? "\t" : ch); //$NON-NLS-1$ //$NON-NLS-0$
-								}
-							}
-						}
-						if (offsetNode === textNode) {
-							childOffset = childText.length;
-						}
-						textNode = textNode.previousSibling;
-					}
-					childText = childText.reverse().join("");
-					if (childOffset !== -1) {
-						offset = text.length + childText.length - childOffset;
-					}
-					text += childText;
-				} else {
-					textNode = lineChild.firstChild;
-					while (textNode) {
-						if (offsetNode === textNode) {
-							offset = text.length;
-						}
-						text += textNode.data;
-						textNode = textNode.nextSibling;
-					}
-				}
-				lineChild = lineChild.nextSibling;
-			}
-			return {text: text, offset: offset};
+			return child._line.getText(offsetNode);
 		},
 		_getTextFromElement: function(element) {
 			var document = element.ownerDocument;
@@ -8194,7 +8361,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			this._keyModes = [];
 			this._rulers = [];
-			this._selection = new Selection (0, 0, false);
+			this._selection = new Selection(0, 0, false);
 			this._linksVisible = false;
 			this._redrawCount = 0;
 			this._maxLineWidth = 0;
@@ -8364,7 +8531,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._topIndexY = 0;
 			this._variableLineHeight = false;
 			this._resetLineHeight();
-			this._setSelection(new Selection (0, 0, false), false, false);
+			this._setSelection(new Selection(0, 0, false), false, false);
 			if (this._viewDiv) {
 				this._viewDiv.scrollLeft = 0;
 				this._viewDiv.scrollTop = 0;
@@ -8381,14 +8548,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				* view is refreshed.  The fix is to toggle the contentEditable state and
 				* force the clientDiv to loose and receive focus if it is focused.
 				*/
-				if (util.isFirefox) {
-					this._ignoreFocus = false;
-					var hasFocus = this._hasFocus;
-					if (hasFocus) { clientDiv.blur(); }
-					clientDiv.contentEditable = false;
-					clientDiv.contentEditable = true;
-					if (hasFocus) { clientDiv.focus(); }
-					this._ignoreFocus = false;
+				if (util.isFirefox < 13) {
+					this._fixCaret ();
 				}
 			}
 		},
@@ -8506,59 +8667,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			return true;
 		},
 		_setDOMSelection: function (startNode, startOffset, endNode, endOffset, startCaret) {
-			var startLineNode, startLineOffset, endLineNode, endLineOffset;
-			var offset = 0;
-			var lineChild = startNode.firstChild;
-			var node, nodeLength, model = this._model;
-			var startLineEnd = model.getLine(startNode.lineIndex).length;
-			while (lineChild) {
-				if (lineChild.ignore) {
-					lineChild = lineChild.nextSibling;
-					continue;
-				}
-				node = lineChild.firstChild;
-				nodeLength = node.length;
-				if (lineChild.ignoreChars) {
-					nodeLength -= lineChild.ignoreChars;
-				}
-				if (offset + nodeLength > startOffset || offset + nodeLength >= startLineEnd) {
-					startLineNode = node;
-					startLineOffset = startOffset - offset;
-					if (lineChild.ignoreChars && nodeLength > 0 && startLineOffset === nodeLength) {
-						startLineOffset += lineChild.ignoreChars; 
-					}
-					break;
-				}
-				offset += nodeLength;
-				lineChild = lineChild.nextSibling;
-			}
-			offset = 0;
-			lineChild = endNode.firstChild;
-			var endLineEnd = this._model.getLine(endNode.lineIndex).length;
-			while (lineChild) {
-				if (lineChild.ignore) {
-					lineChild = lineChild.nextSibling;
-					continue;
-				}
-				node = lineChild.firstChild;
-				nodeLength = node.length;
-				if (lineChild.ignoreChars) {
-					nodeLength -= lineChild.ignoreChars;
-				}
-				if (nodeLength + offset > endOffset || offset + nodeLength >= endLineEnd) {
-					endLineNode = node;
-					endLineOffset = endOffset - offset;
-					if (lineChild.ignoreChars && nodeLength > 0 && endLineOffset === nodeLength) {
-						endLineOffset += lineChild.ignoreChars; 
-					}
-					break;
-				}
-				offset += nodeLength;
-				lineChild = lineChild.nextSibling;
-			}
-			
-			this._setDOMFullSelection(startNode, startOffset, startLineEnd, endNode, endOffset, endLineEnd);
-
+			this._setDOMFullSelection(startNode, startOffset, endNode, endOffset);
+			var start = startNode._line.getNodeOffset(startOffset);
+			var end = endNode._line.getNodeOffset(endOffset);
 			var range;
 			var window = this._getWindow();
 			var document = this._parent.ownerDocument;
@@ -8566,18 +8677,18 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				//W3C
 				var sel = window.getSelection();
 				range = document.createRange();
-				range.setStart(startLineNode, startLineOffset);
-				range.setEnd(endLineNode, endLineOffset);
+				range.setStart(start.node, start.offset);
+				range.setEnd(end.node, end.offset);
 				if (this._hasFocus && (
-					sel.anchorNode !== startLineNode || sel.anchorOffset !== startLineOffset ||
-					sel.focusNode !== endLineNode || sel.focusOffset !== endLineOffset ||
-					sel.anchorNode !== endLineNode || sel.anchorOffset !== endLineOffset ||
-					sel.focusNode !== startLineNode || sel.focusOffset !== startLineOffset))
+					sel.anchorNode !== start.node || sel.anchorOffset !== start.offset ||
+					sel.focusNode !== end.node || sel.focusOffset !== end.offset ||
+					sel.anchorNode !== end.node || sel.anchorOffset !== end.offset ||
+					sel.focusNode !== start.node || sel.focusOffset !== start.offset))
 				{
-					this._anchorNode = startLineNode;
-					this._anchorOffset = startLineOffset;
-					this._focusNode = endLineNode;
-					this._focusOffset = endLineOffset;
+					this._anchorNode = start.node;
+					this._anchorOffset = start.offset;
+					this._focusNode = end.node;
+					this._focusOffset = end.offset;
 					this._ignoreSelect = false;
 					if (sel.rangeCount > 0) { sel.removeAllRanges(); }
 					sel.addRange(range);
@@ -8586,11 +8697,11 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				if (this._cursorDiv) {
 					range = document.createRange();
 					if (startCaret) {
-						range.setStart(startLineNode, startLineOffset);
-						range.setEnd(startLineNode, startLineOffset);
+						range.setStart(start.node, start.offset);
+						range.setEnd(start.node, start.offset);
 					} else {
-						range.setStart(endLineNode, endLineOffset);
-						range.setEnd(endLineNode, endLineOffset);
+						range.setStart(end.node, end.offset);
+						range.setEnd(end.node, end.offset);
 					}
 					var rect = range.getClientRects()[0];
 					var cursorParent = this._cursorDiv.parentNode;
@@ -8615,18 +8726,18 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				body.removeChild(child);
 				
 				range = body.createTextRange();
-				range.moveToElementText(startLineNode.parentNode);
-				range.moveStart("character", startLineOffset); //$NON-NLS-0$
+				range.moveToElementText(start.node.parentNode);
+				range.moveStart("character", start.offset); //$NON-NLS-0$
 				var endRange = body.createTextRange();
-				endRange.moveToElementText(endLineNode.parentNode);
-				endRange.moveStart("character", endLineOffset); //$NON-NLS-0$
+				endRange.moveToElementText(end.node.parentNode);
+				endRange.moveStart("character", end.offset); //$NON-NLS-0$
 				range.setEndPoint("EndToStart", endRange); //$NON-NLS-0$
 				this._ignoreSelect = false;
 				range.select();
 				this._ignoreSelect = true;
 			}
 		},
-		_setDOMFullSelection: function(startNode, startOffset, startLineEnd, endNode, endOffset, endLineEnd) {
+		_setDOMFullSelection: function(startNode, startOffset, endNode, endOffset) {
 			if (!this._selDiv1) { return; }
 			var selDiv = this._selDiv1;
 			selDiv.style.width = "0px"; //$NON-NLS-0$
@@ -8638,7 +8749,6 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			selDiv.style.width = "0px"; //$NON-NLS-0$
 			selDiv.style.height = "0px"; //$NON-NLS-0$
 			if (startNode === endNode && startOffset === endOffset) { return; }
-			var model = this._model;
 			var viewPad = this._getViewPadding();
 			var clientRect = this._clientDiv.getBoundingClientRect();
 			var viewRect = this._viewDiv.getBoundingClientRect();
@@ -8658,10 +8768,10 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			this._ignoreDOMSelection = true;
 			var startLine = new TextLine(this, startNode.lineIndex, startNode);
-			var startRect = startLine.getBoundingClientRect(model.getLineStart(startNode.lineIndex) + startOffset, false);
+			var startRect = startLine.getBoundingClientRect(startOffset, false);
 			var l = startRect.left;
 			var endLine = new TextLine(this, endNode.lineIndex, endNode);
-			var endRect = endLine.getBoundingClientRect(model.getLineStart(endNode.lineIndex) + endOffset, false);
+			var endRect = endLine.getBoundingClientRect(endOffset, false);
 			var r = endRect.left;
 			this._ignoreDOMSelection = false;
 			var sel1Div = this._selDiv1;
@@ -8727,21 +8837,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			var line = this._getLineNext();
 			while (line) {
-				if (line.hasLink) {
-					var lineChild = line.firstChild;
-					while (lineChild) {
-						if (lineChild.ignore) {
-							lineChild = lineChild.nextSibling;
-							continue;
-						}
-						var next = lineChild.nextSibling;
-						var style = lineChild.viewStyle;
-						if (style && style.tagName && style.tagName.toLowerCase() === "a") { //$NON-NLS-0$
-							line.replaceChild(line._line._createSpan(line, lineChild.firstChild.data, style), lineChild);
-						}
-						lineChild = next;
-					}
-				}
+				line._line.updateLinks();
 				line = this._getLineNext(line);
 			}
 			this._updateDOMSelection();
@@ -8941,7 +9037,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		_updateBlockCursorVisible: function () {
 			if (this._blockCursorVisible || this._overwriteMode) {
 				if (!this._cursorDiv) {
-					var cursorDiv = util.createElement(document, "div"); //$NON-NLS-0$
+					var viewDiv = this._viewDiv;
+					var cursorDiv = util.createElement(viewDiv.ownerDocument, "div"); //$NON-NLS-0$
 					cursorDiv.className = "textviewBlockCursor"; //$NON-NLS-0$
 					this._cursorDiv = cursorDiv;
 					cursorDiv.tabIndex = -1;
@@ -8950,7 +9047,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					cursorDiv.style.position = "absolute"; //$NON-NLS-0$
 					cursorDiv.style.pointerEvents = "none"; //$NON-NLS-0$
 					cursorDiv.innerHTML = "&nbsp;"; //$NON-NLS-0$
-					this._viewDiv.appendChild(cursorDiv);
+					viewDiv.appendChild(cursorDiv);
 					this._updateDOMSelection();
 				}
 			} else {
@@ -9164,24 +9261,24 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var topNode, bottomNode, topOffset, bottomOffset;
 			if (startLine < firstNode.lineIndex) {
 				topNode = firstNode;
-				topOffset = 0;
+				topOffset = model.getLineStart(firstNode.lineIndex);
 			} else if (startLine > lastNode.lineIndex) {
 				topNode = lastNode;
-				topOffset = 0;
+				topOffset = model.getLineStart(lastNode.lineIndex);
 			} else {
 				topNode = this._getLineNode(startLine);
-				topOffset = selection.start - model.getLineStart(startLine);
+				topOffset = selection.start;
 			}
 
 			if (endLine < firstNode.lineIndex) {
 				bottomNode = firstNode;
-				bottomOffset = 0;
+				bottomOffset = model.getLineStart(firstNode.lineIndex);
 			} else if (endLine > lastNode.lineIndex) {
 				bottomNode = lastNode;
-				bottomOffset = 0;
+				bottomOffset = model.getLineStart(lastNode.lineIndex);
 			} else {
 				bottomNode = this._getLineNode(endLine);
-				bottomOffset = selection.end - model.getLineStart(endLine);
+				bottomOffset = selection.end;
 			}
 			this._setDOMSelection(topNode, topOffset, bottomNode, bottomOffset, selection.caret);
 		},
@@ -9714,6 +9811,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				styleText += "\n.textview ::-moz-selection {background: " + this._highlightRGB + ";}"; //$NON-NLS-1$ //$NON-NLS-0$
 			}
 			if (styleText) {
+				var document = this._clientDiv.ownerDocument;
 				var node = document.getElementById("_textviewStyle"); //$NON-NLS-0$
 				if (!node) {
 					node = util.createElement(document, "style"); //$NON-NLS-0$
@@ -10737,6 +10835,20 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		}
 	};
 	
+	/** @private */
+	function binarySearch (array, offset) {
+		var high = array.length, low = -1, index;
+		while (high - low > 1) {
+			index = Math.floor((high + low) / 2);
+			if (offset <= array[index].start) {
+				high = index;
+			} else {
+				low = index;
+			}
+		}
+		return high;
+	}
+	
 	/**
 	 * Constructs an annotation model.
 	 * 
@@ -10776,7 +10888,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		addAnnotation: function(annotation) {
 			if (!annotation) { return; }
 			var annotations = this._annotations;
-			var index = this._binarySearch(annotations, annotation.start);
+			var index = binarySearch(annotations, annotation.start);
 			annotations.splice(index, 0, annotation);
 			annotation._annotationModel = this;
 			var e = {
@@ -10961,7 +11073,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			if (!add) { add = []; }
 			for (i = 0; i < add.length; i++) {
 				annotation = add[i];
-				index = this._binarySearch(annotations, annotation.start);
+				index = binarySearch(annotations, annotation.start);
 				annotation._annotationModel = this;
 				annotations.splice(index, 0, annotation);
 			}
@@ -10992,22 +11104,9 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			}
 		},
 		/** @ignore */
-		_binarySearch: function (array, offset) {
-			var high = array.length, low = -1, index;
-			while (high - low > 1) {
-				index = Math.floor((high + low) / 2);
-				if (offset <= array[index].start) {
-					high = index;
-				} else {
-					low = index;
-				}
-			}
-			return high;
-		},
-		/** @ignore */
 		_getAnnotationIndex: function(annotation) {
 			var annotations = this._annotations;
-			var index = this._binarySearch(annotations, annotation.start);
+			var index = binarySearch(annotations, annotation.start);
 			while (index < annotations.length && annotations[index].start === annotation.start) {
 				if (annotations[index] === annotation) {
 					return index;
@@ -11155,8 +11254,8 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			if (!ranges) {
 				ranges = [];
 			}
-			var mergedStyle, i;
-			for (i=0; i<ranges.length && styleRange; i++) {
+			var mergedStyle, i = binarySearch(ranges, styleRange.start);
+			for (; i<ranges.length && styleRange; i++) {
 				var range = ranges[i];
 				if (styleRange.end <= range.start) { break; }
 				if (styleRange.start >= range.end) { continue; }
@@ -15234,7 +15333,6 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var textView = editor.getTextView();
 			var annotationModel = editor.getAnnotationModel();
 			if(!annotationModel) { return true; }
-			var model = editor.getModel();
 			var annotation, iter = annotationModel.getAnnotations();
 			textView.setRedraw(false);
 			while (iter.hasNext()) {
@@ -15728,13 +15826,13 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		 * Automatically inserts the specified opening and closing brackets around the caret or selected text.
 		 */
 		autoPairBrackets: function(openBracket, closeBracket) {
-			if (openBracket === "[" && !this.autoPairSquareBrackets) {
+			if (openBracket === "[" && !this.autoPairSquareBrackets) { //$NON-NLS-0$
 				return false;
-			} else if (openBracket === "{" && !this.autoPairBraces) {
+			} else if (openBracket === "{" && !this.autoPairBraces) { //$NON-NLS-0$
 				return false;
-			} else if (openBracket === "(" && !this.autoPairParentheses) {
+			} else if (openBracket === "(" && !this.autoPairParentheses) { //$NON-NLS-0$
 				return false;
-			} else if (openBracket === "<" && !this.autoPairAngleBrackets) {
+			} else if (openBracket === "<" && !this.autoPairAngleBrackets) { //$NON-NLS-0$
 				return false;
 			}
 
@@ -15968,6 +16066,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var editor = this.editor;
 			var textView = editor.getTextView();
 			if (textView.getOptions("readonly")) { return false; } //$NON-NLS-0$
+			var comment = this.lineComment || "//"; //$NON-NLS-0$
 			var model = editor.getModel();
 			var selection = editor.getSelection();
 			var firstLine = model.getLineAtOffset(selection.start);
@@ -15976,7 +16075,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			for (var i = firstLine; i <= lastLine; i++) {
 				lineText = model.getLine(i, true);
 				lines.push(lineText);
-				if (!uncomment || (index = lineText.indexOf("//")) === -1) { //$NON-NLS-0$
+				if (!uncomment || (index = lineText.indexOf(comment)) === -1) {
 					uncomment = false;
 				} else {
 					if (index !== 0) {
@@ -15991,24 +16090,24 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					}
 				}
 			}
-			var text, selStart, selEnd;
+			var text, selStart, selEnd, l = comment.length;
 			var lineStart = model.getLineStart(firstLine);
 			var lineEnd = model.getLineEnd(lastLine, true);
 			if (uncomment) {
 				for (var k = 0; k < lines.length; k++) {
 					lineText = lines[k];
-					index = lineText.indexOf("//"); //$NON-NLS-0$
-					lines[k] = lineText.substring(0, index) + lineText.substring(index + 2);
+					index = lineText.indexOf(comment);
+					lines[k] = lineText.substring(0, index) + lineText.substring(index + l);
 				}
 				text = lines.join("");
 				var lastLineStart = model.getLineStart(lastLine);
-				selStart = lineStart === selection.start ? selection.start : selection.start - 2;
-				selEnd = selection.end - (2 * (lastLine - firstLine + 1)) + (selection.end === lastLineStart+1 ? 2 : 0);
+				selStart = lineStart === selection.start ? selection.start : selection.start - l;
+				selEnd = selection.end - (l * (lastLine - firstLine + 1)) + (selection.end === lastLineStart+1 ? l : 0);
 			} else {
 				lines.splice(0, 0, "");
-				text = lines.join("//"); //$NON-NLS-0$
-				selStart = lineStart === selection.start ? selection.start : selection.start + 2;
-				selEnd = selection.end + (2 * (lastLine - firstLine + 1));
+				text = lines.join(comment);
+				selStart = lineStart === selection.start ? selection.start : selection.start + l;
+				selEnd = selection.end + (l * (lastLine - firstLine + 1));
 			}
 			editor.setText(text, lineStart, lineEnd);
 			editor.setSelection(selStart, selEnd);
@@ -16088,6 +16187,9 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		},
 		setAutoCompleteComments: function(enabled) {
 			this.autoCompleteComments = enabled;
+		},
+		setLineComment: function(lineComment) {
+			this.lineComment = lineComment;
 		},
 		setSmartIndentation: function(enabled) {
 			this.smartIndentation = enabled;
@@ -16924,7 +17026,7 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
  * 
  * Contributors: IBM Corporation - initial API and implementation
  ******************************************************************************/
-/*global exports module define setTimeout*/
+/*global exports module define setTimeout process document MutationObserver*/
 
 (function(root, factory) { // UMD
     if (typeof define === "function" && define.amd) { //$NON-NLS-0$
@@ -16947,19 +17049,65 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
         running = false;
     }
 
+	var runAsync = (function() {
+		if (typeof process !== "undefined" && typeof process.nextTick === "function") {
+			var nextTick = process.nextTick;
+    		return function() {
+    			nextTick(run);
+    		};
+		} else if (typeof MutationObserver === "function") {
+			var div = document.createElement("div");
+			var observer = new MutationObserver(run);
+			observer.observe(div, {
+            	attributes: true
+        	});
+        	return function() {
+        		div.setAttribute("class", "_tick");
+        	};
+		}
+		return function() {
+			setTimeout(run, 0);
+		};
+	})();
+
     function enqueue(fn) {
         queue.push(fn);
         if (!running) {
             running = true;
-            setTimeout(run, 0);
+            runAsync();
         }
     }
 
     function noReturn(fn) {
-        return function() {
-            fn.apply(undefined, arguments);
+        return function(result) {
+            fn(result);
         };
     }
+    
+    function settleDeferred(fn, result, deferred) {
+    	try {
+    		var listenerResult = fn(result);
+    		var listenerThen = listenerResult && (typeof listenerResult === "object" || typeof listenerResult === "function") && listenerResult.then;
+    		if (typeof listenerThen === "function") {
+    			if (listenerResult === deferred.promise) {
+    				deferred.reject(new TypeError());
+    			} else {
+    				var listenerResultCancel = listenerResult.cancel;
+    				if (typeof listenerResultCancel === "function") {
+    					deferred._parentCancel = listenerResultCancel.bind(listenerResult);
+    				} else {
+    					delete deferred._parentCancel;
+    				}
+    				listenerThen.call(listenerResult, noReturn(deferred.resolve), noReturn(deferred.reject), noReturn(deferred.progress));
+    			}
+    		} else {
+    			deferred.resolve(listenerResult);
+    		}
+    	} catch (e) {
+    		deferred.reject(e);
+    	}
+    }
+
 
     /**
      * @name orion.Promise
@@ -17003,46 +17151,16 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
      */
     function Deferred() {
         var result, state, listeners = [],
-            _this = this,
-            _protected = {};
-
-        Object.defineProperty(this, "_protected", {
-            value: function(secret) {
-                if (secret !== queue) {
-                    throw new Error("protected");
-                }
-                return _protected;
-            }
-        });
+            _this = this;
 
         function notify() {
             var listener;
             while ((listener = listeners.shift())) {
                 var deferred = listener.deferred;
                 var methodName = state === "fulfilled" ? "resolve" : "reject"; //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
-                if (typeof listener[methodName] === "function") { //$NON-NLS-0$
-                    try {
-                        var fn = listener[methodName];
-                        var listenerResult = fn(result);
-                        var listenerThen = listenerResult && (typeof listenerResult === "object" || typeof listenerResult === "function") && listenerResult.then;
-                        if (typeof listenerThen === "function") {
-                            if (listenerResult === deferred.promise) {
-                                deferred.reject(new TypeError());
-                            } else {
-                                var listenerResultCancel = listenerResult.cancel;
-                                if (typeof listenerResultCancel === "function") {
-                                    deferred._protected(queue).parentCancel = listenerResultCancel.bind(listenerResult);
-                                } else {
-                                    delete deferred._protected(queue).parentCancel;
-                                }
-                                listenerThen.call(listenerResult, noReturn(deferred.resolve), noReturn(deferred.reject), noReturn(deferred.progress));
-                            }
-                        } else {
-                            deferred.resolve(listenerResult);
-                        }
-                    } catch (e) {
-                        deferred.reject(e);
-                    }
+                var fn = listener[methodName];
+                if (typeof fn === "function") { //$NON-NLS-0$
+                	settleDeferred(fn, result, deferred);
                 } else {
                     deferred[methodName](result);
                 }
@@ -17050,7 +17168,7 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
         }
 
         function _reject(error) {
-            delete _protected.parentCancel;
+            delete _this._parentCancel;
             state = "rejected";
             result = error;
             if (listeners.length) {
@@ -17059,17 +17177,14 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
         }
 
         function _resolve(value) {
-            var called = false;
-
             function once(fn) {
-                return function(value) {
-                    if (!called) {
-                        called = true;
-                        fn(value);
+                return function(result) {
+                    if (!state || state === "assumed") {
+                          fn(result);
                     }
                 };
             }
-            delete _protected.parentCancel;
+            delete _this._parentCancel;
             try {
                 var valueThen = value && (typeof value === "object" || typeof value === "function") && value.then;
                 if (typeof valueThen === "function") {
@@ -17091,7 +17206,7 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
                         }
                         result = value;
                         valueThen.call(value, once(_resolve), once(_reject));
-                        _protected.parentCancel = valueCancel.bind(value);
+                        _this._parentCancel = valueCancel.bind(value);
                     }
                 } else {
                     state = "fulfilled";
@@ -17106,9 +17221,9 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
         }
 
         function cancel() {
-            var parentCancel = _protected.parentCancel;
+            var parentCancel = _this._parentCancel;
             if (parentCancel) {
-                delete _protected.parentCancel;
+                delete _this._parentCancel;
                 parentCancel();
             } else if (!state) {
                 var cancelError = new Error("Cancel");
@@ -17173,29 +17288,28 @@ define("orion/editor/editorFeatures", [ //$NON-NLS-0$
         };
 
         this.cancel = function() {
-            if (_protected.parentCancel) {
+            if (_this._parentCancel) {
                 setTimeout(cancel, 0);
             } else {
                 cancel();
             }
-
             return _this;
         };
 
         // Note: "then" ALWAYS returns before having onResolve or onReject called as per http://promises-aplus.github.com/promises-spec/
         this.then = function(onFulfill, onReject, onProgress) {
-            var listener = {
+        	var deferred = new Deferred();
+            deferred._parentCancel = _this.promise.cancel;
+            listeners.push({
                 resolve: onFulfill,
                 reject: onReject,
                 progress: onProgress,
-                deferred: new Deferred()
-            };
-            listeners.push(listener);
-            listener.deferred._protected(queue).parentCancel = _this.promise.cancel.bind(_this);
+                deferred: deferred
+            });
             if (state === "fulfilled" || state === "rejected") {
                 enqueue(notify);
             }
-            return listener.deferred.promise;
+            return deferred.promise;
         };
 
         /**
@@ -18993,120 +19107,103 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 
 define("orion/editor/stylers/lib/syntax", [], function() { //$NON-NLS-0$
 	return {
-		id: "orion.lib",
+		id: "orion.lib", //$NON-NLS-0$
 		grammars: [{
-			id: "orion.lib",
-			patterns: [
-				{include: "#brace_open"},
-				{include: "#brace_close"},
-				{include: "#bracket_open"},
-				{include: "#bracket_close"},
-				{include: "#parenthesis_open"},
-				{include: "#parenthesis_close"},
-				{include: "#number_decimal"},
-				{include: "#number_hex"},
-				{include: "#string_doubleQuote"},
-				{include: "#string_singleQuote"}
-			],
+			id: "orion.lib", //$NON-NLS-0$
 			repository: {
 				brace_open: {
-					match: "{",
-					name: "punctuation.section.block.begin"
+					match: "{", //$NON-NLS-0$
+					name: "punctuation.section.block.begin" //$NON-NLS-0$
 				},
 				brace_close: {
-					match: "}",
-					name: "punctuation.section.block.end"
+					match: "}", //$NON-NLS-0$
+					name: "punctuation.section.block.end" //$NON-NLS-0$
 				},
 				bracket_open: {
-					match: "\\[",
-					name: "punctuation.section.bracket.begin"
+					match: "\\[", //$NON-NLS-0$
+					name: "punctuation.section.bracket.begin" //$NON-NLS-0$
 				},
 				bracket_close: {
-					match: "\\]",
-					name: "punctuation.section.bracket.end"
+					match: "\\]", //$NON-NLS-0$
+					name: "punctuation.section.bracket.end" //$NON-NLS-0$
 				},
 				parenthesis_open: {
-					match: "\\(",
-					name: "punctuation.section.parens.begin"
+					match: "\\(", //$NON-NLS-0$
+					name: "punctuation.section.parens.begin" //$NON-NLS-0$
 				},
 				parenthesis_close: {
-					match: "\\)",
-					name: "punctuation.section.parens.end"
+					match: "\\)", //$NON-NLS-0$
+					name: "punctuation.section.parens.end" //$NON-NLS-0$
 				},
 				doc_block: {
-					begin: "/\\*\\*",
-					end: "\\*/",
-					name: "comment.block.documentation",
+					begin: {match: "/\\*\\*", literal: "/**"}, //$NON-NLS-0$
+					end: {match: "\\*/", literal: "*/"}, //$NON-NLS-0$
+					name: "comment.block.documentation", //$NON-NLS-0$
 					patterns: [
 						{
-							match: "@(?:(?!\\*/)\\S)*",
-							name: "keyword.other.documentation.tag"
+							match: "@(?:(?!\\*/)\\S)*", //$NON-NLS-0$
+							name: "keyword.other.documentation.tag" //$NON-NLS-0$
 						}, {
-							match: "\\<\\S*\\>",
-							name: "keyword.other.documentation.markup"
+							match: "\\<\\S*\\>", //$NON-NLS-0$
+							name: "keyword.other.documentation.markup" //$NON-NLS-0$
 						}, {
-							match: "(\\b)(TODO)(\\b)(((?!\\*/).)*)",
-							name: "meta.annotation.task.todo",
+							match: "(\\b)(TODO)(\\b)(((?!\\*/).)*)", //$NON-NLS-0$
+							name: "meta.annotation.task.todo", //$NON-NLS-0$
 							captures: {
-								2: {name: "keyword.other.documentation.task"},
-								4: {name: "comment.block"}
+								2: {name: "keyword.other.documentation.task"}, //$NON-NLS-0$
+								4: {name: "comment.block"} //$NON-NLS-0$
 							}
 						}
 					]
 				},
 				number_decimal: {
-					match: "\\b-?(?:\\.\\d+|\\d+\\.?\\d*)(?:[eE][+-]?\\d+)?\\b",
-					name: "constant.numeric.number"
+					match: "\\b-?(?:\\.\\d+|\\d+\\.?\\d*)(?:[eE][+-]?\\d+)?\\b", //$NON-NLS-0$
+					name: "constant.numeric.number" //$NON-NLS-0$
 				},
 				number_hex: {
-					match: "\\b0[xX][0-9A-Fa-f]+\\b",
-					name: "constant.numeric.hex"
+					match: "\\b0[xX][0-9A-Fa-f]+\\b", //$NON-NLS-0$
+					name: "constant.numeric.hex" //$NON-NLS-0$
 				},
 				string_doubleQuote: {
-					match: '"(?:\\\\.|[^"])*"?',
-					name: "string.quoted.double"
+					match: '"(?:\\\\.|[^"])*"?', //$NON-NLS-0$
+					name: "string.quoted.double" //$NON-NLS-0$
 				},
 				string_singleQuote: {
-					match: "'(?:\\\\.|[^'])*'?",
-					name: "string.quoted.single"
+					match: "'(?:\\\\.|[^'])*'?", //$NON-NLS-0$
+					name: "string.quoted.single" //$NON-NLS-0$
 				},
 				todo_comment_singleLine: {
-					match: "(\\b)(TODO)(\\b)(.*)",
-					name: "meta.annotation.task.todo",
+					match: "(\\b)(TODO)(\\b)(.*)", //$NON-NLS-0$
+					name: "meta.annotation.task.todo", //$NON-NLS-0$
 					captures: {
-						2: {name: "keyword.other.documentation.task"},
-						4: {name: "comment.line"}
+						2: {name: "keyword.other.documentation.task"}, //$NON-NLS-0$
+						4: {name: "comment.line"} //$NON-NLS-0$
 					}
 				}
 			}
 		}, {
-			id: "orion.c-like",
-			patterns: [
-				{include: "orion.lib"},
-				{include: "#comment_singleLine"},
-				{include: "#comment_block"}
-			],
+			id: "orion.c-like", //$NON-NLS-0$
 			repository: {
 				comment_singleLine: {
-					match: "//.*",
-					name: "comment.line.double-slash",
+					match: {match: "//.*", literal: "//"}, //$NON-NLS-0$
+					name: "comment.line.double-slash", //$NON-NLS-0$
 					patterns: [
 						{
-							include: "orion.lib#todo_comment_singleLine"
+							include: "orion.lib#todo_comment_singleLine" //$NON-NLS-0$
 						}
 					]
 				},
 				comment_block: {
-					begin: "/\\*",
-					end: "\\*/",
-					name: "comment.block",
+					begin: {match: "/\\*", literal: "/*"}, //$NON-NLS-0$
+					end: {match: "\\*/", literal: "*/"}, //$NON-NLS-0$ 
+					name: "comment.block", //$NON-NLS-0$
 					patterns: [
 						{
-							match: "(\\b)(TODO)(\\b)(((?!\\*/).)*)",
-							name: "meta.annotation.task.todo",
+							match: "(\\b)(TODO)(\\b)(((?!\\*/).)*)", //$NON-NLS-0$
+							name: "meta.annotation.task.todo", //$NON-NLS-0$
 							captures: {
-								2: {name: "keyword.other.documentation.task"},
-								4: {name: "comment.block"}
+								2: {name: "keyword.other.documentation.task"}, //$NON-NLS-0$
+								4: {name: "comment.block"} //$NON-NLS-0$
 							}
 						}
 					]
@@ -19114,7 +19211,7 @@ define("orion/editor/stylers/lib/syntax", [], function() { //$NON-NLS-0$
 			}
 		}],
 		keywords: []
-	}
+	};
 });
 
 /*******************************************************************************
@@ -19130,7 +19227,7 @@ define("orion/editor/stylers/lib/syntax", [], function() { //$NON-NLS-0$
 
 /*global define*/
 
-define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-0$
+define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
 	var keywords = [
 		"alignment-adjust", "alignment-baseline", "animation-delay", "animation-direction", "animation-duration", "animation-iteration-count", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 		"animation-name", "animation-play-state", "animation-timing-function", "animation", "appearance", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -19173,30 +19270,42 @@ define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax
 
 	var grammars = mLib.grammars;
 	grammars.push({
-		id: "orion.css",
-		contentTypes: ["text/css"],
+		id: "orion.css", //$NON-NLS-0$
+		contentTypes: ["text/css"], //$NON-NLS-0$
 		patterns: [
 			{
-				include: "orion.lib"
+				begin: "'(?:\\\\.|[^\\\\'])*\\\\$", //$NON-NLS-0$
+				end: "^(?:$|(?:\\\\.|[^\\\\'])*('|[^\\\\]$))", //$NON-NLS-0$
+				name: "string.quoted.single.css" //$NON-NLS-0$
 			}, {
-				include: "orion.c-like#comment_block"
-			}, {
-				match: "(?:-webkit-|-moz-|-ms-|\\b)(?:" + keywords.join("|") + ")\\b",
-				name: "keyword.control.css"
-			}, {
-				match: "(?i)\\b-?(?:\\.\\d+|\\d+\\.?\\d*)(?:%|em|ex|ch|rem|vw|vh|vmin|vmax|in|cm|mm|pt|pc|px|deg|grad|rad|turn|s|ms|Hz|kHz|dpi|dpcm|dppx)?\\b",
-				name: "constant.numeric.value.css"
-			}, {
-				begin: "(['\"])(?:\\\\.|[^\\\\\\1])*\\\\$", //$NON-NLS-0$
-				end: "^(?:$|(?:\\\\.|[^\\\\\\1])*(\\1|[^\\\\]$))", //$NON-NLS-0$
-				name: "string.quoted.multiline.css" //$NON-NLS-0$
+				begin: '"(?:\\\\.|[^\\\\"])*\\\\$', //$NON-NLS-0$
+				end: '^(?:$|(?:\\\\.|[^\\\\"])*("|[^\\\\]$))', //$NON-NLS-0$
+				name: "string.quoted.double.css" //$NON-NLS-0$
+			},
+			{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+			{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
+			{include: "orion.c-like#comment_block"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_open"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_close"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
+			{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
+			{include: "#number_hex"}, //$NON-NLS-0$
+			{
+				match: "(?i)\\b-?(?:\\.\\d+|\\d+\\.?\\d*)(?:%|em|ex|ch|rem|vw|vh|vmin|vmax|in|cm|mm|pt|pc|px|deg|grad|rad|turn|s|ms|Hz|kHz|dpi|dpcm|dppx)?\\b", //$NON-NLS-0$
+				name: "constant.numeric.value.css" //$NON-NLS-0$
+			},
+			{			
+				match: "(?:-webkit-|-moz-|-ms-|\\b)(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				name: "keyword.control.css" //$NON-NLS-0$
 			}
 		],
 		repository: {
-			/* override orion.lib#number_hex */
 			number_hex: {
-				match: "#[0-9A-Fa-f]+\\b",
-				name: "constant.numeric.hex.css"
+				match: "#[0-9A-Fa-f]+\\b", //$NON-NLS-0$
+				name: "constant.numeric.hex.css" //$NON-NLS-0$
 			}
 		}
 	});
@@ -19649,7 +19758,7 @@ define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mT
 
 /*global define*/
 
-define("orion/editor/stylers/application_javascript/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-0$
+define("orion/editor/stylers/application_javascript/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
 	var keywords = [
 		"break", //$NON-NLS-0$
 		"case", "class", "catch", "continue", "const", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
@@ -19675,16 +19784,6 @@ define("orion/editor/stylers/application_javascript/syntax", ["orion/editor/styl
 		contentTypes: ["application/javascript"], //$NON-NLS-0$
 		patterns: [
 			{
-				include: "orion.lib#doc_block" //$NON-NLS-0$
-			}, {
-				include: "orion.c-like" //$NON-NLS-0$
-			}, {
-				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-				name: "keyword.control.js" //$NON-NLS-0$
-			}, {
-				match: "/(?![\\s])(?:\\\\.|[^/])+/(?:[gim]{0,3})", //$NON-NLS-0$
-				name: "string.regexp.js" //$NON-NLS-0$
-			}, {
 				begin: "'(?:\\\\.|[^\\\\'])*\\\\$", //$NON-NLS-0$
 				end: "^(?:$|(?:\\\\.|[^\\\\'])*('|[^\\\\]$))", //$NON-NLS-0$
 				name: "string.quoted.single.js" //$NON-NLS-0$
@@ -19692,6 +19791,27 @@ define("orion/editor/stylers/application_javascript/syntax", ["orion/editor/styl
 				begin: '"(?:\\\\.|[^\\\\"])*\\\\$', //$NON-NLS-0$
 				end: '^(?:$|(?:\\\\.|[^\\\\"])*("|[^\\\\]$))', //$NON-NLS-0$
 				name: "string.quoted.double.js" //$NON-NLS-0$
+			},
+			{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+			{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
+			{include: "orion.c-like#comment_singleLine"}, //$NON-NLS-0$
+			{
+				match: "/(?![\\s\\*])(?:\\\\.|[^/])+/(?:[gim]{0,3})", //$NON-NLS-0$
+				name: "string.regexp.js" //$NON-NLS-0$
+			},
+			{include: "orion.lib#doc_block"}, //$NON-NLS-0$
+			{include: "orion.c-like#comment_block"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_open"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_close"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
+			{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
+			{include: "orion.lib#number_hex"}, //$NON-NLS-0$
+			{
+				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				name: "keyword.control.js" //$NON-NLS-0$
 			}
 		]
 	});
@@ -22835,13 +22955,15 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 	var PUNCTUATION_SECTION_BEGIN = ".begin"; //$NON-NLS-0$
 	var PUNCTUATION_SECTION_END = ".end"; //$NON-NLS-0$
 
+	var FLAGS = "g"; //$NON-NLS-0$
 	var CR = "\r"; //$NON-NLS-0$
 	var NEWLINE = "\n"; //$NON-NLS-0$
 
 	var eolRegex = /$/;
 	var captureReferenceRegex = /\\(\d)/g;
+	var ignoreCaseRegex = /^\(\?i\)\s*/;
 	var linebreakRegex = /(.*)(?:[\r\n]|$)/g;
-	var spacePattern = {regex: / /g, style: {styleClass: "punctuation separator space", unmergeable: true}}; //$NON-NLS-0$
+	var spacePattern = {regex: /[ ]/g, style: {styleClass: "punctuation separator space", unmergeable: true}}; //$NON-NLS-0$
 	var tabPattern = {regex: /\t/g, style: {styleClass: "punctuation separator tab", unmergeable: true}}; //$NON-NLS-0$
 
 	var _findMatch = function(regex, text, startIndex, testBeforeMatch) {
@@ -22919,8 +23041,8 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			captureReferenceRegex.lastIndex = 0;
 			result = captureReferenceRegex.exec(regexString);
 		}
-		/* return an updated regex, remove the leading '/' and trailing /g */
-		return new RegExp(regexString.substring(1, regexString.length - 2), "g");
+		/* return an updated regex, remove the leading '/' and trailing /FLAGS */
+		return new RegExp(regexString.substring(1, regexString.length - 1 - FLAGS.length), FLAGS);
 	};
 	var updateMatch = function(match, text, matches, minimumIndex) {
 		var regEx = match.pattern.regex ? match.pattern.regex : match.pattern.regexBegin;
@@ -22969,6 +23091,9 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		}
 	};
 	var parse = function(text, offset, block, styles, ignoreCaptures) {
+		if (!text) {
+			return;
+		}
 		var patterns = block.getLinePatterns();
 		if (!patterns) {
 			return;
@@ -23059,6 +23184,11 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		});
 	};
 	var computeBlocks = function(model, text, block, offset) {
+		if (!text) {
+			return [];
+		}
+
+		var results = [];
 		var matches = [];
 		block.getBlockPatterns().forEach(function(current) {
 			var result = _findMatch(current.regexBegin || current.regex, text, 0);
@@ -23067,7 +23197,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			}
 		}.bind(this));
 		if (!matches.length) {
-			return matches;
+			return results;
 		}
 		matches.sort(function(a,b) {
 			if (a.result.index < b.result.index) {
@@ -23080,7 +23210,6 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		});
 
 		var index = 0;
-		var results = [];
 		while (matches.length > 0) {
 			var current = matches[0];
 			matches.splice(0,1);
@@ -23091,74 +23220,73 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				continue;
 			}
 
-			/* verify that the begin match is valid (eg.- is not within a string, etc.) */
-			var lineIndex = model.getLineAtOffset(offset + current.result.index);
-			var lineText = model.getLine(lineIndex);
-			var styles = [];
-			parse(lineText, model.getLineStart(lineIndex), block, styles);
 			var start = offset + current.result.index;
-			var i = 0;
-			for (; i < styles.length; i++) {
-				if (styles[i].start === start) {
-					/* found it, now determine the end (and ensure that it is valid) */
-					var contentStart = current.result.index;
-					var resultEnd = null;
+			var contentStart = current.result.index;
+			var resultEnd = null;
 
-					/* 
-					 * If the end match contains a capture reference (eg.- "\1") then update
-					 * its regex with the resolved capture values from the begin match.
+			var endRegex = current.pattern.regexEnd;
+			if (!endRegex) {
+				resultEnd = new Block(
+					{
+						start: start,
+						end: start + current.result[0].length,
+						contentStart: start,
+						contentEnd: start + current.result[0].length
+					},
+					current.pattern,
+					block.getStyler(),
+					model,
+					block);
+			} else {
+				contentStart += current.result[0].length;
+				var testPattern = current.pattern;
+				/*
+				 * If the end regex contains a capture reference (eg.- "\1") then substitute
+				 * the resolved capture values from the begin match.
+				 */
+				var resolvedEndRegex = substituteCaptureValues(endRegex, current.result);
+				if (resolvedEndRegex !== endRegex) {
+					/*
+					 * A substitution was made, so make a copy of the test pattern and set its
+					 * end regex to the resolved one.  This will cause end-match detection to be
+					 * performed with this concrete end regex value, but the original pattern
+					 * definition containing the capture reference will not be affected.
 					 */
-					var endRegex = current.pattern.regexEnd;
-					if (!endRegex) {
-						resultEnd = new Block(
-							{
-								start: start,
-								end: start + current.result[0].length,
-								contentStart: start,
-								contentEnd: start + current.result[0].length
-							},
-							current.pattern,
-							block.getStyler(),
-							model,
-							block);
-					} else {
-						contentStart += current.result[0].length;
-						endRegex = substituteCaptureValues(endRegex, current.result);
+					testPattern = {
+						pattern: testPattern.pattern,
+						regexBegin: testPattern.regexBegin,
+						regexEnd: resolvedEndRegex
+					};
+					endRegex = resolvedEndRegex;
+				}
 
-						var lastIndex = contentStart;
-						while (!resultEnd) {
-							var result = _findMatch(endRegex, text, lastIndex);
-							if (!result) {
-								eolRegex.lastIndex = 0;
-								result = eolRegex.exec(text);
-							}
-							var styles2 = [];
-							var testBlock = new Block(
-								{
-									start: start,
-									end: offset + result.index + result[0].length,
-									contentStart: offset + contentStart,
-									contentEnd: offset + result.index
-								},
-								current.pattern,
-								block.getStyler(),
-								model,
-								block);
-							parse(text.substring(contentStart, result.index + result[0].length), contentStart, testBlock, styles2);
-							if (!styles2.length || styles2[styles2.length - 1].end <= result.index) {
-								resultEnd = testBlock;
-							}
-							lastIndex = result.index + result[0].length;
-						}
+				var lastIndex = contentStart;
+				while (!resultEnd) {
+					var result = _findMatch(endRegex, text, lastIndex);
+					if (!result) {
+						eolRegex.lastIndex = 0;
+						result = eolRegex.exec(text);
 					}
-					results.push(resultEnd);
-					index = resultEnd.end - offset;
-					break;
+					var testBlock = new Block(
+						{
+							start: start,
+							end: offset + result.index + result[0].length,
+							contentStart: offset + contentStart,
+							contentEnd: offset + result.index
+						},
+						testPattern,
+						block.getStyler(),
+						model,
+						block);
+					var subBlocks = testBlock.getBlocks();
+					if (!subBlocks.length || subBlocks[subBlocks.length - 1].end <= (result.index + offset)) {
+						resultEnd = testBlock;
+					}
+					lastIndex = result.index + result[0].length;
 				}
 			}
-			if (i === styles.length) {
-				index = current.result.index + 1;
-			}
+			results.push(resultEnd);
+			index = resultEnd.end - offset;
 			updateMatch(current, text, matches, index);
 		}
 		return results;
@@ -23197,35 +23325,28 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		getPatterns: function(pattern) {
 			var parentId;
 			if (!pattern) {
-				parentId = this._rootId;
+				parentId = this._rootId + "#" + this._NO_ID;
 			} else {
 				if (typeof(pattern) === "string") { //$NON-NLS-0$
 					parentId = pattern;
 				} else {
 					parentId = pattern.qualifiedId;
 				}
+				parentId += "#";
 			}
 			/* indexes on patterns are used to break ties when multiple patterns match the same start text */
 			var indexCounter = [0];
 			var resultObject = {};
-			var regEx = new RegExp("^" + parentId + "#[^#]+$"); //$NON-NLS-0$
-			var includes = [];
+			var regEx = new RegExp("^" + parentId + "[^#]+$"); //$NON-NLS-0$
 			this._patterns.forEach(function(current) {
 				if (regEx.test(current.qualifiedId)) {
 					if (current.include) {
-						includes.push(current);
+						this._processInclude(current, indexCounter, resultObject);
 					} else {
 						current.index = indexCounter[0]++;
 						resultObject[current.id] = current;
 					}
 				}
-			}.bind(this));
-			/*
-			 * The includes get processed last to ensure that locally-defined patterns are given
-			 * precedence over included ones with respect to pattern identifiers and indexes.
-			 */
-			includes.forEach(function(current) {
-				this._processInclude(current, indexCounter, resultObject);
 			}.bind(this));
 
 			var result = [];
@@ -23268,24 +23389,15 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				/* inclusion of specific pattern from another grammar */
 				searchExp = new RegExp("^" + pattern.include + "$");
 			}
-			var includes = [];
 			this._patterns.forEach(function(current) {
 				if (searchExp.test(current.qualifiedId)) {
 					if (current.include) {
-						includes.push(current);
+						this._processInclude(current, indexCounter, resultObject);
 					} else if (!resultObject[current.id]) {
 						current.index = indexCounter[0]++;
 						resultObject[current.id] = current;
 					}
 				}
-			}.bind(this));
-
-			/*
-			 * The includes get processed last to ensure that locally-defined patterns are given
-			 * precedence over included ones with respect to pattern identifiers and indexes.
-			 */
-			includes.forEach(function(current) {
-				this._processInclude(current, indexCounter, resultObject);
 			}.bind(this));
 		},
 		_NO_ID: "NoID"	//$NON-NLS-0$
@@ -23396,6 +23508,10 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		getPatternManager: function() {
 			return this._styler._getPatternManager();
 		},
+		getPatterns: function() {
+			/* all patterns appear in the line patterns list */
+			return this.getLinePatterns();	
+		},
 		getStyler: function() {
 			return this._styler;
 		},
@@ -23403,47 +23519,46 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			return this._styler._isRenderingWhitespace();
 		},
 		_initPatterns: function() {
+			if (this.pattern && this.pattern.pattern._linePatterns) {
+				this._linePatterns = this.pattern.pattern._linePatterns;
+				this._blockPatterns = this.pattern.pattern._blockPatterns;
+				this._enclosurePatterns = this.pattern.pattern._enclosurePatterns;
+				return;
+			}
 			var patterns = this.getPatternManager().getPatterns(this.pattern ? this.pattern.pattern : null);
-			var processIgnore = function(matchString) {
-				var result = /^\(\?i\)\s*/.exec(matchString);
+			var initRegex = function(match) {
+				var matchString = typeof(match) === "string" ? match : match.match;
+				var result = ignoreCaseRegex.exec(matchString);
+				var flags = FLAGS;
 				if (result) {
 					matchString = matchString.substring(result[0].length);
+					flags += "i";
 				}
-				return matchString;
+				return new RegExp(matchString, flags);
 			};
+			var lastBlock = -1;
+			var index = 0;
 			patterns.forEach(function(current) {
 				var pattern;
 				if (current.match && !current.begin && !current.end) {
-					var flags = "g";	//$NON-NLS-0$
-					var match = processIgnore(current.match);
-					if (match !== current.match) {
-						flags += "i";	//$NON-NLS-0$
-					}
-					pattern = {regex: new RegExp(match, flags), pattern: current};
+					pattern = {regex: initRegex(current.match), pattern: current};
 					this._linePatterns.push(pattern);
-					if (current.patterns) {
-						this._blockPatterns.push(pattern);
-					} else {
-						if (current.name && current.name.indexOf("punctuation.section") === 0 && (current.name.indexOf(PUNCTUATION_SECTION_BEGIN) !== -1 || current.name.indexOf(PUNCTUATION_SECTION_END) !== -1)) { //$NON-NLS-0$
-							this._enclosurePatterns[current.name] = pattern;
-						}
+					if (current.name && current.name.indexOf("punctuation.section") === 0 && (current.name.indexOf(PUNCTUATION_SECTION_BEGIN) !== -1 || current.name.indexOf(PUNCTUATION_SECTION_END) !== -1)) { //$NON-NLS-0$
+						this._enclosurePatterns[current.name] = pattern;
 					}
 				} else if (!current.match && current.begin && current.end) {
-					var beginFlags = "g";	//$NON-NLS-0$
-					var begin = processIgnore(current.begin);
-					if (begin !== current.begin) {
-						beginFlags += "i";	//$NON-NLS-0$
-					}
-					var endFlags = "g";	//$NON-NLS-0$
-					var end = processIgnore(current.end);
-					if (end !== current.end) {
-						endFlags += "i";	//$NON-NLS-0$
-					}
-					pattern = {regexBegin: new RegExp(begin, beginFlags), regexEnd: new RegExp(end, endFlags), pattern: current};
+					lastBlock = index;
+					pattern = {regexBegin: initRegex(current.begin), regexEnd: initRegex(current.end), pattern: current};
 					this._linePatterns.push(pattern);
-					this._blockPatterns.push(pattern);
 				}
+				index++;
 			}.bind(this));
+			this._blockPatterns = this._linePatterns.slice(0, lastBlock + 1);
+			if (this.pattern) {
+				this.pattern.pattern._enclosurePatterns = this._enclosurePatterns;
+				this.pattern.pattern._linePatterns = this._linePatterns;
+				this.pattern.pattern._blockPatterns = this._blockPatterns;
+			}
 		}
 	};
 
@@ -23451,6 +23566,9 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		this._styler = styler;
 	}
 	TextStylerAccessor.prototype = {
+		getPatterns: function(offset) {
+			return this._styler.getPatterns(offset);
+		},
 		getStyles: function(offset) {
 			return this._styler.getStyles(offset);
 		}
@@ -23522,6 +23640,10 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				view.removeEventListener("LineStyle", this._listener.onLineStyle); //$NON-NLS-0$
 				this.view = null;
 			}
+		},
+		getPatterns: function(offset) {
+			var block = this._findBlock(this._rootBlock, offset);
+			return block.getPatterns();
 		},
 		getStyleAccessor: function() {
 			return this._accessor;
@@ -24150,94 +24272,6 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 /*******************************************************************************
  * @license
  * Copyright (c) 2014 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made
- * available under the terms of the Eclipse Public License v1.0
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
- *
- * Contributors: IBM Corporation - initial API and implementation
- ******************************************************************************/
-
-/*global define*/
-
-define("orion/editor/stylers/text_x-php/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-0$
-	var keywords = [
-		"abstract", "and", "array", "as", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"break", //$NON-NLS-0$
-		"callable", "case", "catch", "class", "clone", "const", "continue", //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"declare", "default", "die", "do", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"echo", "else", "elseif", "empty", "enddeclare", "endfor", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"endforeach", "endif", "endswitch", "endwhile", "eval", "exit", "extends", //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"false", "FALSE", "final", "finally", "for", "foreach", "function", //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"global", "goto", //$NON-NLS-1$ //$NON-NLS-0$
-		"if", "implements", "include", "include_once", "insteadof", "interface", "instanceof", "isset", //$NON-NLS-7$ //$NON-NLS-6$ //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"list", //$NON-NLS-0$
-		"namespace", "new", "null", "NULL", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"or", //$NON-NLS-0$
-		"parent", "print", "private", "protected", "public", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"require", "require_once", "return", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"self", "static", "switch", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"throw", "trait", "try", "true", "TRUE", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"unset", "use", //$NON-NLS-1$ //$NON-NLS-0$
-		"var", //$NON-NLS-0$
-		"while", //$NON-NLS-0$
-		"xor", //$NON-NLS-0$
-		"yield", //$NON-NLS-0$
-		"__halt_compiler", "__CLASS__", "__DIR__", "__FILE__", "__FUNCTION__",  //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"__LINE__", "__METHOD__", "__NAMESPACE__", "__TRAIT__"  //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-	];
-
-	var grammars = mLib.grammars;
-	grammars.push({
-		id: "orion.php",
-		contentTypes: ["text/x-php"],
-		patterns: [
-			{
-				include: "orion.lib#doc_block"
-			}, {
-				include: "orion.c-like"
-			}, {
-				match: "(?i)<\\?(?:=|php)?(?:\\s|$)",
-				name: "entity.name.declaration.php",
-			}, {
-				match: "<%=?(?:\\s|$)",
-				name: "entity.name.declaration.php",
-			}, {
-				match: "#.*",
-				name: "comment.line.number-sign.php",
-				patterns: [
-					{
-						include: "orion.lib#todo_comment_singleLine"
-					}
-				]
-			}, {
-				begin: "<<<(\\w+)$",
-				end: "^\\1;$",
-				name: "string.unquoted.heredoc.php"
-			}, {
-				begin: "<<<'(\\w+)'$",
-				end: "^\\1;$",
-				name: "string.unquoted.heredoc.nowdoc.php"
-			}, {
-				match: "\\b0[bB][01]+\\b",
-				name: "constant.numeric.binary.php"
-			}, {
-				match: "\\b(?:" + keywords.join("|") + ")\\b",
-				name: "keyword.control.php"
-			}
-		]
-	});
-
-	return {
-		id: "orion.php",
-		grammars: grammars,
-		keywords: keywords
-	};
-});
-
-/*******************************************************************************
- * @license
- * Copyright (c) 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -24252,85 +24286,73 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 
 	var grammars = mLib.grammars;
 	grammars.push({
-		id: "orion.xml",
-		contentTypes: ["application/xml", "application/xhtml+xml"],
+		id: "orion.xml", //$NON-NLS-0$
+		contentTypes: ["application/xml", "application/xhtml+xml"], //$NON-NLS-1$ //$NON-NLS-0$
 		patterns: [
-			{
-				include: "#comment"
-			}, {
-				include: "#doctype"
-			}, {
-				include: "#xmlDeclaration"
-			}, {
-				begin: "</?[A-Za-z0-9]+",
-				end: "/?>",
-				captures: {
-					0: {name: "entity.name.tag.xml"},
-				},
-				name: "meta.tag.xml",
-				patterns: [
-					{
-						include: "#comment"
-					}, {
-						include: "orion.lib#string_doubleQuote"
-					}, {
-						include: "orion.lib#string_singleQuote"
-					}
-				]
-			}, {
-				match: "&lt;|&gt;|&amp;",
-				name: "constant.character"
-			}
+			{include: "#comment"}, //$NON-NLS-0$
+			{include: "#doctype"}, //$NON-NLS-0$
+			{include: "#xmlDeclaration"}, //$NON-NLS-0$
+			{include: "#tag"}, //$NON-NLS-0$
+			{include: "#ampersandEscape"} //$NON-NLS-0$
 		],
 		repository: {
+			ampersandEscape: {
+				match: "&lt;|&gt;|&amp;", //$NON-NLS-0$
+				name: "constant.character" //$NON-NLS-0$
+			},
 			comment: {
-				begin: "<!--",
-				end: "-->",
-				name: "comment.block.xml",
+				begin: {match: "<!--", literal: "<!--"}, //$NON-NLS-0$
+				end: {match: "-->", literal: "-->"}, //$NON-NLS-0$
+				name: "comment.block.xml", //$NON-NLS-0$
 				patterns: [
 					{
-						match: "(\\b)(TODO)(\\b)(((?!-->).)*)",
-						name: "meta.annotation.task.todo",
+						match: "(\\b)(TODO)(\\b)(((?!-->).)*)", //$NON-NLS-0$
+						name: "meta.annotation.task.todo", //$NON-NLS-0$
 						captures: {
-							2: {name: "keyword.other.documentation.task"},
-							4: {name: "comment.line"}
+							2: {name: "keyword.other.documentation.task"}, //$NON-NLS-0$
+							4: {name: "comment.line"} //$NON-NLS-0$
 						}
 					}
 				]
 			},
 			doctype: {
-				begin: "<!(?:doctype|DOCTYPE)",
-				end: ">",
-				name: "meta.tag.doctype.xml",
+				begin: "<!(?:doctype|DOCTYPE)", //$NON-NLS-0$
+				end: ">", //$NON-NLS-0$
+				name: "meta.tag.doctype.xml", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.doctype.xml"},
+					0: {name: "entity.name.tag.doctype.xml"}, //$NON-NLS-0$
 				},
 				patterns: [
-					{
-						include: "#comment"
-					}, {
-						include: "orion.lib#string_doubleQuote"
-					}, {
-						include: "orion.lib#string_singleQuote"
-					}
+					{include: "#comment"}, //$NON-NLS-0$
+					{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+					{include: "orion.lib#string_singleQuote"} //$NON-NLS-0$
 				]
 			},
-			xmlDeclaration: {
-				begin: "<\\?xml",
-				end: "\\?>",
+			tag: {
+				begin: "</?[A-Za-z0-9]+", //$NON-NLS-0$
+				end: "/?>", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.declaration.xml"},
+					0: {name: "entity.name.tag.xml"}, //$NON-NLS-0$
+				},
+				name: "meta.tag.xml", //$NON-NLS-0$
+				patterns: [
+					{include: "#comment"}, //$NON-NLS-0$
+					{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+					{include: "orion.lib#string_singleQuote"} //$NON-NLS-0$
+				]	
+			},
+			xmlDeclaration: {
+				begin: "<\\?xml", //$NON-NLS-0$
+				end: "\\?>", //$NON-NLS-0$
+				captures: {
+					0: {name: "entity.name.tag.declaration.xml"}, //$NON-NLS-0$
 				},
 				patterns: [
-					{
-						include: "#comment"
-					}, {
-						include: "orion.lib#string_doubleQuote"
-					}, {
-						include: "orion.lib#string_singleQuote"
-					}
+					{include: "#comment"}, //$NON-NLS-0$
+					{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+					{include: "orion.lib#string_singleQuote"} //$NON-NLS-0$
 				],
-				name: "meta.tag.declaration.xml"
+				name: "meta.tag.declaration.xml" //$NON-NLS-0$
 			}
 		}
 	});
@@ -24354,83 +24376,41 @@ define("orion/editor/stylers/application_xml/syntax", ["orion/editor/stylers/lib
 
 /*global define*/
 
-define("orion/editor/stylers/text_html/syntax", ["orion/editor/stylers/lib/syntax", "orion/editor/stylers/application_javascript/syntax", "orion/editor/stylers/text_css/syntax", "orion/editor/stylers/text_x-php/syntax", "orion/editor/stylers/application_xml/syntax"], //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-	function(mLib, mJS, mCSS, mPHP, mXML) {
+define("orion/editor/stylers/text_html/syntax", ["orion/editor/stylers/lib/syntax", "orion/editor/stylers/application_javascript/syntax", "orion/editor/stylers/text_css/syntax", "orion/editor/stylers/application_xml/syntax"], //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	function(mLib, mJS, mCSS, mXML) {
 
-	var grammars = mLib.grammars.concat(mJS.grammars).concat(mCSS.grammars).concat(mPHP.grammars).concat(mXML.grammars);
+	var grammars = mLib.grammars.concat(mJS.grammars).concat(mCSS.grammars).concat(mXML.grammars);
 	grammars.push({
-		id: "orion.html",
-		contentTypes: ["text/html"],
+		id: "orion.html", //$NON-NLS-0$
+		contentTypes: ["text/html"], //$NON-NLS-0$
 		patterns: [
 			{
-				include: "orion.xml"
-			}, {
-				begin: "(?i)(<style)([^>]*)(>)",
-				end: "(?i)(</style>)",
+				begin: "(?i)(<style)([^>]*)(>)", //$NON-NLS-0$
+				end: "(?i)(</style>)", //$NON-NLS-0$
 				captures: {
-					1: {name: "entity.name.tag.html"},
-					3: {name: "entity.name.tag.html"}
+					1: {name: "entity.name.tag.html"}, //$NON-NLS-0$
+					3: {name: "entity.name.tag.html"} //$NON-NLS-0$
 				},
-				contentName: "source.css.embedded.html",
+				contentName: "source.css.embedded.html", //$NON-NLS-0$
 				patterns: [
-					{
-						include: "orion.css"
-					}
+					{include: "orion.css"} //$NON-NLS-0$
 				]
 			}, {
-				begin: "(?i)<script\\s*>|<script\\s.*?(?:language\\s*=\\s*(['\"])javascript\\1|type\\s*=\\s*(['\"])(?:text|application)/(?:javascript|ecmascript)\\2).*?>",
-				end: "(?i)</script>",
+				begin: "(?i)<script\\s*>|<script\\s.*?(?:language\\s*=\\s*(['\"])javascript\\1|type\\s*=\\s*(['\"])(?:text|application)/(?:javascript|ecmascript)\\2).*?>", //$NON-NLS-0$
+				end: "(?i)</script>", //$NON-NLS-0$
 				captures: {
-					0: {name: "entity.name.tag.html"}
+					0: {name: "entity.name.tag.html"} //$NON-NLS-0$
 				},
-				contentName: "source.js.embedded.html",
+				contentName: "source.js.embedded.html", //$NON-NLS-0$
 				patterns: [
-					{
-						include: "orion.js"
-					}
+					{include: "orion.js"} //$NON-NLS-0$
 				]
-			}, {
-				begin: "(?i)<script\\s.*?(?:language\\s*=\\s*(['\"])php\\1|type\\s*=\\s*(['\"])text/x-php\\2).*?>",
-				end: "(?i)</script>",
-				captures: {
-					0: {name: "entity.name.tag.html"}
-				},
-				contentName: "source.php.embedded.html",
-				patterns: [
-					{
-						include: "orion.php"
-					}
-				]
-			}, {
-				begin: "(?i)<\\?(?:=|php)?(?:\\s|$)",
-				end: "\\?>",
-				captures: {
-					0: {name: "entity.name.declaration.php"}
-				},
-				contentName: "source.php.embedded.html",
-				patterns: [
-					{
-						include: "orion.php"
-					}
-				]
-			}, {
-				begin: "<%=?(?:\\s|$)",
-				end: "%>",
-				captures: {
-					0: {name: "entity.name.declaration.php"}
-				},
-				contentName: "source.php.embedded.html",
-				patterns: [
-					{
-						include: "orion.php"
-					}
-				]
-			}
-		],
-		repository: {
-			/* override orion.xml#xmlDeclaration (no-op) */
-			xmlDeclaration: {}
-		}
+			},
+			{include: "orion.xml#comment"}, //$NON-NLS-0$
+			{include: "orion.xml#doctype"}, //$NON-NLS-0$
+			{include: "orion.xml#tag"}, //$NON-NLS-0$
+			{include: "orion.xml#ampersandEscape"} //$NON-NLS-0$
+		]
 	});
 	return {
 		id: grammars[grammars.length - 1].id,
@@ -24502,6 +24482,9 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				display = temp.currentStyle.display;
 			}
 			temp = temp.parentNode;
+		}
+		if (!temp || !display) {
+			return "none"; //$NON-NLS-0$
 		}
 		return display;
 	}
@@ -24786,8 +24769,12 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				}
 			});
 		}
-		/* The minimum height of the editor is 50px */
-		if (getHeight(parent) <= 50) {
+		/*
+		 * The minimum height of the editor is 50px. Do not compute size if the editor is not
+		 * attached to the DOM or it is display=none.
+		 */
+		var window = doc.defaultView || doc.parentWindow;
+		if (!options.noComputeSize && getDisplay(window, doc, parent) !== "none" && getHeight(parent) <= 50) { //$NON-NLS-0$
 			var height = editor.getTextView().computeSize().height;
 			parent.style.height = height + "px"; //$NON-NLS-0$
 		}
