@@ -631,6 +631,7 @@ define("orion/editor/shim", [], function() { //$NON-NLS-0$
 
     define('i18n',['module'], function (module) {
         var masterConfig = module.config ? module.config() : {};
+        masterConfig = masterConfig || {};
 
         return {
             version: '2.0.1+',
@@ -2895,7 +2896,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 	/** @private */
 	function DOMReady(document, parent, className, callback) {
 		className = "_" + className + "DOMReady"; //$NON-NLS-1$ //$NON-NLS-0$
-		parent.classList.add(className); //$NON-NLS-0$
+		parent.className = parent.className ? parent.className + " " + className : className; //$NON-NLS-0$
 		parent.__DOMReady = callback;
 		var id = className + "Style"; //$NON-NLS-0$
 		if (document.getElementById(id)) { return; }
@@ -5385,10 +5386,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * Sets the caret offset relative to the start of the document.
 		 *
 		 * @param {Number} caret the caret offset relative to the start of the document.
-		 * @param {Boolean|Number} [show=true] if <code>true</code>, the view will scroll the minimum amount necessary to show the caret location. If
+		 * @param {Boolean|Number|orion.editor.TextViewShowOptions} [show=true]
+		 * 					if <code>true</code>, the view will scroll the minimum amount necessary to show the caret location. If
 		 *					<code>show</code> is a <code>Number</code>, the view will scroll the minimum amount necessary to show the caret location plus a
 		 *					percentage of the client area height. The parameter is clamped to the [0,1] range.  In either case, the view will only scroll
-		 *					if the new caret location is visible already.
+		 *					if the new caret location is not visible already.  The <code>show</code> parameter can also be a <code>orion.editor.TextViewShowOptions</code> object. See
+		 * 					{@link orion.editor.TextViewShowOptions} for further information in how the options can be used to control the scrolling behavior.
 		 * @param {Function} [callback] if callback is specified and <code>scrollAnimation</code> is not zero, view scrolling is animated and
 		 *					the callback is called when the animation is done. Otherwise, callback is callback right away.
 		 *
@@ -5506,6 +5509,43 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		/**
+		 * @class This object describes the selection show options.
+		 * <p>
+		 * <b>See:</b><br/>
+		 * {@link orion.editor.TextView#setSelection}
+		 * {@link orion.editor.TextView#setCaretOffset}	 
+		 * {@link orion.editor.TextView#showSelection}	 
+		 * </p>		 
+		 * @name orion.editor.TextViewShowOptions
+		 *
+		 * @property {String} viewAnchor the view anchor.  The view anchor can be one of these values:
+		 * <p>
+		 * <ul>
+		 *   <li>"top" - align the selection to the top of the view client area.</li>
+		 *   <li>"bottom" - align the selection to the bottom of the view client area.</li>
+		 *   <li>"center" - align the selection to the center of the view client area.</li>
+		 *   <li> by default - align the selection to the top or bottom of the client area depending on whether the caret is above or below the client area respectively. </li>
+		 * </ul>
+		 * </p>
+		 * @property {Number} [viewAnchorOffset=0] an offset from the view anchor. The offset is a percentage of the client area height and it is clamped to [0-1] range.
+		 * @property {String} [selectionAnchor=caret] the selection anchor. The seleciton anchor can be one of these values:
+		 * <p>
+		 * <ul>
+		 *   <li>"top" - align the top of the selection to the view anchor.</li>
+		 *   <li>"bottom" - align the bottom of the selection to the view anchor.</li>
+		 *   <li>"center" - align the center of the selection to the view anchor.</li>
+		 *   <li> by default - align the top or bottom of the selection to the view anchor depending on whether the caret is at the start or end of the selection. </li>
+		 * </ul>
+		 * </p>
+		 * @property {String} [scrollPolicy] the scroll policy. The scroll policy can be one of these values:
+		 * <p>
+		 * <ul>
+		 *   <li>"always" - always scroll vertically to the desired pixel offset even if the caret is already visible.</li>
+		 *   <li> by default - only scroll if the caret is not visible. </li>
+		 * </ul>
+		 * </p>
+		 */
+		/**
 		 * Sets the text view selection.
 		 * <p>
 		 * The selection is defined by a start and end character offset relative to the
@@ -5522,10 +5562,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * 
 		 * @param {Number} start the start offset of the selection
 		 * @param {Number} end the end offset of the selection
-		 * @param {Boolean|Number} [show=true] if <code>true</code>, the view will scroll the minimum amount necessary to show the caret location. If
+		 * @param {Boolean|Number|orion.editor.TextViewShowOptions} [show=true]
+		 * 					if <code>true</code>, the view will scroll the minimum amount necessary to show the caret location. If
 		 *					<code>show</code> is a <code>Number</code>, the view will scroll the minimum amount necessary to show the caret location plus a
 		 *					percentage of the client area height. The parameter is clamped to the [0,1] range.  In either case, the view will only scroll
-		 *					if the new caret location is visible already.
+		 *					if the new caret location is not visible already.  The <code>show</code> parameter can also be a <code>orion.editor.TextViewShowOptions</code> object. See
+		 * 					{@link orion.editor.TextViewShowOptions} for further information in how the options can be used to control the scrolling behavior.
 		 * @param {Function} [callback] if callback is specified and <code>scrollAnimation</code> is not zero, view scrolling is animated and
 		 *					the callback is called when the animation is done. Otherwise, callback is callback right away.
 		 *
@@ -5620,13 +5662,22 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		/**
 		 * Scrolls the selection into view if needed.
 		 *
+ 		 * @param {Number|orion.editor.TextViewShowOptions} [show=0]
+		 * 					If <code>show</code> is a <code>Number</code>, the view will scroll the minimum amount necessary to show the caret location plus a
+		 *					percentage of the client area height. The parameter is clamped to the [0,1] range.  The view will only scroll
+		 *					if the new caret location is not visible already.  The <code>show</code> parameter can also be a <code>orion.editor.TextViewShowOptions</code> object. See
+		 * 					{@link orion.editor.TextViewShowOptions} for further information in how the options can be used to control the scrolling behavior.
+		 * @param {Function} [callback] if callback is specified and <code>scrollAnimation</code> is not zero, view scrolling is animated and
+		 *					the callback is called when the animation is done. Otherwise, callback is callback right away.
+		 *
 		 * @returns {Boolean} true if the view was scrolled.
 		 *
 		 * @see orion.editor.TextView#getSelection
 		 * @see orion.editor.TextView#setSelection
+		 * @see orion.editor.TextView#setCaretOffset
 		 */
-		showSelection: function() {
-			return this._showCaret(true);
+		showSelection: function(show, callback) {
+			return this._showCaret(show ? false : true, callback, show);
 		},
 		update: function(styleChanged, sync) {
 			if (!this._clientDiv) { return; }
@@ -5642,6 +5693,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		
 		/**************************************** Event handlers *********************************/
 		_handleRootMouseDown: function (e) {
+			this._cancelCheckSelection();
 			if (this._ignoreEvent(e)) { return; }
 			if (util.isFirefox < 13 && e.which === 1) {
 				this._clientDiv.contentEditable = false;
@@ -5693,6 +5745,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_handleBlur: function (e) {
+			this._cancelCheckSelection();
 			if (this._ignoreBlur) { return; }
 			this._hasFocus = false;
 			/*
@@ -5769,9 +5822,16 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (preventDefault) {
 				if (e.preventDefault) { e.preventDefault(); }
 				return false;
+			} else {
+				this._contextMenuOpen = true;
+				if (util.isFirefox) {
+					this._checkSelectionChange = true;
+					this._pollSelectionChange(true);
+				}
 			}
 		},
 		_handleCopy: function (e) {
+			this._cancelCheckSelection();
 			if (this._ignoreEvent(e)) { return; }
 			if (this._ignoreCopy) { return; }
 			if (this._doCopy(e)) {
@@ -5780,6 +5840,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_handleCut: function (e) {
+			this._cancelCheckSelection();
 			if (this._ignoreEvent(e)) { return; }
 			if (this._doCut(e)) {
 				if (e.preventDefault) { e.preventDefault(); }
@@ -5925,6 +5986,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_handleKeyDown: function (e) {
+			this._cancelCheckSelection();
 			if (this._ignoreEvent(e)) {	return;	}
 			if (this.isListening("KeyDown")) { //$NON-NLS-0$
 				var keyEvent = this._createKeyEvent("KeyDown", e); //$NON-NLS-0$
@@ -6495,6 +6557,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_handlePaste: function (e) {
+			this._cancelCheckSelection();
 			if (this._ignoreEvent(e)) { return; }
 			if (this._ignorePaste) { return; }
 			if (this._doPaste(e)) {
@@ -6619,6 +6682,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_handleSelectStart: function (e) {
+			var menuOpen = this._contextMenuOpen;
+			this._contextMenuOpen = false;
+			if (menuOpen) {
+				this._checkSelectionChange = true;
+				return;
+			}
 			if (this._ignoreSelect) {
 				if (e && e.preventDefault) { e.preventDefault(); }
 				return false;
@@ -6635,17 +6704,71 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (!lineNode._line) {
 				return 0;
 			}
-			return lineNode._line._getModelOffset (node, offset);
+			return lineNode._line.getModelOffset (node, offset);
 		},
 		_updateSelectionFromDOM: function() {
+			if (!(util.isOS || util.isAndroid || this._checkSelectionChange)) {
+				return false;
+			}
 			var window = this._getWindow();
 			var selection = window.getSelection();
 			var start = this._getModelOffset(selection.anchorNode, selection.anchorOffset);
 			var end = this._getModelOffset(selection.focusNode, selection.focusOffset);
-			if (start === undefined || end === undefined) {
-			    return;
+			var sel = this._getSelection();
+			if (start === undefined || end === undefined || (sel.start === start && sel.end === end)) {
+			    return false;
 			}
+			
+			if (this._checkSelectionChange) {
+				var firstLine = this._getLineNext();
+				var lastLine = this._getLinePrevious();
+				
+				// Selection is unchanged and bigger than the visible buffer region
+				if (selection.anchorNode === firstLine.firstChild.firstChild && selection.anchorOffset === 0 &&
+					selection.focusNode === lastLine.firstChild.firstChild && selection.focusOffset === 0)
+				{
+					return false;
+				}
+				
+				// Detect select all
+				if (
+				(selection.anchorNode === firstLine.firstChild.firstChild && selection.anchorOffset === 0 && selection.focusNode === lastLine.lastChild.firstChild)
+				|| (selection.anchorNode === this._clientDiv && selection.focusNode === this._clientDiv)
+				) {
+					start = 0;
+					end = this.getModel().getCharCount();
+				}
+			}
+			
 			this._setSelection(new Selection(start, end), false, false);
+			this._checkSelectionChange = false;
+			return true;
+		},
+		_cancelCheckSelection: function() {
+			if (this._checkSelectionChange) {
+				this._checkSelectionChange = false;
+				this._cancelPollSelectionChange();
+			}
+		},
+		_cancelPollSelectionChange: function() {
+			if (this._selPollTimer) {
+				var window = this._getWindow();
+				window.clearTimeout(this._selPollTimer);
+				this._selPollTimer = null; 
+			}
+		},
+		_pollSelectionChange: function(retryPoll) {
+			var that = this;
+			var window = this._getWindow();
+			this._cancelPollSelectionChange();
+			this._selPollTimer = window.setTimeout(function() {
+				that._selPollTimer = null; 
+				if (!that._clientDiv) { return; }
+				var changed = that._updateSelectionFromDOM();
+				if (!changed && retryPoll) {
+					that._pollSelectionChange(retryPoll);
+				}
+			}, 100);
 		},
 		_handleSelectionChange: function (e) {
 			if (this._imeOffset !== -1) {
@@ -6658,16 +6781,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			 * sending the event to the application.
 			 */
 			if (util.isAndroid) {
-				var window = this._getWindow();
-				if (this._selTimer) {
-					window.clearTimeout(this._selTimer);
-				}
-				var that = this;
-				this._selTimer = window.setTimeout(function() {
-					if (!that._clientDiv) { return; }
-					that._selTimer = null; 
-					that._updateSelectionFromDOM();
-				}, 250);
+				this._pollSelectionChange();
 			} else {
 				this._updateSelectionFromDOM();
 			}
@@ -8260,8 +8374,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "copy", handler: function(e) { return self._handleCopy(e ? e : window.event);}}); //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "cut", handler: function(e) { return self._handleCut(e ? e : window.event);}}); //$NON-NLS-0$
 			handlers.push({target: clientDiv, type: "paste", handler: function(e) { return self._handlePaste(e ? e : window.event);}}); //$NON-NLS-0$
+			handlers.push({target: document, type: "selectionchange", handler: function(e) { return self._handleSelectionChange(e ? e : window.event); }}); //$NON-NLS-0$
 			if (util.isIOS || util.isAndroid) {
-				handlers.push({target: document, type: "selectionchange", handler: function(e) { return self._handleSelectionChange(e ? e : window.event); }}); //$NON-NLS-0$
 				handlers.push({target: clientDiv, type: "touchstart", handler: function(e) { return self._handleTouchStart(e ? e : window.event); }}); //$NON-NLS-0$
 				handlers.push({target: clientDiv, type: "touchmove", handler: function(e) { return self._handleTouchMove(e ? e : window.event); }}); //$NON-NLS-0$
 				handlers.push({target: clientDiv, type: "touchend", handler: function(e) { return self._handleTouchEnd(e ? e : window.event); }}); //$NON-NLS-0$
@@ -8614,7 +8728,11 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (clipboardData) {
 				clipboardText = [];
 				convertDelimiter(text, function(t) {clipboardText.push(t);}, function() {clipboardText.push(util.platformDelimiter);});
-				if (clipboardData.setData(util.isIE ? "Text" : "text/plain", clipboardText.join(""))) { //$NON-NLS-1$ //$NON-NLS-0$
+				/*
+				* Note that setData() succeeds on Firefox 22 and greater, but the return value is not a boolean like IE and Chrome.
+				*/
+				var success = clipboardData.setData(util.isIE ? "Text" : "text/plain", clipboardText.join("")); //$NON-NLS-1$ //$NON-NLS-0$
+				if (success || util.isFirefox > 21) {
 					return true;
 				}
 			}
@@ -9135,7 +9253,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 			this._resetLineHeight();
 		},
-		_showCaret: function (allSelection, callback, scrollAlign, pageScroll) {
+		_showCaret: function (allSelection, callback, showOptions, pageScroll) {
 			if (!this._clientDiv) { return; }
 			var model = this._model;
 			var selection = this._getSelection();
@@ -9143,6 +9261,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var caret = selection.getCaret();
 			var start = selection.start;
 			var end = selection.end;
+			var startLine = model.getLineAtOffset(start);
 			var endLine = model.getLineAtOffset(end);
 			var endInclusive = Math.max(Math.max(start, model.getLineStart(endLine)), end - 1);
 			var clientWidth = this._getClientWidth();
@@ -9153,19 +9272,24 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var right = bounds.right;
 			var top = bounds.top;
 			var bottom = bounds.bottom;
-			if (allSelection && !selection.isEmpty()) {
+			var selectionHeight = 0;
+			var hasShowOptions = typeof showOptions === "object"; //$NON-NLS-0$
+			if ((allSelection || hasShowOptions) && !selection.isEmpty()) {
 				bounds = this._getBoundsAtOffset(caret === end ? start : endInclusive);
-				if (bounds.top === top) {
-					if (caret === start) {
-						right = left + Math.min(bounds.right - left, clientWidth);
+				selectionHeight = (bounds.bottom > bottom ? bounds.bottom : bottom) - (bounds.top < top ? bounds.top : top);
+				if (allSelection) {
+					if (bounds.top === top) {
+						if (caret === start) {
+							right = left + Math.min(bounds.right - left, clientWidth);
+						} else {
+							left = right - Math.min(right - bounds.left, clientWidth);
+						}
 					} else {
-						left = right - Math.min(right - bounds.left, clientWidth);
-					}
-				} else {
-					if (caret === start) {
-						bottom = top + Math.min(bounds.bottom - top, clientHeight);
-					} else {
-						top = bottom - Math.min(bottom - bounds.top, clientHeight);
+						if (caret === start) {
+							bottom = top + Math.min(bounds.bottom - top, clientHeight);
+						} else {
+							top = bottom - Math.min(bottom - bounds.top, clientHeight);
+						}
 					}
 				}
 			}
@@ -9193,11 +9317,41 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					}
 				}
 			}
-			if (pixelX !== 0 || pixelY !== 0) {
-				if (pixelY !== 0 && typeof scrollAlign === "number") { //$NON-NLS-0$
-					if (scrollAlign < 0) { scrollAlign = 0; }
-					if (scrollAlign > 1) { scrollAlign = 1; }
-					pixelY += Math.floor(pixelY > 0 ? scrollAlign * clientHeight : -scrollAlign * clientHeight);
+			var alwaysScroll = hasShowOptions && showOptions.scrollPolicy === "always"; //$NON-NLS-0$
+			if (pixelX !== 0 || pixelY !== 0 || alwaysScroll) {
+				if (hasShowOptions) {
+					var flag = pixelY > 0;
+					if (pixelY === 0) {
+						pixelY = top - scroll.y;
+					}
+					var viewAnchor = showOptions.viewAnchor;
+					var selectionAnchor = showOptions.selectionAnchor;
+					var viewAnchorOffset = Math.min(Math.max(0, showOptions.viewAnchorOffset || 0));
+//					var selectionAnchorOffset = Math.min(Math.max(0, showOptions.selectionAnchorOffset || 0));
+					if (viewAnchor === "top") { //$NON-NLS-0$
+						pixelY += Math.floor(flag ? (1 - viewAnchorOffset) * clientHeight : -viewAnchorOffset * clientHeight);
+					} else if (viewAnchor === "bottom") { //$NON-NLS-0$
+						pixelY += Math.floor(flag ? viewAnchorOffset * clientHeight : -(1 - viewAnchorOffset) * clientHeight);
+					} else if (viewAnchor === "center") { //$NON-NLS-0$
+						pixelY += Math.floor(flag ? clientHeight / 2 + viewAnchorOffset * clientHeight : clientHeight / 2  - (1 - viewAnchorOffset) * clientHeight);
+					} else { // caret is the default
+						pixelY += Math.floor(flag ? viewAnchorOffset * clientHeight : -viewAnchorOffset * clientHeight);
+					}
+					if (startLine !== endLine) {
+						if (selectionAnchor === "top" && caret !== start) { //$NON-NLS-0$
+							pixelY += Math.floor(-selectionHeight);
+						} else if (selectionAnchor === "bottom" && caret !== end) { //$NON-NLS-0$
+							pixelY += Math.floor(selectionHeight);
+						} else if (selectionAnchor === "center") { //$NON-NLS-0$
+							pixelY += Math.floor(selectionHeight / 2);
+						} else {
+							// caret is the default
+						}
+					}
+				} else if (pixelY !== 0 && typeof showOptions === "number") { //$NON-NLS-0$
+					if (showOptions < 0) { showOptions = 0; }
+					if (showOptions > 1) { showOptions = 1; }
+					pixelY += Math.floor(pixelY > 0 ? showOptions * clientHeight : -showOptions * clientHeight);
 				}
 				this._scrollViewAnimated(pixelX, pixelY, callback);
 				/*
@@ -9830,6 +9984,10 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				this._rootDiv.style.lineHeight = "normal"; //$NON-NLS-0$
 			}
 			var metrics = this._metrics = this._calculateMetrics();
+			if (this._variableLineHeight) {
+				this._variableLineHeight = false;
+				this._resetLineHeight();
+			}
 			if (util.isIE) {
 				this._rootDiv.style.lineHeight = (metrics.lineHeight - (metrics.lineTrim.top + metrics.lineTrim.bottom)) + "px"; //$NON-NLS-0$
 			} else {
@@ -10456,6 +10614,14 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 /*global define */
 
 define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/editor/eventTarget'], function(messages, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+	
+	/**
+	 * @class This object represents a regitry of annotation types.
+	 * @name orion.editor.AnnotationType
+	 */
+	function AnnotationType() {
+	}
+	
 	/**
 	 * @class This object represents a decoration attached to a range of text. Annotations are added to a
 	 * <code>AnnotationModel</code> which is attached to a <code>TextModel</code>.
@@ -10520,11 +10686,16 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			}
 			return true;
 		},
-		/**
-		 * Collapses the annotation.
-		 */
-		collapse: function () {
+		_collapseImpl: function (checkOverlaping) {
 			if (this._collapse()) {
+				if (checkOverlaping) {
+					this._forEachOverlaping(function(annotation) {
+						if (!annotation.expanded) {
+							annotation._expandImpl(false);
+							annotation._recollapse = true;
+						}
+					});
+				}
 				var projectionModel = this._projectionModel;
 				var baseModel = projectionModel.getBaseModel();
 				this._projection = {
@@ -10535,23 +10706,45 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 				projectionModel.addProjection(this._projection);
 			}
 		},
+		_expandImpl: function(checkOverlaping) {
+			if (this._expand()) {
+				this._projectionModel.removeProjection(this._projection);
+				if (checkOverlaping) {
+					this._forEachOverlaping(function(annotation) {
+						if (annotation._recollapse) {
+							annotation._collapseImpl(false);
+							annotation._recollapse = false;
+						}
+					});
+				}
+			}
+		},
+		_forEachOverlaping: function(callback) {
+			if (!this._annotationModel) { return; }
+			var annotations = this._annotationModel.getAnnotations(this.start, this.end);
+			while (annotations.hasNext()) {
+				var annotation = annotations.next();
+				if (annotation !== this && annotation.type === AnnotationType.ANNOTATION_FOLDING) {
+					callback.call(this, annotation);
+				}
+			}
+		},
+		/**
+		 * Collapses the annotation.
+		 */
+		collapse: function () {
+			this._recollapse = false;
+			this._collapseImpl(true);
+		},
 		/**
 		 * Expands the annotation.
 		 */
 		expand: function () {
-			if (this._expand()) {
-				this._projectionModel.removeProjection(this._projection);
-			}
+			this._recollapse = false;
+			this._expandImpl(true);
 		}
 	};
 	 
-	/**
-	 * @class This object represents a regitry of annotation types.
-	 * @name orion.editor.AnnotationType
-	 */
-	function AnnotationType() {
-	}
-	
 	/**
 	 * Error annotation type.
 	 */
@@ -10747,15 +10940,26 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		 * Only annotations of the specified types will be shown by
 		 * the receiver.
 		 * </p>
+		 * <p>
+		 * If the priority is not specified, the annotation type will be added
+		 * to the end of the receiver's list (lowest pririoty).
+		 * </p>
 		 *
 		 * @param {Object} type the annotation type to be shown
+		 * @param {Number} priority the priority for the annotation type
 		 * 
 		 * @see orion.editor.AnnotationTypeList#removeAnnotationType
 		 * @see orion.editor.AnnotationTypeList#isAnnotationTypeVisible
+		 * @see orion.editor.AnnotationTypeList#getAnnotationTypePriority
 		 */
-		addAnnotationType: function(type) {
+		addAnnotationType: function(type, priority) {
 			if (!this._annotationTypes) { this._annotationTypes = []; }
-			this._annotationTypes.push(type);
+			var index = priority - 1;
+			if (priority == undefined || !(0 <= index && index < this._annotationTypes.length)) {
+				this._annotationTypes.push(type);
+			} else {
+				this._annotationTypes.splice(index, 0, type);
+			}
 		},
 		/**
 		 * Gets the annotation type priority.  The priority is determined by the
@@ -12483,9 +12687,10 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 		while (!annotation && iter.hasNext()) {
 			var a = iter.next();
 			if (!this.isAnnotationTypeVisible(a.type)) { continue; }
+			if (model.getLineAtOffset(a.start) !== model.getLineAtOffset(start)) { continue; }
 			annotation = a;
 		}
-		if (annotation && model.getLineAtOffset(annotation.start) === model.getLineAtOffset(start)) {
+		if (annotation) {
 			var tooltip = mTooltip.Tooltip.getTooltip(this._view);
 			if (tooltip) {
 				tooltip.setTarget(null);
@@ -12499,12 +12704,26 @@ define("orion/editor/rulers", ['i18n!orion/editor/nls/messages', 'orion/editor/a
 	};
 	/** @ignore */
 	FoldingRuler.prototype._getTooltipContents = function(lineIndex, annotations) {
-		if (annotations.length === 1) {
-			if (annotations[0].expanded) {
-				return null;
+		if (annotations.length > 0) {
+			var view = this._view;
+			var model = view.getModel();
+			var start = model.getLineStart(lineIndex);
+			if (model.getBaseModel) {
+				start = model.mapOffset(start);
+				model = model.getBaseModel();
+			}
+			var mapLineIndex = model.getLineAtOffset(start);
+			for (var i = 0; i < annotations.length; i++) {
+				var a = annotations[i];
+				if (!this.isAnnotationTypeVisible(a.type)) { continue; }
+				if (model.getLineAtOffset(a.start) !== mapLineIndex) { continue; }
+				if (annotations[i].expanded) {
+					break;
+				}
+				return AnnotationRuler.prototype._getTooltipContents.call(this, lineIndex, [a]);
 			}
 		}
-		return AnnotationRuler.prototype._getTooltipContents.call(this, lineIndex, annotations);
+		return null;
 	};
 	/** @ignore */
 	FoldingRuler.prototype._onAnnotationModelChanged = function(e) {
@@ -22847,11 +23066,6 @@ define("orion/editor/htmlGrammar", [], function() {
 	 * @class orion.syntax.HtmlGrammar
 	 */
 	function HtmlGrammar() {
-		/**
-		 * Object containing the grammar rules.
-		 * @public
-		 * @type Object
-		 */
 		return {
 			"scopeName": "source.html",
 			"uuid": "3B5C76FB-EBB5-D930-F40C-047D082CE99B",
@@ -23787,10 +24001,12 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			if (offset < end) {
 				parse(text.substring(offset - start, end - start), offset, block, styles);
 				styles.forEach(function(current) {
-					if (current.style.indexOf(bracket.pattern.name) === 0) {
-						result.push(current.start + 1);
-					} else if (current.style.indexOf(closingBracket.pattern.name) === 0) {
-						result.push(-(current.start + 1));
+					if (current.style) {
+						if (current.style.indexOf(bracket.pattern.name) === 0) {
+							result.push(current.start + 1);
+						} else if (current.style.indexOf(closingBracket.pattern.name) === 0) {
+							result.push(-(current.start + 1));
+						}
 					}
 				});
 			}
