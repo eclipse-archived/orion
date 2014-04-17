@@ -534,9 +534,22 @@ define('orion/editor/nls/root/messages',{
 	"vip": "Paste After Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
 	"viP": "Paste Before Char or Line", //$NON-NLS-1$ //$NON-NLS-0$
 	"viStar": "Search Word Under Cursor", //$NON-NLS-1$ //$NON-NLS-0$
+	
+	"next": "Next", //$NON-NLS-1$ //$NON-NLS-0$
+	"previous": "Previous", //$NON-NLS-1$ //$NON-NLS-0$
+	"replace": "Replace", //$NON-NLS-1$ //$NON-NLS-0$
+	"replaceAll": "Replace All", //$NON-NLS-1$ //$NON-NLS-0$
+	"findWith": "Find With", //$NON-NLS-1$ //$NON-NLS-0$
+	"replaceWith": "Replace With", //$NON-NLS-1$ //$NON-NLS-0$
+	"caseInsensitive": "Aa", //$NON-NLS-1$ //$NON-NLS-0$
+	"regex": "/.*/", //$NON-NLS-1$ //$NON-NLS-0$
+	"wholeWord": "\\b", //$NON-NLS-1$ //$NON-NLS-0$
+	"caseInsensitiveTooltip": "Toggle Case Insensitive", //$NON-NLS-1$ //$NON-NLS-0$
+	"regexTooltip": "Toogle Regex", //$NON-NLS-1$ //$NON-NLS-0$
+	"wholeWordTooltip": "Toggle Whole Word", //$NON-NLS-1$ //$NON-NLS-0$
+	"closeTooltip": "Close", //$NON-NLS-1$ //$NON-NLS-0$
 
-
-	"replaceAll": "Replacing all...", //$NON-NLS-1$ //$NON-NLS-0$
+	"replacingAll": "Replacing all...", //$NON-NLS-1$ //$NON-NLS-0$
 	"replacedMatches": "Replaced ${0} matches", //$NON-NLS-1$ //$NON-NLS-0$
 	"nothingReplaced": "Nothing replaced", //$NON-NLS-1$ //$NON-NLS-0$
 	"notFound": "Not found" //$NON-NLS-1$ //$NON-NLS-0$
@@ -5305,6 +5318,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				if (topNode === temp) {
 					return;
 				}
+				if (temp.className && temp.className.indexOf("textViewFind") !== -1) { //$NON-NLS-0$
+					return;
+				}
 				temp = temp.parentNode;
 			}
 			if (e.preventDefault) { e.preventDefault(); }
@@ -5921,6 +5937,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._lastMouseMoveY = e.clientY;
 			this._setLinksVisible(changed && !this._isMouseDown && (util.isMac ? e.metaKey : e.ctrlKey));
 
+			this._checkOverlayScroll();
+
 			/*
 			* Feature in IE8 and older, the sequence of events in the IE8 event model
 			* for a doule-click is:
@@ -6260,6 +6278,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			}
 		},
 		_handleScroll: function () {
+			this._lastScrollTime = new Date().getTime();
 			var scroll = this._getScroll(false);
 			var oldX = this._hScroll;
 			var oldY = this._vScroll;
@@ -6428,7 +6447,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					start += lineStart;
 					end += lineStart;
 					
-					this._modifyContent({text: deltaText, start: start, end: end, _ignoreDOMSelection: true}, true);
+					this._ignoreQueueUpdate = util.isSafari;
+					this._modifyContent({text: deltaText, start: start, end: end, _ignoreDOMSelection: true, _ignoreDOMSelection1: util.isChrome}, true);
+					this._ignoreQueueUpdate = false;
 				}
 			} else {
 				this._doContent(e.data);
@@ -7412,10 +7433,6 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			viewDiv.style.margin = "0px"; //$NON-NLS-0$
 			viewDiv.style.outline = "none"; //$NON-NLS-0$
 			viewDiv.style.background = "transparent"; //$NON-NLS-0$
-			if (util.isMac && util.isWebkit) {
-				viewDiv.style.pointerEvents = "none"; //$NON-NLS-0$
-				viewDiv.style.zIndex = "2"; //$NON-NLS-0$
-			}
 			rootDiv.appendChild(viewDiv);
 			
 			var rightDiv = this._createRulerParent(document, "textviewRightRuler"); //$NON-NLS-0$
@@ -7839,14 +7856,14 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		_getLineNext: function (lineNode) {
 			var node = lineNode ? lineNode.nextSibling : this._clientDiv.firstChild;
-			while (node && node.lineIndex === -1) {
+			while (node && (node.lineIndex === -1 || !node._line)) {
 				node = node.nextSibling;
 			}
 			return node;
 		},
 		_getLinePrevious: function (lineNode) {
 			var node = lineNode ? lineNode.previousSibling : this._clientDiv.lastChild;
-			while (node && node.lineIndex === -1) {
+			while (node && (node.lineIndex === -1 || !node._line)) {
 				node = node.previousSibling;
 			}
 			return node;
@@ -8113,6 +8130,33 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._createActions();
 			this._createView();
 		},
+		_checkOverlayScroll: function() {
+			if (util.isMac && util.isWebkit) {
+				if (!this._metrics.invalid && this._metrics.scrollWidth === 0) {
+					var viewDiv = this._viewDiv;
+					var overlay = this._isOverOverlayScroll();
+					if (overlay.vertical || overlay.horizontal) {
+						viewDiv.style.pointerEvents = ""; //$NON-NLS-0$
+					} else {
+						viewDiv.style.pointerEvents = "none"; //$NON-NLS-0$
+					}
+				}
+			}	
+		},
+		_isOverOverlayScroll: function() {
+			var scrollShowing = new Date().getTime() - this._lastScrollTime < 200;
+			if (!scrollShowing) {
+				return {};
+			}
+			var rect = this._viewDiv.getBoundingClientRect();
+			var x = this._lastMouseMoveX;
+			var y = this._lastMouseMoveY;
+			var overlayScrollWidth = 15;
+			return {
+				vertical: rect.top <= y && y < rect.bottom && rect.right - overlayScrollWidth <= x && x < rect.right,
+				horizontal: rect.bottom - overlayScrollWidth <= y && y < rect.bottom && rect.left <= x && x < rect.right
+			};
+		},
 		_modifyContent: function(e, updateCaret) {
 			if (this._readonly && !e._code) {
 				return;
@@ -8129,11 +8173,16 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			} finally {
 				if (e._ignoreDOMSelection) { this._ignoreDOMSelection = false; }
 			}
-			
+
 			if (updateCaret) {
 				var selection = this._getSelection ();
 				selection.setCaret(e.start + e.text.length);
-				this._setSelection(selection, true);
+				try {
+					if (e._ignoreDOMSelection1) { this._ignoreDOMSelection = true; }
+					this._setSelection(selection, true);
+				} finally {
+					if (e._ignoreDOMSelection1) { this._ignoreDOMSelection = false; }
+				}
 			}
 			this.onModify({type: "Modify"}); //$NON-NLS-0$
 		},
@@ -8850,6 +8899,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		_showCaret: function (allSelection, callback, showOptions, pageScroll) {
 			if (!this._clientDiv) { return; }
+			if (this._redrawCount > 0) { return; }
+			if (this._ignoreDOMSelection) { return; }
 			var model = this._model;
 			var selection = this._getSelection();
 			var scroll = this._getScroll();
@@ -9589,6 +9640,16 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				this._rootDiv.style.lineHeight = "normal"; //$NON-NLS-0$
 			}
 			this._updateStyleSheet();
+			if (util.isMac && util.isWebkit) {
+				var viewDiv = this._viewDiv;
+				if (!metrics.invalid && metrics.scrollWidth === 0) {
+					viewDiv.style.pointerEvents = "none"; //$NON-NLS-0$
+					viewDiv.style.zIndex = "2"; //$NON-NLS-0$
+				} else {
+					viewDiv.style.pointerEvents = ""; //$NON-NLS-0$
+					viewDiv.style.zIndex = ""; //$NON-NLS-0$
+				}
+			}
 			if (!init) {
 				this.redraw();
 				this._resetLineWidth();
@@ -10635,12 +10696,17 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 	};
 	
 	/** @private */
-	function binarySearch (array, offset) {
-		var high = array.length, low = -1, index;
+	function binarySearch(array, offset, inclusive, low, high) {
+		var index;
+		if (low === undefined) { low = -1; }
+		if (high === undefined) { high = array.length; }
 		while (high - low > 1) {
 			index = Math.floor((high + low) / 2);
 			if (offset <= array[index].start) {
 				high = index;
+			} else if (inclusive && offset < array[index].end) {
+				high = index;
+				break;
 			} else {
 				low = index;
 			}
@@ -11053,7 +11119,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 			if (!ranges) {
 				ranges = [];
 			}
-			var mergedStyle, i = binarySearch(ranges, styleRange.start);
+			var mergedStyle, i = binarySearch(ranges, styleRange.start, true);
 			for (; i<ranges.length && styleRange; i++) {
 				var range = ranges[i];
 				if (styleRange.end <= range.start) { break; }
@@ -14595,12 +14661,12 @@ define("orion/editor/find", [ //$NON-NLS-0$
 				this._replacingAll = true;
 				var editor = this._editor;
 				var textView = editor.getTextView();
-				editor.reportStatus(messages.replaceAll);
+				editor.reportStatus(messages.replacingAll);
 				var replaceString = this._processReplaceString(this.getReplaceString());
 				var self = this;
 				window.setTimeout(function() {
 					var startPos = 0;
-					var count = 0, lastResult;
+					var count = 0;
 					while (true) {
 						//For replace all, we need to ignore the wrap search from the user option
 						//Otherwise the loop will be dead, see https://bugs.eclipse.org/bugs/show_bug.cgi?id=411813
@@ -14608,7 +14674,6 @@ define("orion/editor/find", [ //$NON-NLS-0$
 						if (!result) {
 							break;
 						}
-						lastResult = result;
 						count++;
 						if (count === 1) {
 							textView.setRedraw(false);
@@ -14791,9 +14856,6 @@ define("orion/editor/find", [ //$NON-NLS-0$
 			var editor = this._editor;
 			if (this._regex) {
 				newStr = editor.getText(start, end).replace(new RegExp(searchStr, this._caseInsensitive ? "i" : ""), newStr); //$NON-NLS-0$
-				if (!newStr) {
-					return;
-				}
 			}
 			editor.setText(newStr, start, end);
 			editor.setSelection(start, start + newStr.length, true);
@@ -14849,6 +14911,201 @@ define("orion/editor/find", [ //$NON-NLS-0$
 
 /*******************************************************************************
  * @license
+ * Copyright (c) 2014 IBM Corporation and others. All rights reserved.
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License v1.0
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
+ * 
+ * Contributors: 
+ *	IBM Corporation - initial API and implementation
+ ******************************************************************************/
+/* globals define window */
+
+define('orion/editor/findUI',[
+	'i18n!orion/editor/nls/messages',
+	'orion/editor/find',
+	'orion/objects',
+	'orion/editor/util',
+	'orion/util', 
+], function(messages, mFind, objects, textUtil, util) {
+	
+	function FindUI(editor, undoStack, options) {
+		mFind.Find.call(this, editor, undoStack, options);
+	}
+	
+	FindUI.prototype = new mFind.Find();
+	
+	objects.mixin(FindUI.prototype, {
+		getFindString: function() {
+			var input = this._findInput;
+			if (!input) {
+				return mFind.Find.prototype.getFindString.call(this);
+			}
+			return input.value;
+		},
+		getReplaceString: function() {
+			var input = this._replaceInput;
+			if (!input) {
+				return mFind.Find.prototype.getReplaceString(this);
+			}
+			return input.value;
+		},
+		hide: function() {
+			var visible = this.isVisible();
+			mFind.Find.prototype.hide.call(this);
+			if (visible) {
+				this._rootDiv.className = "textViewFind"; //$NON-NLS-0$
+			}
+		},
+		show: function(options) {
+			mFind.Find.prototype.show.call(this, options);
+			var findString = options.findString;
+			var replaceString = options.replaceString;
+			var input = this._findInput;
+			if (!input) {
+				this._create();
+				input = this._findInput;
+			}
+			if (findString) {
+				input.value = findString;
+			}
+			if (replaceString) {
+				var replaceInput = this._replaceInput;
+				replaceInput.value = replaceString;
+			}
+			var that = this;
+			window.setTimeout(function() {
+				that._rootDiv.className = "textViewFind show"; //$NON-NLS-0$
+				input.select();
+				input.focus();
+			}, 0);
+		},
+		_create: function() {
+			var that = this;
+			var view = this._editor.getTextView();
+			var parent = view.getOptions("parent"); //$NON-NLS-0$
+			var document = parent.ownerDocument; //$NON-NLS-0$
+			var root = util.createElement(document, 'div'); //$NON-NLS-0$
+			root.className = "textViewFind"; //$NON-NLS-0$
+			textUtil.addEventListener(root, "keydown", function(e) { that._handleKeyDown(e); }); //$NON-NLS-0$
+			this._rootDiv = root;
+			this._createContents(document, root);
+			view._rootDiv.insertBefore(root, view._rootDiv.firstChild);
+		},
+		_createContents: function(document, parent) {
+			var that = this;
+			var fintInput = util.createElement(document, 'input'); //$NON-NLS-0$
+			fintInput.className = "textViewFindInput"; //$NON-NLS-0$
+			this._findInput = fintInput;
+			fintInput.type = "text"; //$NON-NLS-0$
+			fintInput.placeholder = messages.findWith;
+			textUtil.addEventListener(fintInput, "input", function(evt) { //$NON-NLS-0$
+				return that._handleInput(evt);
+			});
+			parent.appendChild(fintInput);
+
+			var group = util.createElement(document, 'span'); //$NON-NLS-0$
+			that._createButton(document, group, messages.next, function() { that.find(true); });
+			that._createButton(document, group, messages.previous, function() { that.find(false); });
+			parent.appendChild(group);
+			
+			var readonly = that._editor.getTextView().getOptions("readonly"); //$NON-NLS-0$
+			if (!readonly) {
+				// create replace text
+				var replaceInput = util.createElement(document, 'input'); //$NON-NLS-0$
+				replaceInput.className = "textViewReplaceInput"; //$NON-NLS-0$
+				this._replaceInput = replaceInput;
+				replaceInput.type = "text"; //$NON-NLS-0$
+				replaceInput.placeholder = messages.replaceWith;
+				parent.appendChild(replaceInput);
+				group = util.createElement(document, 'span'); //$NON-NLS-0$
+				that._createButton(document, group, messages.replace, function() { that.replace(); });
+				that._createButton(document, group, messages.replaceAll, function() { that.replaceAll(); });
+				parent.appendChild(group);
+			}
+
+			group = util.createElement(document, 'span'); //$NON-NLS-0$
+			that._createButton(document, group, messages.regex, function(evt) { that._toggle("regex", evt.target); }, this._regex, messages.regexTooltip); //$NON-NLS-0$
+			that._createButton(document, group, messages.caseInsensitive, function(evt) { that._toggle("caseInsensitive", evt.target); }, this._caseInsensitive, messages.caseInsensitiveTooltip); //$NON-NLS-0$
+			that._createButton(document, group, messages.wholeWord, function(evt) { that._toggle("wholeWord", evt.target); }, this._wholeWord, messages.wholeWordTooltip); //$NON-NLS-0$
+			parent.appendChild(group);
+
+			var close = that._createButton(document, parent, "", function() { that.hide(); }); //$NON-NLS-0$
+			close.className = "textViewFindCloseButton"; //$NON-NLS-0$
+			close.title = messages.closeTooltip;
+		},
+		_createButton: function(document, parent, text, callback, checked, tooltip) {
+			var button  = document.createElement("button"); //$NON-NLS-0$
+			this._checked(checked, button);
+			if (tooltip) button.title = tooltip;
+			textUtil.addEventListener(button, "click", function(evt) { callback.call(this, evt); }, false); //$NON-NLS-0$
+			if (text) {
+				button.appendChild(document.createTextNode(text)); //$NON-NLS-0$
+			}
+			parent.appendChild(button);
+			return button;
+		},
+		_toggle: function(prop, button) {
+			var options = {};
+			options[prop] = !this["_" + prop]; //$NON-NLS-0$
+			this.setOptions(options);
+			this._checked(options[prop], button);
+		},
+		_checked: function(checked, button) {
+			button.className = "textViewFindButton"; //$NON-NLS-0$
+			if (checked) {
+				button.className += " checked"; //$NON-NLS-0$
+			}
+		},
+		_handleInput: function() {
+			if (this._incremental) {
+				this.find(true, null, true);
+			}
+			return true;
+		},
+		_handleKeyDown: function(evt) {
+			var handled;
+			var ctrlKeyOnly = (util.isMac ? evt.metaKey : evt.ctrlKey) && !evt.altKey && !evt.shiftKey;
+			if (ctrlKeyOnly && evt.keyCode === 70/*"f"*/ ) {
+				handled = true;
+			}
+			//We can't use ctrlKeyOnly on "k" because ctrl+shift+k means find previous match when the find bar gets focus
+			if (((util.isMac ? evt.metaKey : evt.ctrlKey) && !evt.altKey && evt.keyCode === 75/*"k"*/) || evt.keyCode === 13/*enter*/){
+				if (evt.keyCode === 13) {
+					this.find(this._reverse ? evt.shiftKey : !evt.shiftKey);
+				} else {
+					this.find(!evt.shiftKey);
+				}
+				handled = true;
+			}
+			if (ctrlKeyOnly &&  evt.keyCode === 82 /*"r"*/){
+				this.replace();
+				handled = true;
+			}
+			if (evt.keyCode === 27/*ESC*/){
+				this.hide();
+				handled = true;
+			}
+			if (handled) {
+				if (evt.stopPropagation) { 
+					evt.stopPropagation(); 
+				}
+				if (evt.preventDefault) { 
+					evt.preventDefault(); 
+				}
+				evt.cancelBubble = true;
+				return false;
+			}
+			return true;
+		}
+	});
+
+	return {FindUI: FindUI};
+});
+
+/*******************************************************************************
+ * @license
  * Copyright (c) 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made
  * available under the terms of the Eclipse Public License v1.0
@@ -14866,8 +15123,9 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 	'orion/editor/annotations', //$NON-NLS-0$
 	'orion/editor/tooltip', //$NON-NLS-0$
 	'orion/editor/find', //$NON-NLS-0$
+	'orion/editor/findUI', //$NON-NLS-0$
 	'orion/util' //$NON-NLS-0$
-], function(messages, mKeyBinding, mAnnotations, mTooltip, mFind, util) {
+], function(messages, mKeyBinding, mAnnotations, mTooltip, mFind, mFindUI, util) {
 
 	var AT = mAnnotations.AnnotationType;
 
@@ -14880,7 +15138,7 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 		this.editor = editor;
 		this.undoStack = undoStack;
 		this._incrementalFind = new mFind.IncrementalFind(editor);
-		this._find = find ? find : new mFind.Find(editor, undoStack);
+		this._find = find ? find : new mFindUI.FindUI(editor, undoStack);
 		this._lastEditLocation = null;
 		this.init();
 	}
@@ -14932,11 +15190,10 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			textView.setAction("find", function() { //$NON-NLS-0$
 				if (this._find) {
 					var selection = this.editor.getSelection();
-					var search = prompt(messages.find, this.editor.getText(selection.start, selection.end));
-					if (search) {
-						this._find.find(true, {findString:search});
-					}
+					this._find.show({findString:this.editor.getText(selection.start, selection.end)});
+					return true;
 				}
+				return false;
 			}.bind(this), {name: messages.find});
 
 			textView.setKeyBinding(new mKeyBinding.KeyBinding("k", true), "findNext"); //$NON-NLS-1$ //$NON-NLS-0$
@@ -15885,11 +16142,12 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 			var selection = editor.getSelection();
 			var firstLine = model.getLineAtOffset(selection.start);
 			var lastLine = model.getLineAtOffset(selection.end > selection.start ? selection.end - 1 : selection.end);
-			var uncomment = true, lines = [], lineText, index;
+			var uncomment = true, lineIndices = [], index;
 			for (var i = firstLine; i <= lastLine; i++) {
-				lineText = model.getLine(i, true);
-				lines.push(lineText);
-				if (!uncomment || (index = lineText.indexOf(comment)) === -1) {
+				var lineText = model.getLine(i, true);
+				index = lineText.indexOf(comment);
+				lineIndices.push(index);
+				if (!uncomment || index === -1) {
 					uncomment = false;
 				} else {
 					if (index !== 0) {
@@ -15904,26 +16162,28 @@ define("orion/editor/actions", [ //$NON-NLS-0$
 					}
 				}
 			}
-			var text, selStart, selEnd, l = comment.length;
+			var selStart, selEnd, l = comment.length, k;
 			var lineStart = model.getLineStart(firstLine);
-			var lineEnd = model.getLineEnd(lastLine, true);
+			textView.setRedraw(false);
+			this.startUndo();
 			if (uncomment) {
-				for (var k = 0; k < lines.length; k++) {
-					lineText = lines[k];
-					index = lineText.indexOf(comment);
-					lines[k] = lineText.substring(0, index) + lineText.substring(index + l);
+				for (k = lineIndices.length - 1; k >= 0; k--) {
+					index = lineIndices[k] + model.getLineStart(firstLine + k);
+					editor.setText("", index, index + l);
 				}
-				text = lines.join("");
 				var lastLineStart = model.getLineStart(lastLine);
 				selStart = lineStart === selection.start ? selection.start : selection.start - l;
 				selEnd = selection.end - (l * (lastLine - firstLine + 1)) + (selection.end === lastLineStart+1 ? l : 0);
 			} else {
-				lines.splice(0, 0, "");
-				text = lines.join(comment);
+				for (k = lineIndices.length - 1; k >= 0; k--) {
+					index = model.getLineStart(firstLine + k);
+					editor.setText(comment, index, index);
+				}
 				selStart = lineStart === selection.start ? selection.start : selection.start + l;
 				selEnd = selection.end + (l * (lastLine - firstLine + 1));
 			}
-			editor.setText(text, lineStart, lineEnd);
+			this.endUndo();
+			textView.setRedraw(true);
 			editor.setSelection(selStart, selEnd);
 			return true;
 		},
@@ -19132,7 +19392,7 @@ define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax
 
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -19143,7 +19403,7 @@ define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax
  *******************************************************************************/
 /*global define */
 
-define("orion/editor/cssContentAssist", [ //$NON-NLS-0$
+define("webtools/cssContentAssist", [ //$NON-NLS-0$
 	'orion/editor/templates', //$NON-NLS-0$
 	'orion/editor/stylers/text_css/syntax' //$NON-NLS-0$
 ], function(mTemplates, mCSS) {
@@ -19386,7 +19646,7 @@ define("orion/editor/cssContentAssist", [ //$NON-NLS-0$
 
 /*******************************************************************************
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -19397,7 +19657,7 @@ define("orion/editor/cssContentAssist", [ //$NON-NLS-0$
  *******************************************************************************/
 /*global define */
 
-define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mTemplates) { //$NON-NLS-1$ //$NON-NLS-0$
+define("webtools/htmlContentAssist", ['orion/editor/templates'], function(mTemplates) { //$NON-NLS-1$ //$NON-NLS-0$
 
 	var simpleDocTemplate = new mTemplates.Template("", "Simple HTML document", //$NON-NLS-0$
 		"<!DOCTYPE html>\n" + //$NON-NLS-0$
@@ -19556,580 +19816,6 @@ define("orion/editor/htmlContentAssist", ['orion/editor/templates'], function(mT
 
 	return {
 		HTMLContentAssistProvider: HTMLContentAssistProvider
-	};
-});
-
-/*******************************************************************************
- * @license
- * Copyright (c) 2014 IBM Corporation and others.
- * All rights reserved. This program and the accompanying materials are made 
- * available under the terms of the Eclipse Public License v1.0 
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
- * 
- * Contributors: IBM Corporation - initial API and implementation
- ******************************************************************************/
-
-/*global define*/
-
-define("orion/editor/stylers/application_javascript/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
-	var keywords = [
-		"break", //$NON-NLS-0$
-		"case", "class", "catch", "continue", "const", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"debugger", "default", "delete", "do", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"else", "enum", "export", "extends", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"false", "finally", "for", "function", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"if", "implements", "import", "in", "instanceof", "interface", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-		"let", //$NON-NLS-0$
-		"new", "null", //$NON-NLS-1$ //$NON-NLS-0$
-		"package", "private", "protected", "public", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-		"return", //$NON-NLS-0$
-		"static", "super", "switch", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
-		"this", "throw", "true", "try", "typeof", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
-		"undefined", //$NON-NLS-0$
-		"var", "void", //$NON-NLS-0$ //$NON-NLS-1$
-		"while", "with", //$NON-NLS-0$ //$NON-NLS-1$
-		"yield" //$NON-NLS-0$
-	];
-
-	var grammars = mLib.grammars;
-	grammars.push({
-		id: "orion.js", //$NON-NLS-0$
-		contentTypes: ["application/javascript"], //$NON-NLS-0$
-		patterns: [
-			{
-				begin: "'(?:\\\\.|[^\\\\'])*\\\\$", //$NON-NLS-0$
-				end: "^(?:$|(?:\\\\.|[^\\\\'])*('|[^\\\\]$))", //$NON-NLS-0$
-				name: "string.quoted.single.js" //$NON-NLS-0$
-			}, {
-				begin: '"(?:\\\\.|[^\\\\"])*\\\\$', //$NON-NLS-0$
-				end: '^(?:$|(?:\\\\.|[^\\\\"])*("|[^\\\\]$))', //$NON-NLS-0$
-				name: "string.quoted.double.js" //$NON-NLS-0$
-			},
-			{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
-			{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
-			{include: "orion.c-like#comment_singleLine"}, //$NON-NLS-0$
-			{
-				match: "/(?![\\s\\*])(?:\\\\.|[^/])+/(?:[gim]{0,3})", //$NON-NLS-0$
-				name: "string.regexp.js" //$NON-NLS-0$
-			},
-			{include: "orion.lib#doc_block"}, //$NON-NLS-0$
-			{include: "orion.c-like#comment_block"}, //$NON-NLS-0$
-			{include: "orion.lib#brace_open"}, //$NON-NLS-0$
-			{include: "orion.lib#brace_close"}, //$NON-NLS-0$
-			{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
-			{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
-			{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
-			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
-			{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
-			{include: "orion.lib#number_hex"}, //$NON-NLS-0$
-			{
-				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
-				name: "keyword.control.js" //$NON-NLS-0$
-			}
-		]
-	});
-	return {
-		id: grammars[grammars.length - 1].id,
-		grammars: grammars,
-		keywords: keywords
-	};
-});
-
-/*******************************************************************************
- * @license
- * Copyright (c) 2011, 2014 IBM Corporation and others.
- * Copyright (c) 2012 VMware, Inc.
- * All rights reserved. This program and the accompanying materials are made
- * available under the terms of the Eclipse Public License v1.0
- * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution
- * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html).
- *
- * Contributors:
- *     IBM Corporation - initial API and implementation
- *     Andrew Eisenberg - rename to jsTemplateContentAssist.js
- *******************************************************************************/
-/*global define */
-
-define("orion/editor/jsTemplateContentAssist", [ //$NON-NLS-0$
-	'orion/editor/templates', //$NON-NLS-0$
-	'orion/editor/stylers/application_javascript/syntax' //$NON-NLS-0$
-], function(mTemplates, mJS) {
-
-	var typeofValues = {
-		type: "link", //$NON-NLS-0$
-		values: [
-			"undefined", //$NON-NLS-0$
-			"object", //$NON-NLS-0$
-			"boolean", //$NON-NLS-0$
-			"number", //$NON-NLS-0$
-			"string", //$NON-NLS-0$
-			"function", //$NON-NLS-0$
-			"xml" //$NON-NLS-0$
-		]
-	};
-
-	var uninterestingChars = ":!@#$^&*.?<>"; //$NON-NLS-0$
-
-	var templates = [
-		{
-			prefix: "if", //$NON-NLS-0$
-			name: "if",  //$NON-NLS-0$
-			description: " - if statement", //$NON-NLS-0$
-			template: "if (${condition}) {\n\t${cursor}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "if", //$NON-NLS-0$
-			name: "if", //$NON-NLS-0$
-			description: " - if else statement", //$NON-NLS-0$
-			template: "if (${condition}) {\n\t${cursor}\n} else {\n\t\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "for", //$NON-NLS-0$
-			name: "for", //$NON-NLS-0$
-			description: " - iterate over array", //$NON-NLS-0$
-			template: "for (var ${i}=0; ${i}<${array}.length; ${i}++) {\n\t${cursor}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "for", //$NON-NLS-0$
-			name: "for", //$NON-NLS-0$
-			description: " - iterate over array with local var", //$NON-NLS-0$
-			template: "for (var ${i}=0; ${i}<${array}.length; ${i}++) {\n\tvar ${value} = ${array}[${i}];\n\t${cursor}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "for", //$NON-NLS-0$
-			name: "for..in", //$NON-NLS-0$
-			description: " - iterate over properties of an object", //$NON-NLS-0$
-			template: "for (var ${property} in ${object}) {\n\tif (${object}.hasOwnProperty(${property})) {\n\t\t${cursor}\n\t}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "while", //$NON-NLS-0$
-			name: "while", //$NON-NLS-0$
-			description: " - while loop with condition", //$NON-NLS-0$
-			template: "while (${condition}) {\n\t${cursor}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "do", //$NON-NLS-0$
-			name: "do", //$NON-NLS-0$
-			description: " - do while loop with condition", //$NON-NLS-0$
-			template: "do {\n\t${cursor}\n} while (${condition});" //$NON-NLS-0$
-		},
-		{
-			prefix: "switch", //$NON-NLS-0$
-			name: "switch", //$NON-NLS-0$
-			description: " - switch case statement", //$NON-NLS-0$
-			template: "switch (${expression}) {\n\tcase ${value1}:\n\t\t${cursor}\n\t\tbreak;\n\tdefault:\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "case", //$NON-NLS-0$
-			name: "case", //$NON-NLS-0$
-			description: " - case statement", //$NON-NLS-0$
-			template: "case ${value}:\n\t${cursor}\n\tbreak;" //$NON-NLS-0$
-		},
-		{
-			prefix: "try", //$NON-NLS-0$
-			name: "try", //$NON-NLS-0$
-			description: " - try..catch statement", //$NON-NLS-0$
-			template: "try {\n\t${cursor}\n} catch (${err}) {\n}" //$NON-NLS-0$
-			},
-		{
-			prefix: "try", //$NON-NLS-0$
-			name: "try", //$NON-NLS-0$
-			description: " - try..catch statement with finally block", //$NON-NLS-0$
-			template: "try {\n\t${cursor}\n} catch (${err}) {\n} finally {\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "typeof", //$NON-NLS-0$
-			name: "typeof", //$NON-NLS-0$
-			description: " - typeof statement", //$NON-NLS-0$
-			template: "typeof ${object} === \"${type:" + JSON.stringify(typeofValues).replace("}", "\\}") + "}\"" //$NON-NLS-1$ //$NON-NLS-0$
-		},
-		{
-			prefix: "instanceof", //$NON-NLS-0$
-			name: "instanceof", //$NON-NLS-0$
-			description: " - instanceof statement", //$NON-NLS-0$
-			template: "${object} instanceof ${type}" //$NON-NLS-0$
-		},
-		{
-			prefix: "with", //$NON-NLS-0$
-			name: "with", //$NON-NLS-0$
-			description: " - with statement", //$NON-NLS-0$
-			template: "with (${object}) {\n\t${cursor}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "function", //$NON-NLS-0$
-			name: "function", //$NON-NLS-0$
-			description: " - function declaration",  //$NON-NLS-0$
-			template: "/**\n"+  //$NON-NLS-0$
-					  " * @name ${name}\n"+  //$NON-NLS-0$
-					  " * @param ${parameter}\n"+  //$NON-NLS-0$
-					  " */\n"+  //$NON-NLS-0$
-					  "function ${name} (${parameter}) {\n\t${cursor}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "function", //$NON-NLS-0$
-			name: "function", //$NON-NLS-0$
-			description: " - function expression",  //$NON-NLS-0$
-			template: "/**\n"+  //$NON-NLS-0$
-					  " * @name ${name}\n"+  //$NON-NLS-0$
-					  " * @function\n"+  //$NON-NLS-0$
-					  " * @param ${parameter}\n"+  //$NON-NLS-0$
-					  " */\n"+  //$NON-NLS-0$
-					  "${name}: function(${parameter}) {\n\t${cursor}\n}" //$NON-NLS-0$
-		},
-		{
-			prefix: "define", //$NON-NLS-0$
-			name: "define", //$NON-NLS-0$
-			description: " - define function call",  //$NON-NLS-0$
-			template: "/* global define */\n"+
-					  "define('${name}',[\n"+  //$NON-NLS-0$
-					  "'${import}'\n"+  //$NON-NLS-0$
-					  "], function(${importname}) {\n"+  //$NON-NLS-0$
-					  "\t${cursor}\n"+  //$NON-NLS-0$
-					  "});" //$NON-NLS-0$
-		},
-		{
-			prefix: "nls", //$NON-NLS-0$
-			name: "nls", //$NON-NLS-0$
-			description: " - non NLS string", //$NON-NLS-0$
-			template: "${cursor} //$NON-NLS-${0}$" //$NON-NLS-0$
-		},
-		{
-			prefix: "log", //$NON-NLS-0$
-			name: "log", //$NON-NLS-0$
-			description: " - console log", //$NON-NLS-0$
-			template: "console.log(${object});" //$NON-NLS-0$
-		},
-		{
-			prefix: "mongodb", //$NON-NLS-0$
-			name: "mongodb", //$NON-NLS-0$
-			description: " - Node.js require statement for MongoDB", //$NON-NLS-0$
-			template: "var ${name} = require('mongodb');\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "mongodb", //$NON-NLS-0$
-			name: "mongodb client", //$NON-NLS-0$
-			description: " - create a new MongoDB client", //$NON-NLS-0$
-			template: "var MongoClient = require('mongodb').MongoClient;\n" +//$NON-NLS-0$
-					  "var Server = require('mongodb').Server;\n${cursor}"
-		},
-		{
-			prefix: "mongodb", //$NON-NLS-0$
-			name: "mongodb open", //$NON-NLS-0$
-			description: " - create a new MongoDB client and open a connection", //$NON-NLS-0$
-			template: "var MongoClient = require('mongodb').MongoClient;\n" +//$NON-NLS-0$
-					  "var Server = require('mongodb').Server;\n"+  //$NON-NLS-0$
-					  "var ${client} = new MongoClient(new Server(${host}, ${port}));\n"+ //$NON-NLS-0$
-					  "try {\n" + //$NON-NLS-0$
-					  "\t${client}.open(function(error, ${client}) {\n" + //$NON-NLS-0$
-  					  "\t\tvar ${db} = ${client}.db(${name});\n" + //$NON-NLS-0$
-  					  "\t\t${cursor}\n" + //$NON-NLS-0$
-  					  "\t});\n" +  //$NON-NLS-0$
-  					  "} finally {\n" + //$NON-NLS-0$
-  					  "\t${client}.close();\n" + //$NON-NLS-0$
-  					  "};" //$NON-NLS-0$
-		},
-		{
-			prefix: "mongodb", //$NON-NLS-0$
-			name: "mongodb connect", //$NON-NLS-0$
-			description: " - connect to an existing MongoDB database", //$NON-NLS-0$
-			template: "var MongoClient = require('mongodb').MongoClient;\n" +//$NON-NLS-0$
-					  "MongoClient.connect(${url}, function(error, db) {\n"+  //$NON-NLS-0$
-					  "\t${cursor}\n"+ //$NON-NLS-0$
-  					  "});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "mongodb", //$NON-NLS-0$
-			name: "mongodb connect (Cloud Foundry)", //$NON-NLS-0$
-			description: " - connect to an existing MongoDB database using Cloud Foundry", //$NON-NLS-0$
-			template: "if (${process}.env.VCAP_SERVICES) {\n" +  //$NON-NLS-0$
-   					  "\tvar env = JSON.parse(${process}.env.VCAP_SERVICES);\n" +  //$NON-NLS-0$
-   					  "\tvar mongo = env[\'${mongo-version}\'][0].credentials;\n" +  //$NON-NLS-0$
-					  "} else {\n" +  //$NON-NLS-0$
-					  "\tvar mongo = {\n" +  //$NON-NLS-0$
-					  "\t\tusername : \'username\',\n" +  //$NON-NLS-0$
-					  "\t\tpassword : \'password\',\n" +  //$NON-NLS-0$
-					  "\t\turl : \'mongodb://username:password@localhost:27017/database\'\n" +  //$NON-NLS-0$
-					  "\t};\n}\n" +  //$NON-NLS-0$
-					  "var MongoClient = require('mongodb').MongoClient;\n" +//$NON-NLS-0$
-					  "MongoClient.connect(mongo.url, function(error, db) {\n"+  //$NON-NLS-0$
-					  "\t${cursor}\n"+ //$NON-NLS-0$
-  					  "});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "mongodb", //$NON-NLS-0$
-			name: "mongodb collection", //$NON-NLS-0$
-			description: " - create a MongoDB database collection", //$NON-NLS-0$
-			template: "${db}.collection(${id}, function(${error}, collection) {\n"+//$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});"  //$NON-NLS-0$
-		},
-		{
-			prefix: "mongodb", //$NON-NLS-0$
-			name: "mongodb strict collection", //$NON-NLS-0$
-			description: " - create a MongoDB database strict collection", //$NON-NLS-0$
-			template: "${db}.collection(${id}, {strict:true}, function(${error}, collection) {\n"+//$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});"  //$NON-NLS-0$
-		},
-		{
-			prefix: "redis", //$NON-NLS-0$
-			name: "redis", //$NON-NLS-0$
-			description: " - Node.js require statement for Redis", //$NON-NLS-0$
-			template: "var ${name} = require('redis');\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "redis", //$NON-NLS-0$
-			name: "redis client", //$NON-NLS-0$
-			description: " - create a new Redis client", //$NON-NLS-0$
-			template: "var ${name} = require('redis');\n" + //$NON-NLS-0$
-					  "var ${client} = ${name}.createClient(${port}, ${host}, ${options});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "redis", //$NON-NLS-0$
-			name: "redis connect", //$NON-NLS-0$
-			description: " - create a new Redis client and connect", //$NON-NLS-0$
-			template: "var ${name} = require('redis');\n" + //$NON-NLS-0$
-					  "var ${client} = ${name}.createClient(${port}, ${host}, ${options});\n" +  //$NON-NLS-0$
-					  "try {\n" +  //$NON-NLS-0$
-					  "\t${cursor}\n"+  //$NON-NLS-0$
-					  "} finally {\n"+  //$NON-NLS-0$
-					  "\t${client}.close();\n"+  //$NON-NLS-0$
-					  "}\n"
-		},
-		{
-			prefix: "redis", //$NON-NLS-0$
-			name: "redis set", //$NON-NLS-0$
-			description: " - create a new Redis client set call", //$NON-NLS-0$
-			template: "client.set(${key}, ${value});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "redis", //$NON-NLS-0$
-			name: "redis get", //$NON-NLS-0$
-			description: " - create a new Redis client get call", //$NON-NLS-0$
-			template: "client.get(${key}, function(${error}, ${reply}) {\n"+  //$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "redis", //$NON-NLS-0$
-			name: "redis on", //$NON-NLS-0$
-			description: " - create a new Redis client event handler", //$NON-NLS-0$
-			template: "client.on(${event}, function(${arg}) {\n"+  //$NON-NLS-0$
-					  "\t${cursor}" +  //$NON-NLS-0$
-					  "});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "pg", //$NON-NLS-0$
-			name: "postgres", //$NON-NLS-0$
-			description: " - Node.js require statement for Postgres DB", //$NON-NLS-0$
-			template: "var pg = require('pg');\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "pg", //$NON-NLS-0$
-			name: "postgres client", //$NON-NLS-0$
-			description: " - create a new Postgres DB client", //$NON-NLS-0$
-			template: "var pg = require('pg');\n" + //$NON-NLS-0$
-					  "var url = \"postgres://postgres:${port}@${host}/${database}\";\n" +  //$NON-NLS-0$
-					  "var ${client} = new pg.Client(url);\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "pg", //$NON-NLS-0$
-			name: "postgres connect", //$NON-NLS-0$
-			description: " - create a new Postgres DB client and connect", //$NON-NLS-0$
-			template: "var pg = require('pg');\n" + //$NON-NLS-0$
-					  "var url = \"postgres://postgres:${port}@${host}/${database}\";\n" +  //$NON-NLS-0$
-					  "var ${client} = new pg.Client(url);\n" + //$NON-NLS-0$
-					  "${client}.connect(function(error) {\n" +  //$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});\n"
-		},
-		{
-			prefix: "pg", //$NON-NLS-0$
-			name: "postgres query", //$NON-NLS-0$
-			description: " - create a new Postgres DB query statement", //$NON-NLS-0$
-			template: "${client}.query(${sql}, function(error, result) {\n" + //$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});\n"
-		},
-		{
-			prefix: "mysql", //$NON-NLS-0$
-			name: "mysql", //$NON-NLS-0$
-			description: " - Node.js require statement for MySQL DB", //$NON-NLS-0$
-			template: "var mysql = require('mysql');\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "mysql", //$NON-NLS-0$
-			name: "mysql connection", //$NON-NLS-0$
-			description: " - create a new MySQL DB connection", //$NON-NLS-0$
-			template: "var mysql = require('mysql');\n" + //$NON-NLS-0$
-					  "var ${connection} = mysql.createConnection({\n" +  //$NON-NLS-0$
-  					  "\thost : ${host},\n" +  //$NON-NLS-0$
-  					  "\tuser : ${username},\n" +  //$NON-NLS-0$
-  					  "\tpassword : ${password}\n" +  //$NON-NLS-0$
-					  "});\n" + //$NON-NLS-0$
-					  "try {\n" +  //$NON-NLS-0$
-					  "\t${connection}.connect();\n" +  //$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "} finally {\n" +  //$NON-NLS-0$
-					  "\t${connection}.end();\n" +  //$NON-NLS-0$
-					  "}"
-		},
-		{
-			prefix: "mysql", //$NON-NLS-0$
-			name: "mysql query", //$NON-NLS-0$
-			description: " - create a new MySQL DB query statement", //$NON-NLS-0$
-			template: "${connection}.query(${sql}, function(error, rows, fields) {\n" + //$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express", //$NON-NLS-0$
-			description: " - Node.js require statement for Express", //$NON-NLS-0$
-			template: "var ${name} = require('express');" //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express app", //$NON-NLS-0$
-			description: " - create a new Express app", //$NON-NLS-0$
-			template: "var express = require('express');\n" + //$NON-NLS-0$
-					  "var ${app} = express();\n" +  //$NON-NLS-0$
-					  "${cursor}\n"+  //$NON-NLS-0$
-					  "app.listen(${timeout});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express configure", //$NON-NLS-0$
-			description: " - create an Express app configure statement", //$NON-NLS-0$
-			template: "app.configure(function() {\n" +  //$NON-NLS-0$
-  					  "\tapp.set(${id}, ${value});\n" +  //$NON-NLS-0$
-					  "});"  //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express specific configure", //$NON-NLS-0$
-			description: " - create a specific Express app configure statement", //$NON-NLS-0$
-			template: "app.configure(${name}, function() {\n" +  //$NON-NLS-0$
-  					  "\tapp.set(${id}, ${value});\n" +  //$NON-NLS-0$
-					  "});"  //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express app get", //$NON-NLS-0$
-			description: " - create a new Express app.get call", //$NON-NLS-0$
-			template: "var value = app.get(${id}, function(request, result){\n" + //$NON-NLS-0$
-					  "\t${cursor}\n});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express app set", //$NON-NLS-0$
-			description: " - create a new Express app set call", //$NON-NLS-0$
-			template: "app.set(${id}, ${value});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express app use", //$NON-NLS-0$
-			description: " - create a new Express app use statement", //$NON-NLS-0$
-			template: "app.use(${fnOrObject});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express app engine", //$NON-NLS-0$
-			description: " - create a new Express app engine statement", //$NON-NLS-0$
-			template: "app.engine(${fnOrObject});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express app param", //$NON-NLS-0$
-			description: " - create a new Express app param statement", //$NON-NLS-0$
-			template: "app.param(${id}, ${value});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "express", //$NON-NLS-0$
-			name: "express app error use", //$NON-NLS-0$
-			description: " - create a new Express app error handling use statement", //$NON-NLS-0$
-			template: "app.use(function(error, request, result, next) {\n" +  //$NON-NLS-0$
-  					  "\tresult.send(${code}, ${message});\n" +  //$NON-NLS-0$
-					  "});\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "amqp", //$NON-NLS-0$
-			name: "amqp", //$NON-NLS-0$
-			description: " - Node.js require statement for AMQP framework", //$NON-NLS-0$
-			template: "var amqp = require('amqp');\n" //$NON-NLS-0$
-		},
-		{
-			prefix: "amqp", //$NON-NLS-0$
-			name: "amqp connection", //$NON-NLS-0$
-			description: " - create a new AMQP connection ", //$NON-NLS-0$
-			template: "var amqp = require('amqp');\n" + //$NON-NLS-0$
-					  "var ${connection} = amqp.createConnection({\n" +  //$NON-NLS-0$ 
-					  "\thost: ${host},\n" +  //$NON-NLS-0$
-					  "\tport: ${port},\n" +  //$NON-NLS-0$
-					  "\tlogin: ${login},\n" +  //$NON-NLS-0$
-					  "\tpassword: ${password}\n" +  //$NON-NLS-0$
-					  "});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "amqp", //$NON-NLS-0$
-			name: "amqp on", //$NON-NLS-0$
-			description: " - create a new AMQP connection on statement", //$NON-NLS-0$
-			template: "${connection}.on(${event}, function() {\n" +  //$NON-NLS-0$ 
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "amqp", //$NON-NLS-0$
-			name: "amqp queue", //$NON-NLS-0$
-			description: " - create a new AMQP connection queue statement", //$NON-NLS-0$
-			template: "${connection}.queue(${id}, function(queue) {\n" +  //$NON-NLS-0$
-					  "\tqueue.bind(\'#\'); //catch all messages\n" + //$NON-NLS-0$
-					  "\tqueue.subscribe(function (message, headers, deliveryInfo) {\n" + //$NON-NLS-0$
-					  "\t\t// Receive messages\n" + //$NON-NLS-0$
-					  "\t});\n" + //$NON-NLS-0$
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});\n"  //$NON-NLS-0$
-		},
-		{
-			prefix: "amqp", //$NON-NLS-0$
-			name: "amqp exchange", //$NON-NLS-0$
-			description: " - create a new AMQP connection exchange", //$NON-NLS-0$
-			template: "var exchange = ${connection}.exchange(${id}, {type: \'topic\'}, function(exchange) {\n" +  //$NON-NLS-0$ 
-					  "\t${cursor}\n" +  //$NON-NLS-0$
-					  "});\n"  //$NON-NLS-0$
-		},
-	];
-
-	/**
-	 * @name orion.editor.JSTemplateContentAssistProvider
-	 * @class Provides content assist for JavaScript keywords.
-	 */
-	function JSTemplateContentAssistProvider() {
-	}
-	JSTemplateContentAssistProvider.prototype = new mTemplates.TemplateContentAssist(mJS.keywords, templates);
-
-	/**
-	 * @description Determines if the invocation location is a valid place to use
-	 * templates.  We are not being too precise here.  As an approximation,
-	 * just look at the previous character.
-	 * @function
-	 * @public
-	 * @param {String} prefix The prefix of the proposal, if any
-	 * @param {String} buffer The entire buffer from the editor
-	 * @param {Number} offset The offset into the buffer
-	 * @param {Object} context The completion context object from the editor
-	 * @return {Boolean} true if the current invocation location is
-	 * a valid place for template proposals to appear.
-	 * This means that the invocation location is at the start of a new statement.
-	 */
-	JSTemplateContentAssistProvider.prototype.isValid = function(prefix, buffer, offset, context) {
-		var char = buffer.charAt(offset-prefix.length-1);
-		return !char || uninterestingChars.indexOf(char) === -1;
-	};
-
-	return {
-		JSTemplateContentAssistProvider: JSTemplateContentAssistProvider
 	};
 });
 
@@ -22642,7 +22328,7 @@ var RegexUtil = {
 
 /******************************************************************************* 
  * @license
- * Copyright (c) 2011, 2012 IBM Corporation and others.
+ * Copyright (c) 2011, 2014 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
  * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
@@ -22775,7 +22461,24 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 	var spacePattern = {regex: /[ ]/g, style: {styleClass: "punctuation separator space", unmergeable: true}}; //$NON-NLS-0$
 	var tabPattern = {regex: /\t/g, style: {styleClass: "punctuation separator tab", unmergeable: true}}; //$NON-NLS-0$
 
-	var _findMatch = function(regex, text, startIndex, testBeforeMatch) {
+	var binarySearch = function(array, offset, inclusive, low, high) {
+		var index;
+		if (low === undefined) { low = -1; }
+		if (high === undefined) { high = array.length; }
+		while (high - low > 1) {
+			index = Math.floor((high + low) / 2);
+			if (offset <= array[index].start) {
+				high = index;
+			} else if (inclusive && offset < array[index].end) {
+				high = index;
+				break;
+			} else {
+				low = index;
+			}
+		}
+		return high;
+	};	
+	var findMatch = function(regex, text, startIndex, testBeforeMatch) {
 		/*
 		 * testBeforeMatch provides a potential optimization for callers that do not strongly expect to find
 		 * a match.  If this argument is defined then test() is initially called on the regex, which executes
@@ -22853,10 +22556,11 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		/* return an updated regex, remove the leading '/' and trailing /FLAGS */
 		return new RegExp(regexString.substring(1, regexString.length - 1 - FLAGS.length), FLAGS);
 	};
-	var updateMatch = function(match, text, matches, minimumIndex) {
+	var updateMatch = function(match, text, matches, minimumIndex, endIndex) {
 		var regEx = match.pattern.regex ? match.pattern.regex : match.pattern.regexBegin;
-		var result = _findMatch(regEx, text, minimumIndex, true);
-		if (result) {
+		endIndex = endIndex || Infinity;
+		var result = findMatch(regEx, text, minimumIndex, true);
+		if (result && result.index < endIndex) {
 			match.result = result;
 			for (var i = 0; i < matches.length; i++) {
 				if (result.index < matches[i].result.index || (result.index === matches[i].result.index && match.pattern.pattern.index < matches[i].pattern.pattern.index)) {
@@ -22912,7 +22616,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		patterns.forEach(function(current) {
 			var regex = current.regex || current.regexBegin;
 			regex.oldLastIndex = regex.lastIndex;
-			var result = _findMatch(regex, text, 0);
+			var result = findMatch(regex, text, 0);
 			if (result) {
 				matches.push({result: result, pattern: current});
 			}
@@ -22976,7 +22680,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				var endRegex = current.pattern.regexEnd;
 				endRegex = substituteCaptureValues(endRegex, current.result);
 
-				result = _findMatch(endRegex, text, current.result.index + current.result[0].length);
+				result = findMatch(endRegex, text, current.result.index + current.result[0].length);
 				if (!result) {
 					eolRegex.lastIndex = 0;
 					result = eolRegex.exec(text);
@@ -22992,15 +22696,18 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			regex.lastIndex = regex.oldLastIndex;
 		});
 	};
-	var computeBlocks = function(model, text, block, offset) {
+	var computeBlocks = function(model, text, block, offset, startIndex, endIndex, maxBlockCount) {
 		if (!text) {
 			return [];
 		}
 
 		var results = [];
 		var matches = [];
+		startIndex = startIndex || 0;
+		endIndex = endIndex || Infinity;
+		maxBlockCount = maxBlockCount || Infinity;
 		block.getBlockPatterns().forEach(function(current) {
-			var result = _findMatch(current.regexBegin || current.regex, text, 0);
+			var result = findMatch(current.regexBegin || current.regex, text, startIndex);
 			if (result) {
 				matches.push({result: result, pattern: current});
 			}
@@ -23023,9 +22730,13 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			var current = matches[0];
 			matches.splice(0,1);
 
+			if (endIndex < current.result.index) {
+				break;
+			}
+
 			if (current.result.index < index) {
 				/* processing of another match has moved index beyond this match */
-				updateMatch(current, text, matches, index);
+				updateMatch(current, text, matches, index, endIndex);
 				continue;
 			}
 
@@ -23071,10 +22782,15 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 
 				var lastIndex = contentStart;
 				while (!resultEnd) {
-					var result = _findMatch(endRegex, text, lastIndex);
+					var result = findMatch(endRegex, text, lastIndex);
 					if (!result) {
 						eolRegex.lastIndex = 0;
 						result = eolRegex.exec(text);
+						testPattern = {
+							pattern: testPattern.pattern,
+							regexBegin: testPattern.regexBegin,
+							regexEnd: eolRegex
+						};
 					}
 					var testBlock = new Block(
 						{
@@ -23095,30 +22811,37 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				}
 			}
 			results.push(resultEnd);
+			if (results.length === maxBlockCount || endIndex <= resultEnd.end) {
+				break;
+			}
 			index = resultEnd.end - offset;
-			updateMatch(current, text, matches, index);
+			updateMatch(current, text, matches, index, endIndex);
 		}
 		return results;
 	};
-	var computeTasks = function(block, baseModel, annotations) {
-		var annotationModel = block.getAnnotationModel();
-		if (!annotationModel) { return; }
+	var computeTasks = function(block, baseModel, annotations, start, end) {
+		start = start || block.start;
+		end = end || block.end;
+		if (block.start <= end && start <= block.end) {
+			var annotationModel = block.getAnnotationModel();
+			if (!annotationModel) { return; }
 
-		var annotationType = mAnnotations.AnnotationType.ANNOTATION_TASK;
-		var subPatterns = block.getLinePatterns();
-		if (subPatterns.length && block.pattern && block.pattern.pattern.name && block.pattern.pattern.name.indexOf("comment") === 0) {
-			var substyles = [];
-			parse(baseModel.getText(block.contentStart, block.end), block.contentStart, block, substyles, true);
-			for (var i = 0; i < substyles.length; i++) {
-				if (substyles[i].style === "meta.annotation.task.todo") {
-					annotations.push(mAnnotations.AnnotationType.createAnnotation(annotationType, substyles[i].start, substyles[i].end, baseModel.getText(substyles[i].start, substyles[i].end)));
+			var annotationType = mAnnotations.AnnotationType.ANNOTATION_TASK;
+			var subPatterns = block.getLinePatterns();
+			if (subPatterns.length && block.pattern && block.pattern.pattern.name && block.pattern.pattern.name.indexOf("comment") === 0) {
+				var substyles = [];
+				parse(baseModel.getText(block.contentStart, block.end), block.contentStart, block, substyles, true);
+				for (var i = 0; i < substyles.length; i++) {
+					if (substyles[i].style === "meta.annotation.task.todo" && start <= substyles[i].start && substyles[i].end <= end) {
+						annotations.push(mAnnotations.AnnotationType.createAnnotation(annotationType, substyles[i].start, substyles[i].end, baseModel.getText(substyles[i].start, substyles[i].end)));
+					}
 				}
 			}
+	
+			block.getBlocks().forEach(function(current) {
+				computeTasks(current, baseModel, annotations, start, end);
+			}.bind(this));
 		}
-
-		block.getBlocks().forEach(function(current) {
-			computeTasks(current, baseModel, annotations);
-		}.bind(this));
 	};
 
 	function PatternManager(grammars, rootId) {
@@ -23229,18 +22952,23 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		}
 	}
 	Block.prototype = {
-		adjustEnd: function(value) {
-			this.end += value;
-			this.contentEnd += value;
+		adjustBounds: function(index, value) {
+			if (index < this.start) {
+				this.start += value;
+			}
+			if (index < this.contentStart) {
+				this.contentStart += value;
+			}
+			if (index <= this.end) {
+				this.end += value;
+			}
+			if (index <= this.contentEnd) {
+				this.contentEnd += value;
+			}
 			this._subBlocks.forEach(function(current) {
-				current.adjustEnd(value);
-			});
-		},
-		adjustStart: function(value) {
-			this.start += value;
-			this.contentStart += value;
-			this._subBlocks.forEach(function(current) {
-				current.adjustStart(value);
+				if (index <= current.end) {
+					current.adjustBounds(index, value);
+				}
 			});
 		},
 		computeStyle: function(model, offset) {
@@ -23288,10 +23016,9 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			if (result) {
 				var styles = [];
 				getCaptureStyles(result, captures, index, styles);
-				for (var i = 0; i < styles.length; i++) {
-					if (styles[i].start <= offset && offset < styles[i].end) {
-						return styles[i];
-					}
+				var style = styles[binarySearch(styles, offset, true)];
+				if (style && style.start <= offset && offset < style.end) {
+					return style;
 				}
 			}
 			return fullBlock;
@@ -23425,10 +23152,14 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		var charCount = model.getCharCount();
 		var rootBounds = {start: 0, contentStart: 0, end: charCount, contentEnd: charCount};
 		this._rootBlock = new Block(rootBounds, null, this, model);
-		this._computeFolding(this._rootBlock.getBlocks());
-		if (annotationModel && this.detectTasks) {
+		if (annotationModel) {
 			var add = [];
-			computeTasks(this._rootBlock, model, add);
+			annotationModel.removeAnnotations(mAnnotations.AnnotationType.ANNOTATION_FOLDING);
+			this._computeFolding(this._rootBlock.getBlocks(), view.getModel(), add);
+			if (this.detectTasks) {
+				annotationModel.removeAnnotations(mAnnotations.AnnotationType.ANNOTATION_TASK);
+				computeTasks(this._rootBlock, model, add);
+			}
 			annotationModel.replaceAnnotations([], add);
 		}
 		view.redrawLines();
@@ -23468,14 +23199,9 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			var lineText = model.getLine(lineIndex);
 			var styles = [];
 			parse(lineText, model.getLineStart(lineIndex), block, styles);
-			for (var i = 0; i < styles.length; i++) {
-				if (offset < styles[i].start) {
-					break;
-				}
-				if (styles[i].start <= offset && offset < styles[i].end) {
-					result.push(styles[i]);
-					break;
-				}
+			var style = styles[binarySearch(styles, offset, true)];
+			if (style && style.start <= offset && offset < style.end) {
+				result.push(style);
 			}
 			while (block) {
 				var style = block.computeStyle(model, offset);
@@ -23516,41 +23242,16 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		setDetectTasks: function(enabled) {
 			this.detectTasks = enabled;
 		},
-		_binarySearch: function(array, offset, inclusive, low, high) {
-			var index;
-			if (low === undefined) { low = -1; }
-			if (high === undefined) { high = array.length; }
-			while (high - low > 1) {
-				index = Math.floor((high + low) / 2);
-				if (offset <= array[index].start) {
-					high = index;
-				} else if (inclusive && offset < array[index].end) {
-					high = index;
-					break;
-				} else {
-					low = index;
-				}
-			}
-			return high;
-		},
-		_computeFolding: function(blocks) {
-			if (!this.foldingEnabled) { return; }
-			var view = this.view;
-			var viewModel = view.getModel();
+		_computeFolding: function(blocks, viewModel, _add) {
 			if (!viewModel.getBaseModel) { return; }
-			var annotationModel = this.annotationModel;
-			if (!annotationModel) { return; }
-			annotationModel.removeAnnotations(mAnnotations.AnnotationType.ANNOTATION_FOLDING);
-			var add = [];
 			var baseModel = viewModel.getBaseModel();
-			for (var i = 0; i < blocks.length; i++) {
-				var block = blocks[i];
+			blocks.forEach(function(block) {
 				var annotation = this._createFoldingAnnotation(viewModel, baseModel, block.start, block.end);
 				if (annotation) {
-					add.push(annotation);
+					_add.push(annotation);
 				}
-			}
-			annotationModel.replaceAnnotations(null, add);
+				this._computeFolding(block.getBlocks(), viewModel, _add);
+			}.bind(this));
 		},
 		_createFoldingAnnotation: function(viewModel, baseModel, start, end) {
 			var startLine = baseModel.getLineAtOffset(start);
@@ -23566,7 +23267,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				return parentBlock;
 			}
 
-			var index = this._binarySearch(blocks, offset, true);
+			var index = binarySearch(blocks, offset, true);
 			if (index < blocks.length && blocks[index].start <= offset && offset < blocks[index].end) {
 				return this._findBlock(blocks[index], offset);
 			}
@@ -23575,7 +23276,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		_findBrackets: function(bracket, closingBracket, block, text, start, end) {
 			var result = [], styles = [];
 			var offset = start, blocks = block.getBlocks();
-			var startIndex = this._binarySearch(blocks, start, true);
+			var startIndex = binarySearch(blocks, start, true);
 			for (var i = startIndex; i < blocks.length; i++) {
 				if (blocks[i].start >= end) { break; }
 				var blockStart = blocks[i].start;
@@ -23607,7 +23308,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			}
 			return result;
 		},
-		_findMatchingBracket: function(model, block, offset) {
+		findMatchingBracket: function(model, block, offset) {
 			var lineIndex = model.getLineAtOffset(offset);
 			var lineEnd = model.getLineEnd(lineIndex);
 			var text = model.getText(offset, lineEnd);
@@ -23617,7 +23318,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			var keys = Object.keys(enclosurePatterns);
 			for (var i = 0; i < keys.length; i++) {
 				var current = enclosurePatterns[keys[i]];
-				var result = _findMatch(current.regex, text, 0);
+				var result = findMatch(current.regex, text, 0);
 				if (result && result.index === 0) {
 					match = current;
 					break;
@@ -23723,7 +23424,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 
 			var styles = [];
 			var offset = start, blocks = block.getBlocks();
-			var startIndex = this._binarySearch(blocks, start, true);
+			var startIndex = binarySearch(blocks, start, true);
 			for (var i = startIndex; i < blocks.length; i++) {
 				if (blocks[i].start >= end) { break; }
 				var blockStart = blocks[i].start;
@@ -23736,7 +23437,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				if (s === blockStart) {
 					/* currently at the block's "start" match, which specifies its style by either a capture or name */
 					if (blocks[i].pattern.regexBegin) {
-						var result = _findMatch(blocks[i].pattern.regexBegin, text.substring(s - start), 0);
+						var result = findMatch(blocks[i].pattern.regexBegin, text.substring(s - start), 0);
 						if (result) {
 							/* the begin match is still valid */
 							var captures = blocks[i].pattern.pattern.beginCaptures || blocks[i].pattern.pattern.captures;
@@ -23760,7 +23461,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 					/* currently at the block's "end" match, which specifies its style by either a capture or name */
 					if (blocks[i].pattern.regexEnd) {
 						var testString = text.substring(e - offset - (blocks[i].end - blocks[i].contentEnd));
-						var result = _findMatch(blocks[i].pattern.regexEnd, testString, 0);
+						var result = findMatch(blocks[i].pattern.regexEnd, testString, 0);
 						if (result) {
 							/* the end match is still valid */
 							var captures = blocks[i].pattern.pattern.endCaptures || blocks[i].pattern.pattern.captures;
@@ -23865,7 +23566,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 					model = model.getBaseModel();
 				}
 				var block = this._findBlock(this._rootBlock, mapCaret);
-				var bracket = this._findMatchingBracket(model, block, mapCaret);
+				var bracket = this.findMatchingBracket(model, block, mapCaret);
 				if (bracket !== -1) {
 					add = [
 						mAnnotations.AnnotationType.createAnnotation(mAnnotations.AnnotationType.ANNOTATION_MATCHING_BRACKET, bracket, bracket + 1),
@@ -23889,7 +23590,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 					baseModel = model.getBaseModel();
 				}
 				var block = this._findBlock(this._rootBlock, mapOffset);
-				var bracket = this._findMatchingBracket(baseModel, block, mapOffset);
+				var bracket = this.findMatchingBracket(baseModel, block, mapOffset);
 				if (bracket !== -1) {
 					e.preventDefault();
 					var mapBracket = bracket;
@@ -23914,55 +23615,204 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			var baseModel = viewModel.getBaseModel ? viewModel.getBaseModel() : viewModel;
 			var end = start + removedCharCount;
 			var charCount = baseModel.getCharCount();
-			var blocks = this._rootBlock.getBlocks();
-			var blockCount = blocks.length;
-			var lineStart = baseModel.getLineStart(baseModel.getLineAtOffset(start));
-			var blockStart = this._binarySearch(blocks, lineStart, true);
-			var blockEnd = this._binarySearch(blocks, end, false, blockStart - 1, blockCount);
 
-			var ts;
-			if (blockStart < blockCount && blocks[blockStart].start <= lineStart && lineStart < blocks[blockStart].end) {
-				ts = blocks[blockStart].start;
-				if (ts > start) { ts += changeCount; }
-			} else {
-				if (blockStart === blockCount && blockCount > 0 && charCount - changeCount === blocks[blockCount - 1].end) {
+			/* compute the nearest ancestor block to the start and end indices */
+			var lineStart = baseModel.getLineStart(baseModel.getLineAtOffset(start));
+			var ancestorBlock = this._findBlock(this._rootBlock, start);
+
+			var blocks, parentBlock, redraw, text, te, ts;
+			do {
+				parentBlock = ancestorBlock.getParent();
+
+				/*
+				 * Determine whether ancestorBlock contains the full range of
+				 * text whose styling may be affected by this model change.
+				 */
+				if (parentBlock) {
+					/* verify that ancestorBlock's start and end matches are not affected by this change */
+					var fail = null;
+					var matches = [];
+					text = baseModel.getText(ancestorBlock.start, Math.min(charCount, ancestorBlock.end + changeCount + 1)); 
+					parentBlock.getBlockPatterns().forEach(function(current) {
+						var result = findMatch(current.regexBegin || current.regex, text, 0);
+						if (result) {
+							matches.push({result: result, pattern: current});
+						}
+					}.bind(this));
+					matches.sort(function(a,b) {
+						/* ensure that matches at index 0 make it to the front, other matches do not matter */
+						if (!a.result.index && b.result.index) {
+							return -1;
+						}
+						if (a.result.index && !b.result.index) {
+							return 1;
+						}
+						if (!a.result.index && !b.result.index) {
+							return a.pattern.pattern.index < b.pattern.pattern.index ? -1 : 1;
+						}
+						return 0;
+					});
+					if (!matches.length || matches[0].result.index !== 0 || matches[0].pattern.pattern.id !== ancestorBlock.pattern.pattern.id) {
+						fail = true;
+					} else {
+						/* the block start appears to be unchanged, now verify that the block end is unchanged */
+						var match = matches[0];
+						var endRegex = match.pattern.regexEnd;
+						if (!endRegex) {
+							/* single-match block, just verify its length */
+							fail = ancestorBlock.start + match.result[0].length !== ancestorBlock.end + changeCount;
+						} else {
+							/* begin/end-match block */
+
+							 /*
+							  * Determine whether an earlier match of the block's end pattern has been introduced.
+							  * Verifying that this has NOT happened (the most typical case) can be quickly done by
+							  * verifying that the first occurrence of its end pattern is still at its former location.
+							  * However if a match is found prior to this then the blocks preceding it must be computed
+							  * to verify that it is a valid end match (ie.- it is not contained within another block).
+						 	  */
+
+							/*
+							 * If the end regex contains a capture reference (eg.- "\1") then substitute
+							 * the resolved capture values from the begin match.
+							 */
+							endRegex = substituteCaptureValues(endRegex, match.result);
+
+							var searchStartIndex = match.result[0].length;
+							var currentMatch = findMatch(endRegex, text, searchStartIndex);
+							while (fail === null && currentMatch && ancestorBlock.start + currentMatch.index !== ancestorBlock.contentEnd + changeCount) {
+								/*
+								 * A match was found preceeding the former end match, so now compute
+								 * blocks to determine whether it is in fact a valid new end match.
+								 */
+								blocks = computeBlocks(baseModel, text, ancestorBlock, ancestorBlock.start, searchStartIndex, currentMatch.index + 1);
+								if (!blocks.length || blocks[blocks.length - 1].end <= ancestorBlock.start + currentMatch.index) {
+									/* the match is valid, so the attempt to use ancestorBlock as-is fails */
+									fail = true;
+								} else {
+									/* the match is not valid, so search for the next potential end match */
+									if (!blocks.length) {
+										currentMatch = null;
+									} else {
+										searchStartIndex = blocks[blocks.length - 1].end - ancestorBlock.start;
+										currentMatch = findMatch(endRegex, text, searchStartIndex);
+									}
+								}
+							}
+							if (!currentMatch) {
+								eolRegex.lastIndex = 0;
+								currentMatch = eolRegex.exec(text);
+								fail = ancestorBlock.start + currentMatch.index !== ancestorBlock.end + changeCount;
+							}
+						}
+					}
+					if (fail) {
+						ancestorBlock = parentBlock;
+						continue;
+					}
+				}
+
+				/*
+				 * The change has not directly changed ancestorBlock's matches, now verify that its end bound
+				 * is still valid (ie.- ensure that a new block is not extending beyond the end bound).
+				 */
+
+				blocks = ancestorBlock.getBlocks();
+				var blockCount = blocks.length;
+				var blockStart = binarySearch(blocks, lineStart, true);
+				var blockEnd = binarySearch(blocks, end, false, blockStart - 1, blockCount);
+
+				if (blockStart < blockCount && blocks[blockStart].start <= lineStart && lineStart < blocks[blockStart].end) {
+					ts = blocks[blockStart].start;
+					if (ts > start) { ts += changeCount; }
+				} else if (blockStart === blockCount && blockCount > 0 && ancestorBlock.end - changeCount === blocks[blockCount - 1].end) {
 					ts = blocks[blockCount - 1].start;
+					if (ts > start) { ts += changeCount; }
 				} else {
 					ts = lineStart;
 				}
-			}
 
-			var te, newBlocks;
-			/*
-			 * The case where the following loop will iterate more than once is a change to a block that causes it to expand
-			 * through the subsequent block (eg.- removing the '/' from the end of a multi-line comment.  This is determined
-			 * by a subsequent block's end pattern id changing as a result of the text change.  When this happens, the first
-			 * block is expanded through subsequent blocks until one is found with the same ending pattern id to terminate it.
-			 */
-			do {
 				if (blockEnd < blockCount) {
 					te = blocks[blockEnd].end;
-					if (te > start) { te += changeCount; }
-					blockEnd += 1;
 				} else {
-					blockEnd = blockCount;
-					te = charCount;	//TODO could it be smaller?
+					te = ancestorBlock.contentEnd;
 				}
-				var text = baseModel.getText(ts, te), block;
-				newBlocks = computeBlocks(baseModel, text, this._rootBlock, ts);
-			} while (newBlocks.length && blocks.length && blockEnd < blockCount && newBlocks[newBlocks.length - 1].pattern.pattern.id !== blocks[blockEnd - 1].pattern.pattern.id);
+				if (start <= te) { te += changeCount; }
+				te = Math.min(te, charCount - 1);
+				text = baseModel.getText(ts, te + 1);
+				var newBlocks = computeBlocks(baseModel, text, ancestorBlock, ts);
 
-			for (var i = blockStart; i < blocks.length; i++) {
-				block = blocks[i];
-				if (block.start > start) { block.adjustStart(changeCount); }
-				if (block.start > start) { block.adjustEnd(changeCount); }
-			}
-			var redraw = (blockEnd - blockStart) !== newBlocks.length;
+				if (blockEnd < blockCount) {
+					/* ensure that blockEnd's end is preserved */
+					if (newBlocks.length && newBlocks[newBlocks.length - 1].end === te && newBlocks[newBlocks.length - 1].pattern.pattern.id === blocks[blockEnd].pattern.pattern.id) {
+						break;
+					}
+
+					/*
+					 * ancestorBlock's end match is no longer valid because it is being spanned by a block from
+					 * within.  Attempt to find a subsequent sibling block with the same type, as its end match 
+					 * will serve as the end match for this spanning block as well.
+					 */
+					if (newBlocks.length && newBlocks[newBlocks.length - 1].pattern.regexEnd === eolRegex) {
+						blockEnd++;
+						var subBlocks = newBlocks[newBlocks.length - 1].getBlocks();
+						var spanningPattern = (subBlocks.length ? subBlocks[subBlocks.length - 1] : newBlocks[newBlocks.length - 1]).pattern.pattern.id;
+						while (blockEnd < blockCount) {
+							if (blocks[blockEnd].pattern.pattern.id === spanningPattern) {
+								/* found a potential end block, must verify it */
+								var tempTe = blocks[blockEnd].end + changeCount;
+								tempTe = Math.min(tempTe, charCount - 1);
+								text = baseModel.getText(ts, tempTe + 1);
+								var tempNewBlocks = computeBlocks(baseModel, text, ancestorBlock, ts);
+								if (tempNewBlocks.length && tempNewBlocks[tempNewBlocks.length - 1].end === tempTe) {
+									/* verified, can now stop looking */
+									te = tempTe;
+									newBlocks = tempNewBlocks;
+									break;
+								}
+							}
+							blockEnd++;
+						}
+						if (blockEnd < blockCount) {
+							break;
+						}
+					}
+				} else {
+					/* ensure that ancestorBlock's end is preserved */
+					if (!newBlocks.length || newBlocks[newBlocks.length - 1].end <= ancestorBlock.contentEnd + changeCount) {
+						break;
+					}
+				}
+
+				/* 
+				 * The end block's end bound is spanned by a block from within, so move up to the ancestor
+				 * block, or extend end to the end of the content if already at the root-level block.
+				 */
+
+				if (!parentBlock) {
+					te = charCount;
+					blockEnd = blockCount;
+					text = baseModel.getText(ts, te);
+					newBlocks = computeBlocks(baseModel, text, ancestorBlock, ts);
+					break;
+				}
+
+				ancestorBlock = parentBlock;
+				redraw = true; /* blocks may not appear to be changed in the context of the parent block */
+			} while (true);
+
+			this._rootBlock.adjustBounds(start, changeCount);
+			blockEnd = Math.min(blockEnd + 1, blockCount);
+
+			var block;
 			if (!redraw) {
-				for (i = 0; i < newBlocks.length; i++) {
+				redraw = (blockEnd - blockStart) !== newBlocks.length;
+			}
+			if (!redraw) {
+				for (var i = 0; i < newBlocks.length; i++) {
 					block = blocks[blockStart + i];
 					var newBlock = newBlocks[i];
-					if (block.start !== newBlock.start || block.end !== newBlock.end || block.type !== newBlock.type) {
+					if (block.start !== newBlock.start || block.end !== newBlock.end || block.pattern.pattern.id !== newBlock.pattern.pattern.id) {
 						redraw = true;
 						break;
 					}
@@ -23985,16 +23835,13 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				var allFolding = [];
 				var iter = this.annotationModel.getAnnotations(ts, te);
 				var doFolding = this.foldingEnabled && baseModel !== viewModel;
+				var parent = ancestorBlock.getParent() || ancestorBlock;
 				while (iter.hasNext()) {
 					var annotation = iter.next();
 					if (doFolding && annotation.type === mAnnotations.AnnotationType.ANNOTATION_FOLDING) {
 						allFolding.push(annotation);
-						for (i = 0; i < newBlocks.length; i++) {
-							if (annotation.start === newBlocks[i].start && annotation.end === newBlocks[i].end) {
-								break;
-							}
-						}
-						if (i === newBlocks.length) {
+						block = this._findBlock(parent, annotation.start);
+						if (!(block && annotation.start === block.start && annotation.end === block.end)) {
 							remove.push(annotation);
 							annotation.expand();
 						} else {
@@ -24014,32 +23861,23 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 										annotation.expand();
 									}
 								} else {
-									this.annotationModel.removeAnnotation(annotation);
-								}
-							}
-						}
-						for (i = 0; i < newBlocks.length; i++) {
-							block = newBlocks[i];
-							for (var j = 0; j < allFolding.length; j++) {
-								if (allFolding[j].start === block.start && allFolding[j].end === block.end) {
-									break;
-								}
-							}
-							if (j === allFolding.length) {
-								annotation = this._createFoldingAnnotation(viewModel, baseModel, block.start, block.end);
-								if (annotation) {
-									add.push(annotation);
+									remove.push(annotation);
 								}
 							}
 						}
 					} else if (annotation.type === mAnnotations.AnnotationType.ANNOTATION_TASK) {
-						remove.push(annotation);
+						if (ancestorBlock.start <= annotation.start && annotation.end <= ancestorBlock.end) {
+							remove.push(annotation);
+						}
 					}
 				}
+				if (doFolding) {
+					parent.getBlocks().forEach(function(block) {
+						this._updateFolding(block, baseModel, viewModel, allFolding, add, ts, te);
+					}.bind(this));
+				}
 				if (this.detectTasks) {
-					for (i = 0; i < newBlocks.length; i++) {
-						computeTasks(newBlocks[i], baseModel, add);
-					}
+					computeTasks(ancestorBlock, baseModel, add, ts, te);
 				}
 				this.annotationModel.replaceAnnotations(remove, add);
 			}
@@ -24056,7 +23894,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 						break;
 					}
 					rangeIndex++;
-				};
+				}
 				var newStyle = {
 					start: charIndex,
 					end: charIndex + 1,
@@ -24074,10 +23912,103 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				}
 				result = regex.exec(text);
 			}
+		},
+		_updateFolding: function(block, baseModel, viewModel, allFolding, _add, start, end) {
+			start = start || block.start;
+			end = end || block.end;
+			if (block.start <= end && start <= block.end) {
+				var index = binarySearch(allFolding, block.start, true);
+				if (!(index < allFolding.length && allFolding[index].start === block.start && allFolding[index].end === block.end)) {
+					var annotation = this._createFoldingAnnotation(viewModel, baseModel, block.start, block.end);
+					if (annotation) {
+						_add.push(annotation);
+					}
+				}
+				block.getBlocks().forEach(function(current) {
+					this._updateFolding(current, baseModel, viewModel, allFolding, _add, start, end);
+				}.bind(this));
+			}
 		}
 	};
 
 	return {TextStyler: TextStyler};
+});
+
+/*******************************************************************************
+ * @license
+ * Copyright (c) 2014 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ * 
+ * Contributors: IBM Corporation - initial API and implementation
+ ******************************************************************************/
+
+/*global define*/
+
+define("orion/editor/stylers/application_javascript/syntax", ["orion/editor/stylers/lib/syntax"], function(mLib) { //$NON-NLS-1$ //$NON-NLS-0$
+	var keywords = [
+		"break", //$NON-NLS-0$
+		"case", "class", "catch", "continue", "const", //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"debugger", "default", "delete", "do", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"else", "enum", "export", "extends", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"false", "finally", "for", "function", //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"if", "implements", "import", "in", "instanceof", "interface", //$NON-NLS-5$ //$NON-NLS-4$ //$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+		"let", //$NON-NLS-0$
+		"new", "null", //$NON-NLS-1$ //$NON-NLS-0$
+		"package", "private", "protected", "public", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+		"return", //$NON-NLS-0$
+		"static", "super", "switch", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$
+		"this", "throw", "true", "try", "typeof", //$NON-NLS-0$ //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$
+		"undefined", //$NON-NLS-0$
+		"var", "void", //$NON-NLS-0$ //$NON-NLS-1$
+		"while", "with", //$NON-NLS-0$ //$NON-NLS-1$
+		"yield" //$NON-NLS-0$
+	];
+
+	var grammars = mLib.grammars;
+	grammars.push({
+		id: "orion.js", //$NON-NLS-0$
+		contentTypes: ["application/javascript"], //$NON-NLS-0$
+		patterns: [
+			{
+				begin: "'(?:\\\\.|[^\\\\'])*\\\\$", //$NON-NLS-0$
+				end: "^(?:$|(?:\\\\.|[^\\\\'])*('|[^\\\\]$))", //$NON-NLS-0$
+				name: "string.quoted.single.js" //$NON-NLS-0$
+			}, {
+				begin: '"(?:\\\\.|[^\\\\"])*\\\\$', //$NON-NLS-0$
+				end: '^(?:$|(?:\\\\.|[^\\\\"])*("|[^\\\\]$))', //$NON-NLS-0$
+				name: "string.quoted.double.js" //$NON-NLS-0$
+			},
+			{include: "orion.lib#string_doubleQuote"}, //$NON-NLS-0$
+			{include: "orion.lib#string_singleQuote"}, //$NON-NLS-0$
+			{include: "orion.c-like#comment_singleLine"}, //$NON-NLS-0$
+			{
+				match: "/(?![\\s\\*])(?:\\\\.|[^/])+/(?:[gim]{0,3})", //$NON-NLS-0$
+				name: "string.regexp.js" //$NON-NLS-0$
+			},
+			{include: "orion.lib#doc_block"}, //$NON-NLS-0$
+			{include: "orion.c-like#comment_block"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_open"}, //$NON-NLS-0$
+			{include: "orion.lib#brace_close"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_open"}, //$NON-NLS-0$
+			{include: "orion.lib#bracket_close"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_open"}, //$NON-NLS-0$
+			{include: "orion.lib#parenthesis_close"}, //$NON-NLS-0$
+			{include: "orion.lib#number_decimal"}, //$NON-NLS-0$
+			{include: "orion.lib#number_hex"}, //$NON-NLS-0$
+			{
+				match: "\\b(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				name: "keyword.control.js" //$NON-NLS-0$
+			}
+		]
+	});
+	return {
+		id: grammars[grammars.length - 1].id,
+		grammars: grammars,
+		keywords: keywords
+	};
 });
 
 /*******************************************************************************
@@ -24264,9 +24195,8 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	"orion/editor/editorFeatures", //$NON-NLS-0$
 	
 	"orion/editor/contentAssist", //$NON-NLS-0$
-	"orion/editor/cssContentAssist", //$NON-NLS-0$
-	"orion/editor/htmlContentAssist", //$NON-NLS-0$
-	"orion/editor/jsTemplateContentAssist", //$NON-NLS-0$
+	"webtools/cssContentAssist", //$NON-NLS-0$
+	"webtools/htmlContentAssist", //$NON-NLS-0$
 	
 	"orion/editor/AsyncStyler", //$NON-NLS-0$
 	"orion/editor/mirror", //$NON-NLS-0$
@@ -24279,7 +24209,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 
 ], function(require, shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations,
 			mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist,
-			mJSContentAssist, mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler, mJS, mCSS, mHTML) {
+			mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler, mJS, mCSS, mHTML) {
 
 	/**	@private */
 	function getDisplay(window, document, element) {
@@ -24569,12 +24499,9 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		if (contentAssist) {
 			var cssContentAssistProvider = new mCSSContentAssist.CssContentAssistProvider();
 			var htmlContentAssistProvider = new mHtmlContentAssist.HTMLContentAssistProvider();
-			var jsTemplateContentAssistProvider = new mJSContentAssist.JSTemplateContentAssistProvider();
 			contentAssist.addEventListener("Activating", function() { //$NON-NLS-0$
 				if (/css$/.test(options.lang)) {
 					contentAssist.setProviders([cssContentAssistProvider]);
-				} else if (/js$/.test(options.lang)) {
-					contentAssist.setProviders([jsTemplateContentAssistProvider]);
 				} else if (/html$/.test(options.lang)) {
 					contentAssist.setProviders([htmlContentAssistProvider]);
 				}
