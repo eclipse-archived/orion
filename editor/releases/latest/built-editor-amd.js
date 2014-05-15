@@ -1,6 +1,26 @@
 /* orion editor */ 
 /*******************************************************************************
  * @license
+ * Copyright (c) 2014 IBM Corporation and others.
+ * All rights reserved. This program and the accompanying materials are made 
+ * available under the terms of the Eclipse Public License v1.0 
+ * (http://www.eclipse.org/legal/epl-v10.html), and the Eclipse Distribution 
+ * License v1.0 (http://www.eclipse.org/org/documents/edl-v10.html). 
+ *
+ * Contributors:
+ *     IBM Corporation - initial API and implementation
+ *******************************************************************************/
+/*global define */
+
+define("orion/editor/config", [ //$NON-NLS-0$
+], function() {
+	return {
+		languages: {}
+	};
+});
+
+/*******************************************************************************
+ * @license
  * Copyright (c) 2013 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials are made 
  * available under the terms of the Eclipse Public License v1.0 
@@ -341,7 +361,9 @@ define('orion/editor/i18n',{
 				onLoad(languages);
 			});
 		} else {
-			onLoad({});
+			parentRequire(["orion/editor/config"], function(config) { //$NON-NLS-0$
+				onLoad((config && config.languages) || {});
+			});
 		}
 	}
 });
@@ -2135,7 +2157,25 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 			if (settings.background) {		
 				result.push("\tbackground-color: " + settings.background + ";"); //$NON-NLS-1$ //$NON-NLS-0$
 			}
+			
 			result.push("}"); //$NON-NLS-0$
+			
+			result.push("." + themeClass + " .textviewLeftRuler {"); //$NON-NLS-1$ //$NON-NLS-0$
+			
+			if(settings.leftRuler){
+				result.push("\tborder-right: 1px solid " + settings.leftRuler + ";"); //$NON-NLS-1$ //$NON-NLS-0$
+			}
+			
+			result.push("}"); //$NON-NLS-0$
+			
+			result.push("." + themeClass + " .textviewRightRuler {"); //$NON-NLS-1$ //$NON-NLS-0$
+			
+			if(settings.rightRuler){
+				result.push("\tborder-left: 1px solid " + settings.rightRuler + ";"); //$NON-NLS-1$ //$NON-NLS-0$
+			}
+			
+			result.push("}"); //$NON-NLS-0$
+			
 			
 			function defineRule(className, value, isBackground) {
 				if (value) {
@@ -2163,9 +2203,11 @@ define("orion/editor/textTheme", //$NON-NLS-0$
 			defineRule("string-quoted", settings.string, false); //$NON-NLS-0$
 			defineRule("meta.annotation.currentLine", settings.currentLine, true); //$NON-NLS-0$
 			defineRule("keyword", settings.keyword, false); //$NON-NLS-0$
-			defineRule("string", settings.string, false); //$NON-NLS-0$
+			defineRule("string", settings.string, false); //$NON-NLS-0$\
+			defineRule("constant", settings.constant, false); //$NON-NLS-0$
 			defineRule("comment", settings.comment, false); //$NON-NLS-0$
 			defineRule("comment.block.documentation", settings.comment, false); //$NON-NLS-0$
+			defineRule("keyword.other.documentation.markup", settings.comment, false); //$NON-NLS-0$
 			defineRule("keyword.other.documentation.markup", settings.comment, false); //$NON-NLS-0$
 
 			return result.join("\n"); //$NON-NLS-0$
@@ -2285,10 +2327,77 @@ define("orion/editor/util", [], function() { //$NON-NLS-0$
 		return topNode === node || (topNode.compareDocumentPosition(node) & 16) !== 0;
 	}
 
+	/**
+	 * @class
+	 * @private
+	 * @name orion.editor.Animation
+	 * @description Creates an animation.
+	 * @param {Object} options Options controlling the animation.
+	 * @param {Array} options.curve Array of 2 values giving the start and end points for the animation.
+	 * @param {Number} [options.duration=350] Duration of the animation, in milliseconds.
+	 * @param {Function} [options.easing]
+	 * @param {Function} [options.onAnimate]
+	 * @param {Function} [options.onEnd]
+	 * @param {Number} [options.rate=20] The time between frames, in milliseconds.
+	 */
+	var Animation = /** @ignore */ (function() {
+		function Animation(options) {
+			this.options = options;
+		}
+		/**
+		 * Plays this animation.
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
+		 * @name play
+		 */
+		Animation.prototype.play = function() {
+			var duration = (typeof this.options.duration === "number") ? this.options.duration : 350, //$NON-NLS-0$
+			    rate = (typeof this.options.rate === "number") ? this.options.rate : 20, //$NON-NLS-0$
+			    easing = this.options.easing || this.defaultEasing,
+			    onAnimate = this.options.onAnimate || function() {},
+			    start = this.options.curve[0],
+			    end = this.options.curve[1],
+			    range = (end - start),
+			    startedAt = -1,
+				propertyValue,
+				self = this;
+
+			function onFrame() {
+				startedAt = (startedAt === -1) ? new Date().getTime() : startedAt;
+				var now = new Date().getTime(),
+				    percentDone = (now - startedAt) / duration;
+				if (percentDone < 1) {
+					var eased = easing(percentDone);
+					propertyValue = start + (eased * range);
+					onAnimate(propertyValue);
+				} else {
+					onAnimate(end);
+					self.stop();
+				}
+			}
+			this.interval = this.options.window.setInterval(onFrame, rate);
+		};
+		/**
+		 * Stops this animation.
+		 * @function
+		 * @memberOf orion.editor.Animation.prototype
+		 */
+		Animation.prototype.stop = function() {
+			this.options.window.clearInterval(this.interval);
+		    var onEnd = this.options.onEnd || function () {};
+			onEnd();
+		};
+		Animation.prototype.defaultEasing = function(x) {
+			return Math.sin(x * (Math.PI / 2));
+		};
+		return Animation;
+	}());
+
 	return {
 		contains: contains,
 		addEventListener: addEventListener,
-		removeEventListener: removeEventListener
+		removeEventListener: removeEventListener,
+		Animation: Animation
 	};
 });
 
@@ -2545,71 +2654,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		head.insertBefore(style, head.firstChild);
 	}
 	
-	/**
-	 * @class
-	 * @private
-	 * @name orion.editor.Animation
-	 * @description Creates an animation.
-	 * @param {Object} options Options controlling the animation.
-	 * @param {Array} options.curve Array of 2 values giving the start and end points for the animation.
-	 * @param {Number} [options.duration=350] Duration of the animation, in milliseconds.
-	 * @param {Function} [options.easing]
-	 * @param {Function} [options.onAnimate]
-	 * @param {Function} [options.onEnd]
-	 * @param {Number} [options.rate=20] The time between frames, in milliseconds.
-	 */
-	var Animation = /** @ignore */ (function() {
-		function Animation(options) {
-			this.options = options;
-		}
-		/**
-		 * Plays this animation.
-		 * @function
-		 * @memberOf orion.editor.Animation.prototype
-		 * @name play
-		 */
-		Animation.prototype.play = function() {
-			var duration = (typeof this.options.duration === "number") ? this.options.duration : 350, //$NON-NLS-0$
-			    rate = (typeof this.options.rate === "number") ? this.options.rate : 20, //$NON-NLS-0$
-			    easing = this.options.easing || this.defaultEasing,
-			    onAnimate = this.options.onAnimate || function() {},
-			    start = this.options.curve[0],
-			    end = this.options.curve[1],
-			    range = (end - start),
-			    startedAt = -1,
-				propertyValue,
-				self = this;
-
-			function onFrame() {
-				startedAt = (startedAt === -1) ? new Date().getTime() : startedAt;
-				var now = new Date().getTime(),
-				    percentDone = (now - startedAt) / duration;
-				if (percentDone < 1) {
-					var eased = easing(percentDone);
-					propertyValue = start + (eased * range);
-					onAnimate(propertyValue);
-				} else {
-					onAnimate(end);
-					self.stop();
-				}
-			}
-			this.interval = this.options.window.setInterval(onFrame, rate);
-		};
-		/**
-		 * Stops this animation.
-		 * @function
-		 * @memberOf orion.editor.Animation.prototype
-		 */
-		Animation.prototype.stop = function() {
-			this.options.window.clearInterval(this.interval);
-		    var onEnd = this.options.onEnd || function () {};
-			onEnd();
-		};
-		Animation.prototype.defaultEasing = function(x) {
-			return Math.sin(x * (Math.PI / 2));
-		};
-		return Animation;
-	}());
+	var Animation = textUtil.Animation;
 	
 	/** 
 	 * Constructs a new Selection object.
@@ -3642,6 +3687,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			var lineIndex = this.lineIndex;
 			var result = 0, range, length;
 			var lineOffset = model.getLineStart(lineIndex);
+			var lineText = model.getLine(lineIndex);
+			var lineStart = model.getLineStart(lineIndex);
 			var document = child.ownerDocument;
 			var lineChild;
 			var step = data.count < 0 ? -1 : 1;
@@ -3690,6 +3737,18 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					lineChild = lineChild.nextSibling;
 				}
 			}
+			var offsetInLine = result - lineStart;
+			c = lineText.charCodeAt(offsetInLine);
+			// Handle Unicode surrogates
+			if (0xDC00 <= c && c <= 0xDFFF) {
+				if (offsetInLine > 0) {
+					c = lineText.charCodeAt(offsetInLine - 1);
+					if (0xD800 <= c && c <= 0xDBFF) {
+						offsetInLine += step;
+					}
+				}
+			}
+			result = offsetInLine + lineStart;
 			data.count -= step;
 			return result;
 		},
@@ -5358,6 +5417,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		_handleBlur: function (e) {
 			this._cancelCheckSelection();
 			if (this._ignoreBlur) { return; }
+			this._commitIME();
 			this._hasFocus = false;
 			/*
 			* Bug in IE 8 and earlier. For some reason when text is deselected
@@ -5410,6 +5470,18 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			if (!this._ignoreFocus) {
 				this.onBlur({type: "Blur"}); //$NON-NLS-0$
 			}
+		},
+		_handleCompositionStart: function (e) {
+			if (this._ignoreEvent(e)) { return; }
+			this._startIME();
+			if (this._mutationObserver) {
+				this._mutationObserver.disconnect();
+				this._mutationObserver = null;
+			}
+		},
+		_handleCompositionEnd: function (e) {
+			if (this._ignoreEvent(e)) { return; }
+			this._commitIME(e.data);
 		},
 		_handleContextMenu: function (e) {
 			if (this._ignoreEvent(e)) { return; }
@@ -6653,7 +6725,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					line.destroy();
 				}
 			}
-			this._modifyContent({text: text, start: selection.start, end: selection.end, _ignoreDOMSelection: true}, true);
+			return this._modifyContent({text: text, start: selection.start, end: selection.end, _ignoreDOMSelection: true}, true);
 		},
 		_doCopy: function (e) {
 			var selection = this._getSelection();
@@ -7273,24 +7345,32 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			this._setSelection(selection, true);
 			return true;
 		},
-		_commitIME: function () {
+		_commitIME: function (insertText) {
 			if (this._imeOffset === -1) { return; }
-			// make the state of the IME match the state the view expects it be in
-			// when the view commits the text and IME also need to be committed
-			// this can be accomplished by changing the focus around
-			this._scrollDiv.focus();
-			this._clientDiv.focus();
-			
 			var model = this._model;
 			var lineIndex = model.getLineAtOffset(this._imeOffset);
 			var lineStart = model.getLineStart(lineIndex);
-			var newText = this._getDOMText(this._getLineNode(lineIndex)).text;
-			var oldText = model.getLine(lineIndex);
-			var start = this._imeOffset - lineStart;
-			var end = start + newText.length - oldText.length;
-			if (start !== end) {
-				var insertText = newText.substring(start, end);
-				this._doContent(insertText);
+			var line = this._getLineNode(lineIndex);
+			if (!insertText) {
+				// make the state of the IME match the state the view expects it be in
+				// when the view commits the text and IME also need to be committed
+				// this can be accomplished by changing the focus around
+				this._scrollDiv.focus();
+				this._clientDiv.focus();
+				
+				var newText = this._getDOMText(line).text;
+				var oldText = model.getLine(lineIndex);
+				var start = this._imeOffset - lineStart;
+				var end = start + newText.length - oldText.length;
+				if (start !== end) {
+					insertText = newText.substring(start, end);
+				}
+			}
+			if (insertText) {
+				if (!this._doContent(insertText) && !util.isWebkit) {
+					line.lineRemoved = true;
+					this._queueUpdate();
+				}
 			}
 			this._imeOffset = -1;
 		},
@@ -8019,6 +8099,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					} else {
 						handlers.push({target: this._clientDiv, type: "DOMCharacterDataModified", handler: function (e) { return self._handleDataModified(e ? e : window.event); }}); //$NON-NLS-0$
 					}
+					handlers.push({target: this._clientDiv, type: "compositionstart", handler: function (e) { return self._handleCompositionStart(e ? e : window.event); }}); //$NON-NLS-0$
+					handlers.push({target: this._clientDiv, type: "compositionend", handler: function (e) { return self._handleCompositionEnd(e ? e : window.event); }}); //$NON-NLS-0$
 				}
 				if (this._overlayDiv) {
 					handlers.push({target: this._overlayDiv, type: "mousedown", handler: function(e) { return self._handleMouseDown(e ? e : window.event);}}); //$NON-NLS-0$
@@ -8159,12 +8241,12 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		},
 		_modifyContent: function(e, updateCaret) {
 			if (this._readonly && !e._code) {
-				return;
+				return false;
 			}
 			e.type = "Verify"; //$NON-NLS-0$
 			this.onVerify(e);
 
-			if (e.text === null || e.text === undefined) { return; }
+			if (e.text === null || e.text === undefined) { return false; }
 			
 			var model = this._model;
 			try {
@@ -8185,6 +8267,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 				}
 			}
 			this.onModify({type: "Modify"}); //$NON-NLS-0$
+			return true;
 		},
 		_onModelChanged: function(modelChangedEvent) {
 			modelChangedEvent.type = "ModelChanged"; //$NON-NLS-0$
@@ -16432,6 +16515,12 @@ define("orion/editor/templates", [], function() { //$NON-NLS-0$
 				templates.push(new Template(json[j].prefix, json[j].description, json[j].template, json[j].name));
 			}
 		},
+		/**
+		 * Called by the content assist engine to initialize this provider before any <tt>computeProposals()</tt> calls.
+		 * This implementation does nothing; subclasses may override.
+		 */
+		initialize: function() {
+		},
 		computeProposals: function(buffer, offset, context) {
 			var prefix = this.getPrefix(buffer, offset, context);
 			var proposals = [];
@@ -16929,7 +17018,6 @@ define("orion/editor/linkedMode", [ //$NON-NLS-0$
 			var annotationModel = this.editor.getAnnotationModel();
 			if (!annotationModel) { return; }
 			var remove = [], add = [];
-			var textModel = annotationModel.getTextModel();
 			var annotations = annotationModel.getAnnotations(), annotation;
 			while (annotations.hasNext()) {
 				annotation = annotations.next();
@@ -17990,11 +18078,14 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 	function ContentAssist(textView) {
 		this.textView = textView;
 		this.state = State.INACTIVE;
-		this.resetProviderInfoArray();
+		this.clearProviders();
 		var self = this;
-		this.contentAssistListener = {
+		this._textViewListeners = {
 			onModelChanging: (function(event) {
 				this._latestModelChangingEvent = event;
+				if (event) {
+					this._updateFilterText(event);	
+				}
 			}).bind(this),
 			onSelection: (function(event) {
 				if (this.isDeactivatingChange(this._latestModelChangingEvent, event)) {
@@ -18004,7 +18095,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 						if (this.state === State.ACTIVE) {
 							this.setState(State.FILTERING);
 						}
-						this.filterProposals(event);
+						this.filterProposals();
 					}
 				}
 				this._latestModelChangingEvent = null;
@@ -18064,10 +18155,10 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this.dispatchEvent({type: "ProposalApplied", data: data}); //$NON-NLS-0$
 			return true;
 		},
-		activate: function(providerInfoArray, autoTriggered) {
+		activate: function(providers, autoTriggered) {
 			if (this.state === State.INACTIVE) {
 				this._autoTriggered = autoTriggered ? true : false;
-				this.setState(State.ACTIVE, providerInfoArray);
+				this.setState(State.ACTIVE, providers);
 			}
 		},
 		deactivate: function() {
@@ -18087,7 +18178,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			
 			var isPriorToInitialCaretOffset = selectionEvent.newValue.start < this._initialCaretOffset;
 			
-			if (isPriorToInitialCaretOffset) {
+			if (isPriorToInitialCaretOffset || !event) {
 				isDeactivating = true;
 			} else if (event) {
 				isDeactivating = (event.removedLineCount > 0) || (event.addedLineCount > 0);
@@ -18096,21 +18187,17 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			return isDeactivating;
 		},
 		/** @private */
-		setState: function(state, /* Optional. Array of providers to pass to dispatched event.*/ providerInfoArray) {
+		setState: function(state, /* Optional. Array of providers to pass to dispatched event.*/ providers) {
 			var eventType;
 			if (state === State.ACTIVE) {
-				this._filterText = "";
 				eventType = "Activating"; //$NON-NLS-0$
 				if (this._mode) { this._mode.setActive(true); }
-				
 			} else if (state === State.INACTIVE) {
 				eventType = "Deactivating"; //$NON-NLS-0$
 				if (this._mode) { this._mode.setActive(false); }
-				this._initialCaretOffset = -1;
-				this._filterText = "";
 			}
 			if (eventType) {
-				this.dispatchEvent({type: eventType, providerInfoArray: providerInfoArray});
+				this.dispatchEvent({type: eventType, providers: providers});
 			}
 			this.state = state;
 			this.onStateChange(state);
@@ -18121,20 +18208,13 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		/** @private */
 		onStateChange: function(state) {
 			if (state === State.INACTIVE) {
-				if (this.listenerAdded) {
-					this._latestModelChangingEvent = null;
-					this.textView.removeEventListener("ModelChanging", this.contentAssistListener.onModelChanging); //$NON-NLS-0$
-					this.textView.removeEventListener("Scroll", this.contentAssistListener.onScroll); //$NON-NLS-0$
-					this.textView.removeEventListener("Selection", this.contentAssistListener.onSelection); //$NON-NLS-0$
-					this.listenerAdded = false;
-				}
+				this._removeTextViewListeners();
+				this._filterText = "";
+				this._initialCaretOffset = -1;
+				this._computedProposals = null;
 			} else if (state === State.ACTIVE) {
-				if (!this.listenerAdded) {
-					this.textView.addEventListener("ModelChanging", this.contentAssistListener.onModelChanging); //$NON-NLS-0$
-					this.textView.addEventListener("Scroll", this.contentAssistListener.onScroll); //$NON-NLS-0$
-					this.textView.addEventListener("Selection", this.contentAssistListener.onSelection); //$NON-NLS-0$
-					this.listenerAdded = true;
-				}
+				this._filterText = "";
+				this._addTextViewListeners();
 				this.computeProposals();
 			}
 		},
@@ -18142,21 +18222,30 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		 * Computes the proposals at the TextView's current caret offset.
 		 */
 		computeProposals: function() {
-			var self = this;
-			
 			// figure out initial offset, it should be the minimum between 
 			// the beginning of the selection and the current caret offset
 			var offset = this.textView.getCaretOffset();
 			var sel = this.textView.getSelection();
 			var selectionStart = Math.min(sel.start, sel.end);			
 			this._initialCaretOffset = Math.min(offset, selectionStart);
+			this._computedProposals = null;
 			
 			this._computeProposals(this._initialCaretOffset).then(function(proposals) {
-				self._computedProposals = proposals;
-				if (!self.isActive()) { return; }
-				var displayProposals = self._flatten(proposals);
-				self.dispatchEvent({type: "ProposalsComputed", data: {proposals: displayProposals}, autoApply: !self._autoTriggered}); //$NON-NLS-0$
-			});
+				if (this.isActive()) {
+					var flatProposalArray = this._flatten(proposals);
+					//check if flattened proposals form a valid array with at least one entry
+					if (flatProposalArray && Array.isArray(flatProposalArray) && (0 < flatProposalArray.length)) {
+						this._computedProposals = proposals;
+					}
+					this.dispatchEvent({type: "ProposalsComputed", data: {proposals: flatProposalArray}, autoApply: !this._autoTriggered}); //$NON-NLS-0$
+					if (this._computedProposals && this._filterText) {
+						// force filtering here because user entered text after
+						// computeProposals() was called but before the plugins
+						// returned the computed proposals
+						this.filterProposals(true);
+					}
+				}
+			}.bind(this));
 		},
 		/** @private */
 		getPrefixStart: function(model, end) {
@@ -18173,13 +18262,25 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			}
 		},
 		/**
+		 * Initializes the providers. A provider must define an <tt>initialize()</tt> method to be initialized.
+		 * @since 6.0
+		 */
+		initialize: function() {
+			this._providers.forEach(function(info) {
+				var provider = info.provider;
+				if (typeof provider.initialize === "function") {//$NON-NLS-0$
+					provider.initialize();
+				}
+			});
+		},
+		/**
 		 * Retrieves the proposals at the given offset.
 		 * @private
 		 * @param {Number} offset The caret offset.
 		 * @returns {Deferred} A promise that will provide the proposals.
 		 */
 		_computeProposals: function(offset) {
-			var providerInfoArray = this._providerInfoArray;
+			var providerInfoArray = this._providers;
 			var textView = this.textView;
 			var sel = textView.getSelection();
 			var model = textView.getModel(), mapOffset = offset;
@@ -18222,100 +18323,91 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 					}
 					proposals = self.progress ? self.progress.progress(promise, "Generating content assist proposal") : promise; //$NON-NLS-0$
 				} catch (e) {
-					self.handleError(e);
+					return new Deferred().reject(e);
 				}
 				return Deferred.when(proposals);
 			});
+			// TODO should we allow error to propagate instead of handling here?
 			return Deferred.all(promises, this.handleError);
 		},
 
-		filterProposals: function(event) {
-			var text = "";
-			var removedCharCount = 0;
-			if (this._latestModelChangingEvent) {
-				text = this._latestModelChangingEvent.text;
-				removedCharCount = this._latestModelChangingEvent.removedCharCount;
-			} else {
-				// the selection was changed but not the model, do nothing for now
-				return;
-			}
+		filterProposals: function(force) {
+			if (this._computedProposals && (this._latestModelChangingEvent || force)) {
+				var model = this.textView.getModel();
+				if (model.getBaseModel) {
+					model = model.getBaseModel();
+				}
+				var prefixStart = this.getPrefixStart(model, this._initialCaretOffset);
+				var prefixText = this.textView.getText(prefixStart, this._initialCaretOffset);
+				
+				// filter proposals based on prefixes and _filterText
+				var proposals = []; //array of arrays of proposals
+				this._computedProposals.forEach(function(proposalArray) {
+					if (proposalArray && Array.isArray(proposalArray)) {
+						var includedProposals = proposalArray.filter(function(proposal) {
+							if (!proposal) {
+								return false;
+							}
+							
+							if ((STYLES[proposal.style] === STYLES.hr)
+								|| (STYLES[proposal.style] === STYLES.noemphasis_title)) {
+								return true;
+							}
+							
+							var proposalString = "";
+							if (proposal.overwrite) {
+								if (proposal.name) {
+									proposalString = proposal.name;
+								} else if (proposal.proposal) {
+									proposalString = proposal.proposal;
+								} else {
+									return false; // unknown format
+								}
 			
-			// update this._filterText based on the modification info
-			// contained in the event
-			if (removedCharCount) {
-				var lastIndex = this._filterText.length - removedCharCount;
-				this._filterText = this._filterText.substring(0, lastIndex);
-			}
-			if (text) {
-				this._filterText = this._filterText.concat(text);
-			}
-			
-			var model = this.textView.getModel();
-			if (model.getBaseModel) {
-				model = model.getBaseModel();
-			}
-			
-			var prefixStart = this.getPrefixStart(model, this._initialCaretOffset);
-			var prefixText = this.textView.getText(prefixStart, this._initialCaretOffset);
-			
-			// filter proposals based on prefixes and _filterText
-			var proposals = []; //array of arrays of proposals
-			this._computedProposals.forEach(function(proposalArray) {
-				var includedProposals = proposalArray.filter(function(proposal) {
-					if ((STYLES[proposal.style] === STYLES.hr)
-						|| (STYLES[proposal.style] === STYLES.noemphasis_title)) {
-						return true;
-					}
-					
-					var proposalString = "";
-					if (proposal.overwrite) {
-						if (proposal.name) {
-							proposalString = proposal.name;
-						} else if (proposal.proposal) {
-							proposalString = proposal.proposal;
-						} else {
-							return false; // unknown format
-						}
-	
-						return (0 === proposalString.indexOf(prefixText + this._filterText));
+								return (0 === proposalString.indexOf(prefixText + this._filterText));
+								
+							} else if (proposal.name || proposal.proposal) {
+								var activated = false;
+								// try matching name
+								if (proposal.name) {
+									activated = (0 === proposal.name.indexOf(prefixText + this._filterText));	
+								}
+								
+								// try matching proposal text
+								if (!activated && proposal.proposal) {
+									activated = (0 === proposal.proposal.indexOf(this._filterText));
+								}
+								
+								return activated;
+							} else if (typeof proposal === "string") { //$NON-NLS-0$
+								return 0 === proposal.indexOf(this._filterText);
+							} else {
+								return false;
+							}
+						}, this);
 						
-					} else if (proposal.name || proposal.proposal) {
-						var activated = false;
-						// try matching name
-						if (proposal.name) {
-							activated = (0 === proposal.name.indexOf(prefixText + this._filterText));	
+						if (includedProposals.length > 0) {
+							proposals.push(includedProposals);	
 						}
-						
-						// try matching proposal text
-						if (!activated && proposal.proposal) {
-							activated = (0 === proposal.proposal.indexOf(this._filterText));
-						}
-						
-						return activated;
-					} else if (typeof proposal === "string") { //$NON-NLS-0$
-						return 0 === proposal.indexOf(this._filterText);
-					} else {
-						return false;
 					}
 				}, this);
 				
-				if (includedProposals.length > 0) {
-					proposals.push(includedProposals);	
+				var flatProposalArray = [];
+				if (proposals) {
+					// filter out extra separators and titles
+					proposals = this._removeExtraUnselectableElements(proposals);
+					flatProposalArray = this._flatten(proposals);
 				}
-			}, this);
-			
-			// filter out extra separators and titles
-			proposals = this._removeExtraUnselectableElements(proposals);
-			
-			var displayProposals = this._flatten(proposals);
-			
-			this.dispatchEvent({type: "ProposalsComputed", data: {proposals: displayProposals}, autoApply: false}); //$NON-NLS-0$
+				
+				this.dispatchEvent({type: "ProposalsComputed", data: {proposals: flatProposalArray}, autoApply: false}); //$NON-NLS-0$
+			}
 		},
 		
 		/**
 		 * Helper method which removes extra separators and titles from
 		 * an array containing arrays of proposals from the various providers.
 		 * @param{Array[]} proposals An array with each element containing an array of proposals
+		 * @returns {Array} An array without the extra unselectable elements
 		 */
 		_removeExtraUnselectableElements: function(proposals) {
 			// get rid of extra separators and titles
@@ -18362,14 +18454,14 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		 * object and if all of the other IDs are also generated using this method.
 		 */
 		_generateProviderId: function() {
-			if (this._uniqueProviderIdCounter) {
-				this._uniqueProviderIdCounter++;
+			if (this._idcount) {
+				this._idcount++;
 			} else {
-				this._uniqueProviderIdCounter = 0;
+				this._idcount = 0;
 			}
-			return "ContentAssistGeneratedID_" +  this._uniqueProviderIdCounter;
+			return "ContentAssistGeneratedID_" +  this._idcount; //$NON-NLS-0$
 		},
-		
+
 		/**
 		 * Sets whether or not automatic content assist triggering is enabled.
 		 * @param {Boolean} enableAutoTrigger
@@ -18378,49 +18470,63 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			this._autoTriggerEnabled = enableAutoTrigger;
 			this._updateAutoTriggerListenerState();
 		},
-		
+
+		/**
+		 * @name orion.editor.ContentAssistProviderInfo
+		 * @class Encapsulates a content assist provider and its automatic triggers.
+		 *
+		 * @property {String} id Unique ID of this provider.
+		 * @property {RegExp} charTriggers A regular expression matching the characters that, when typed,
+		 * will cause this provider to be activated automatically by the content assist engine.
+		 * @property {RegExp} excludedStyles A regular expression matching the style names that are
+		 * exclusions to this provider's <tt>charTriggers</tt> matching.
+		 * @property {orion.editor.ContentAssistProvider} provider The actual content assist provider.
+		 */
+
 		/**
 		 * Sets the content assist providers that this ContentAssist will consult to obtain proposals.
-		 * @param {orion.editor.ContentAssistProvider[]} providers The providers.
+		 *
+		 * @param {orion.editor.ContentAssistProvider[]|orion.edit.ContentAssistProviderInfo[]} providers The
+		 * providers. Each element may be either a plain {@link orion.editor.ContentAssistProvider}, or a
+		 * {@link orion.edit.ContentAssistProviderInfo}.
 		 */
 		setProviders: function(providers) {
-			var providerInfoArray = providers.map(function(provider){
-				return {
-					provider: provider,
-					id: this._generateProviderId()
-				}
-			}, this);
-			
-			this.setProviderInfoArray(providerInfoArray);
+			var _self = this;
+			this.setProviderInfoArray(providers.map(function(p) {
+				// Wrap any plain Provider into a ProviderInfo
+				return p.id ? p : {
+					provider: p,
+					id: _self._generateProviderId()
+				};
+			}));
 		},
-		
+
 		/**
-		 * Sets the array of content assist provider info that this ContentAssist will 
-		 * consult to obtain proposals and automatic triggers.
-		 * @param {Array { provider: orion.editor.ContentAssistProvider, 
-		 * 				   id: {String},
-		 * 				   charTriggers: {RegExp},
-		 * 				   excludedStyles: {RegExp}
-		 * 				  }
-		 * 		 } providers The providers.
+		 * @private
 		 */
 		setProviderInfoArray: function(providerInfoArray) {
-			this.resetProviderInfoArray();
+			this.clearProviders();
 			
-			this._providerInfoArray = providerInfoArray;
+			this._providers = providerInfoArray;
 			this._charTriggersInstalled = providerInfoArray.some(function(info){
 				return info.charTriggers;
 			});
 			this._updateAutoTriggerListenerState();
 		},
-		
-		resetProviderInfoArray: function() {
-			this._providerInfoArray = [];
+
+		/**
+		 * @returns orion.edit.ContentAssistProviderInfo[]
+		 */
+		getProviders: function() {
+			return this._providers.slice();
+		},
+
+		clearProviders: function() {
+			this._providers = [];
 			this._charTriggersInstalled = false;
 			this._updateAutoTriggerListenerState();
 		},
 
-		
 		/**
 		 * Sets the progress handler that will display progress information, if any are generated by content assist providers.
 		 */
@@ -18441,22 +18547,31 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			
 			return arrayOrObjectArray.reduce(function(prev, curr) {
 				var returnValue = prev;
+				var filteredArray = null;
+				
+				if (curr && Array.isArray(curr)) {
+					filteredArray = curr.filter(function(element){
+						return element; //filter out falsy elements
+					});	
+				}
 				
 				// add current proposal array to flattened array
 				// skip current elements that are not arrays
-				if (Array.isArray(curr) && curr.length > 0) {		
-					var first = curr;
+				if (filteredArray && Array.isArray(filteredArray) && (filteredArray.length > 0)) {
+					var first = filteredArray;
 					var last = prev;
+					var filteredArrayStyle = filteredArray[0].style;
 					
-					if (curr[0].style && (0 === STYLES[curr[0].style].indexOf(STYLES.noemphasis))) {
+					if (filteredArrayStyle && (0 === STYLES[filteredArrayStyle].indexOf(STYLES.noemphasis))) {
 						// the style of the first element starts with noemphasis
 						// add these proposals to the end of the array
 						first = prev;
-						last = curr;
+						last = filteredArray;
 					}
 					
 					if (first.length > 0) {
-						if (first[first.length - 1].style && (STYLES.hr !== STYLES[first[first.length - 1].style])) {
+						var firstArrayStyle = first[first.length - 1].style;
+						if (firstArrayStyle && (STYLES.hr !== STYLES[firstArrayStyle])) {
 							// add separator between proposals from different providers 
 							// if the previous array didn't already end with a separator
 							first = first.concat({
@@ -18476,43 +18591,41 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			}, []);
 		},
 		
-		_triggerListener: function(event) {
-			if (this._styleAccessor) {
-				var caretOffset = this.textView.getCaretOffset();
-				var stylesAtOffset = null;
-				var providerInfosToActivate = [];
-				
-				if (this._charTriggersInstalled) {
-					var currentChar = this.textView.getText(caretOffset - 1, caretOffset);
-					
-					this._providerInfoArray.forEach(function(info) {
-						// check if the charTriggers RegExp matches the currentChar
-						// we're assuming that this will fail much more often than
-						// the excludedStyles test so do this first for better performance
-						var charTriggers = info.charTriggers;
-						if (charTriggers && charTriggers.test(currentChar)) {
-							var isExcluded = false;
-							var excludedStyles = info.excludedStyles;
-							if (excludedStyles) {
-								if (!stylesAtOffset) {
-									// lazily initialize this variable to avoid getting the styles
-									// for every model modification, only ones that may trigger
-									stylesAtOffset = this._styleAccessor.getStyles(caretOffset - 1);
-								}
-								// check if any of the styles match the excludedStyles RegExp
-								isExcluded = stylesAtOffset.some(function (element) {
-									return excludedStyles.test(element.style);
-								});
+		_triggerListener: function(/*event*/) {
+			var caretOffset = this.textView.getCaretOffset();
+			var stylesAtOffset = null;
+			var providerInfosToActivate = [];
+
+			if (this._charTriggersInstalled) {
+				var currentChar = this.textView.getText(caretOffset - 1, caretOffset);
+
+				this._providers.forEach(function(info) {
+					// check if the charTriggers RegExp matches the currentChar
+					// we're assuming that this will fail much more often than
+					// the excludedStyles test so do this first for better performance
+					var charTriggers = info.charTriggers;
+					if (charTriggers && charTriggers.test(currentChar)) {
+						var isExcluded = false;
+						var excludedStyles = info.excludedStyles;
+						if (this._styleAccessor && excludedStyles) {
+							if (!stylesAtOffset) {
+								// lazily initialize this variable to avoid getting the styles
+								// for every model modification, only ones that may trigger
+								stylesAtOffset = this._styleAccessor.getStyles(caretOffset - 1);
 							}
-							if (!isExcluded) {
-								providerInfosToActivate.push(info);
-							}
+							// check if any of the styles match the excludedStyles RegExp
+							isExcluded = stylesAtOffset.some(function (element) {
+								return excludedStyles.test(element.style);
+							});
 						}
-					}, this);
-					
-					if (providerInfosToActivate.length > 0) {
-						this.activate(providerInfosToActivate, true);
+						if (!isExcluded) {
+							providerInfosToActivate.push(info);
+						}
 					}
+				}, this);
+
+				if (providerInfosToActivate.length > 0) {
+					this.activate(providerInfosToActivate, true);
 				}
 			}
 		},
@@ -18536,6 +18649,39 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 				// install the listener if necessary
 				this.textView.addEventListener("Modify", this._boundTriggerListener); //$NON-NLS-0$
 				this._triggerListenerInstalled = true;
+			}
+		},
+		
+		_addTextViewListeners: function() {
+			if (!this._textViewListenersAdded) {
+				this.textView.addEventListener("ModelChanging", this._textViewListeners.onModelChanging); //$NON-NLS-0$
+				this.textView.addEventListener("Scroll", this._textViewListeners.onScroll); //$NON-NLS-0$
+				this.textView.addEventListener("Selection", this._textViewListeners.onSelection); //$NON-NLS-0$
+				this._textViewListenersAdded = true;
+			}
+		},
+		
+		_removeTextViewListeners: function() {
+			if (this._textViewListenersAdded) {
+				this._latestModelChangingEvent = null;
+				this.textView.removeEventListener("ModelChanging", this._textViewListeners.onModelChanging); //$NON-NLS-0$
+				this.textView.removeEventListener("Scroll", this._textViewListeners.onScroll); //$NON-NLS-0$
+				this.textView.removeEventListener("Selection", this._textViewListeners.onSelection); //$NON-NLS-0$
+				this._textViewListenersAdded = false;
+			}
+		},
+		
+		_updateFilterText: function(modelChangingEvent) {
+			// update this._filterText based on the modification info
+			// contained in the event
+			var removedCharCount = modelChangingEvent.removedCharCount;
+			if (removedCharCount) {
+				var lastIndex = this._filterText.length - removedCharCount;
+				this._filterText = this._filterText.substring(0, lastIndex);
+			}
+			var text = modelChangingEvent.text;
+			if (text) {
+				this._filterText = this._filterText.concat(text);
 			}
 		}
 	};
@@ -22434,32 +22580,12 @@ define("orion/editor/htmlGrammar", [], function() {
 
 /*global define */
 
-define("orion/editor/textStyler", [ //$NON-NLS-0$
-	'orion/editor/annotations' //$NON-NLS-0$
-], function(mAnnotations) {
+define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eventTarget'], function(mAnnotations, mEventTarget) { //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 
 	/*
-	 * Throughout textStyler "block" refers to a potentially multi-line token (ie.- a pattern
-	 * defined in the service with begin/end expressions rather than a single match expression).
+	 * Throughout textStyler "block" refers to a potentially multi-line token.
 	 * Typical examples are multi-line comments and multi-line strings.
 	 */
-
-	// Styles
-	var caretLineStyle = {styleClass: "meta annotation currentLine"}; //$NON-NLS-0$
-
-	var PUNCTUATION_SECTION_BEGIN = ".begin"; //$NON-NLS-0$
-	var PUNCTUATION_SECTION_END = ".end"; //$NON-NLS-0$
-
-	var FLAGS = "g"; //$NON-NLS-0$
-	var CR = "\r"; //$NON-NLS-0$
-	var NEWLINE = "\n"; //$NON-NLS-0$
-
-	var eolRegex = /$/;
-	var captureReferenceRegex = /\\(\d)/g;
-	var ignoreCaseRegex = /^\(\?i\)\s*/;
-	var linebreakRegex = /(.*)(?:[\r\n]|$)/g;
-	var spacePattern = {regex: /[ ]/g, style: {styleClass: "punctuation separator space", unmergeable: true}}; //$NON-NLS-0$
-	var tabPattern = {regex: /\t/g, style: {styleClass: "punctuation separator tab", unmergeable: true}}; //$NON-NLS-0$
 
 	var binarySearch = function(array, offset, inclusive, low, high) {
 		var index;
@@ -22477,371 +22603,631 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			}
 		}
 		return high;
-	};	
-	var findMatch = function(regex, text, startIndex, testBeforeMatch) {
-		/*
-		 * testBeforeMatch provides a potential optimization for callers that do not strongly expect to find
-		 * a match.  If this argument is defined then test() is initially called on the regex, which executes
-		 * significantly faster than exec().  If a match is found then the regex's lastIndex is reverted to
-		 * its pre-test() value, and exec() is then invoked on it in order to get the match details.
-		 */
+	};
 
-		var index = startIndex;
-		var initialLastIndex = regex.lastIndex;
-		linebreakRegex.lastIndex = startIndex;
+	var createPatternBasedAdapter = function(grammars, rootId) {
+		return new PatternBasedAdapter(grammars, rootId);
+	};
 
-		var currentLine = linebreakRegex.exec(text);
-		/*
-		 * Processing of the first line is treated specially, as it may not start at the beginning of a logical line, but
-		 * regex's may be dependent on matching '^'.  To resolve this, compute the full line corresponding to the start
-		 * of the text, even if it begins prior to startIndex, and adjust the regex's lastIndex accordingly to begin searching
-		 * for matches at the correct location.
-		 */
-		var lineString, indexAdjustment;
-		regex.lastIndex = 0;
-		if (currentLine) {
-			var lineStart = currentLine.index;
-			while (0 <= --lineStart) {
-				var char = text.charAt(lineStart);
-				if (char === NEWLINE || char === CR) {
+	function PatternBasedAdapter(grammars, rootId) {
+		this._patternManager = new PatternManager(grammars, rootId);
+	}
+	PatternBasedAdapter.prototype = {
+		blockSpansBeyondEnd: function(block) {
+			return block.pattern.regexEnd === this._eolRegex;
+		},
+		computeBlocks: function(model, text, block, offset, startIndex, endIndex, maxBlockCount) {
+			if (!text) {
+				return [];
+			}
+
+			var results = [];
+			var matches = [];
+			startIndex = startIndex || 0;
+			endIndex = endIndex || Infinity;
+			maxBlockCount = maxBlockCount || Infinity;
+			block.blockPatterns.forEach(function(current) {
+				var result = this._findMatch(current.regexBegin || current.regex, text, startIndex);
+				if (result) {
+					matches.push({result: result, pattern: current});
+				}
+			}.bind(this));
+			if (!matches.length) {
+				return results;
+			}
+			matches.sort(function(a,b) {
+				if (a.result.index < b.result.index) {
+					return -1;
+				}
+				if (a.result.index > b.result.index) {
+					return 1;
+				}
+				return a.pattern.pattern.index < b.pattern.pattern.index ? -1 : 1;
+			});
+
+			var index = 0;
+			while (matches.length > 0) {
+				var current = matches[0];
+				matches.splice(0,1);
+	
+				if (endIndex < current.result.index) {
 					break;
 				}
-			}
-			lineString = text.substring(lineStart + 1, currentLine.index + currentLine[1].length);
-			regex.lastIndex = indexAdjustment = currentLine.index - lineStart - 1;
-		}
-		while (currentLine && currentLine.index < text.length) {
-			var result;
-			if (testBeforeMatch) {
-				var revertIndex = regex.lastIndex;
-				if (regex.test(lineString)) {
-					regex.lastIndex = revertIndex;
-					result = regex.exec(lineString);
+
+				if (current.result.index < index) {
+					/* processing of another match has moved index beyond this match */
+					this._updateMatch(current, text, matches, index, endIndex);
+					continue;
 				}
-			} else {
-				result = regex.exec(lineString);
-			}
-			if (result) {
-				result.index += index;
-				result.index -= indexAdjustment;
-				regex.lastIndex = initialLastIndex;
-				return result;
-			}
-			indexAdjustment = 0;
-			index += currentLine[0].length;
-			currentLine = linebreakRegex.exec(text);
-			if (currentLine) {
-				lineString = currentLine[1];
-				regex.lastIndex = 0;
-			}
-		}
-		regex.lastIndex = initialLastIndex;
-		return null;
-	};
-	var substituteCaptureValues = function(regex, resolvedResult) {
-		var regexString = regex.toString();
-		captureReferenceRegex.lastIndex = 0;
-		if (!captureReferenceRegex.test(regexString)) {
-			/* nothing to do */
-			return regex;
-		}
 
-		captureReferenceRegex.lastIndex = 0;
-		var result = captureReferenceRegex.exec(regexString);
-		while (result) {
-			regexString = regexString.replace(result[0], resolvedResult[result[1]] || "");
-			captureReferenceRegex.lastIndex = 0;
-			result = captureReferenceRegex.exec(regexString);
-		}
-		/* return an updated regex, remove the leading '/' and trailing /FLAGS */
-		return new RegExp(regexString.substring(1, regexString.length - 1 - FLAGS.length), FLAGS);
-	};
-	var updateMatch = function(match, text, matches, minimumIndex, endIndex) {
-		var regEx = match.pattern.regex ? match.pattern.regex : match.pattern.regexBegin;
-		endIndex = endIndex || Infinity;
-		var result = findMatch(regEx, text, minimumIndex, true);
-		if (result && result.index < endIndex) {
-			match.result = result;
-			for (var i = 0; i < matches.length; i++) {
-				if (result.index < matches[i].result.index || (result.index === matches[i].result.index && match.pattern.pattern.index < matches[i].pattern.pattern.index)) {
-					matches.splice(i, 0, match);
-					return;
-				}
-			}
-			matches.push(match);
-		}
-	};
-	var getCaptureStyles = function(result, captures, offset, styles) {
-		if (captures[0]) {
-			/* capture index 0 is the full result */
-			styles.push({start: offset, end: offset + result[0].length, style: captures[0].name});
-			return;
-		}
+				var start = offset + current.result.index;
+				var contentStart = current.result.index;
+				var resultEnd = null;
 
-		var stringIndex = 0;
-		for (var i = 1; i < result.length; i++) {
-			if (result[i]) {
-				var capture = captures[i];
-				if (capture) {
-					var styleStart = offset + stringIndex;
-					styles.push({start: styleStart, end: styleStart + result[i].length, style: capture.name});
-				}
-				stringIndex += result[i].length;
-			}
-		}
-	};
-	var mergeStyles = function(fullStyle, substyles, resultStyles) {
-		var i = fullStyle.start;
-		substyles.forEach(function(current) {
-			if (i <= current.start) {
-				resultStyles.push({start: i, end: current.start, style: fullStyle.style});
-			}
-			resultStyles.push(current);
-			i = current.end;
-		});
-		if (i < fullStyle.end) {
-			resultStyles.push({start: i, end: fullStyle.end, style: fullStyle.style});
-		}
-	};
-	var parse = function(text, offset, block, styles, ignoreCaptures) {
-		if (!text) {
-			return;
-		}
-		var patterns = block.getLinePatterns();
-		if (!patterns) {
-			return;
-		}
-
-		var matches = [];
-		patterns.forEach(function(current) {
-			var regex = current.regex || current.regexBegin;
-			regex.oldLastIndex = regex.lastIndex;
-			var result = findMatch(regex, text, 0);
-			if (result) {
-				matches.push({result: result, pattern: current});
-			}
-		});
-		matches.sort(function(a,b) {
-			if (a.result.index < b.result.index) {
-				return -1;
-			}
-			if (a.result.index > b.result.index) {
-				return 1;
-			}
-			return a.pattern.pattern.index < b.pattern.pattern.index ? -1 : 1;
-		});
-
-		var index = 0;
-		while (matches.length > 0) {
-			var current = matches[0];
-			matches.splice(0,1);
-
-			if (current.result.index < index) {
-				/* processing of another match has moved index beyond this match */
-				updateMatch(current, text, matches, index);
-				continue;
-			}
-
-			/* apply the style */
-			var start = current.result.index;
-			var end, result;
-			var substyles = [];
-			if (current.pattern.regex) {	/* line pattern defined by a "match" */
-				result = current.result;
-				end = start + result[0].length;
-				var tokenStyle = {start: offset + start, end: offset + end, style: current.pattern.pattern.name};
-				if (!ignoreCaptures) {
-					if (current.pattern.pattern.captures) {
-						getCaptureStyles(result, current.pattern.pattern.captures, offset + start, substyles);
-					}
-					substyles.sort(function(a,b) {
-						if (a.start < b.start) {
-							return -1;
-						}
-						if (a.start > b.start) {
-							return 1;
-						}
-						return 0;
-					});
-					for (var j = 0; j < substyles.length - 1; j++) {
-						if (substyles[j + 1].start < substyles[j].end) {
-							var newStyle = {start: substyles[j + 1].end, end: substyles[j].end, style: substyles[j].style};
-							substyles[j].end = substyles[j + 1].start;
-							substyles.splice(j + 2, 0, newStyle);
-						}
-					}
-				}
-				mergeStyles(tokenStyle, substyles, styles);
-			} else {	/* pattern defined by a "begin/end" pair */
-				/* 
-				 * If the end match contains a capture reference (eg.- "\1") then update
-				 * its regex with the resolved capture values from the begin match.
-				 */
 				var endRegex = current.pattern.regexEnd;
-				endRegex = substituteCaptureValues(endRegex, current.result);
-
-				result = findMatch(endRegex, text, current.result.index + current.result[0].length);
-				if (!result) {
-					eolRegex.lastIndex = 0;
-					result = eolRegex.exec(text);
-				}
-				end = result.index + result[0].length;
-				styles.push({start: offset + start, end: offset + end, style: current.pattern.pattern.name});
-			}
-			index = result.index + result[0].length;
-			updateMatch(current, text, matches, index);
-		}
-		patterns.forEach(function(current) {
-			var regex = current.regex || current.regexBegin;
-			regex.lastIndex = regex.oldLastIndex;
-		});
-	};
-	var computeBlocks = function(model, text, block, offset, startIndex, endIndex, maxBlockCount) {
-		if (!text) {
-			return [];
-		}
-
-		var results = [];
-		var matches = [];
-		startIndex = startIndex || 0;
-		endIndex = endIndex || Infinity;
-		maxBlockCount = maxBlockCount || Infinity;
-		block.getBlockPatterns().forEach(function(current) {
-			var result = findMatch(current.regexBegin || current.regex, text, startIndex);
-			if (result) {
-				matches.push({result: result, pattern: current});
-			}
-		}.bind(this));
-		if (!matches.length) {
-			return results;
-		}
-		matches.sort(function(a,b) {
-			if (a.result.index < b.result.index) {
-				return -1;
-			}
-			if (a.result.index > b.result.index) {
-				return 1;
-			}
-			return a.pattern.pattern.index < b.pattern.pattern.index ? -1 : 1;
-		});
-
-		var index = 0;
-		while (matches.length > 0) {
-			var current = matches[0];
-			matches.splice(0,1);
-
-			if (endIndex < current.result.index) {
-				break;
-			}
-
-			if (current.result.index < index) {
-				/* processing of another match has moved index beyond this match */
-				updateMatch(current, text, matches, index, endIndex);
-				continue;
-			}
-
-			var start = offset + current.result.index;
-			var contentStart = current.result.index;
-			var resultEnd = null;
-
-			var endRegex = current.pattern.regexEnd;
-			if (!endRegex) {
-				resultEnd = new Block(
-					{
-						start: start,
-						end: start + current.result[0].length,
-						contentStart: start,
-						contentEnd: start + current.result[0].length
-					},
-					current.pattern,
-					block.getStyler(),
-					model,
-					block);
-			} else {
-				contentStart += current.result[0].length;
-				var testPattern = current.pattern;
-				/*
-				 * If the end regex contains a capture reference (eg.- "\1") then substitute
-				 * the resolved capture values from the begin match.
-				 */
-				var resolvedEndRegex = substituteCaptureValues(endRegex, current.result);
-				if (resolvedEndRegex !== endRegex) {
+				if (!endRegex) {
+					resultEnd = this.createBlock(
+						{
+							start: start,
+							end: start + current.result[0].length,
+							contentStart: start,
+							contentEnd: start + current.result[0].length
+						},
+						block.styler,
+						model,
+						block,
+						current.pattern);
+				} else {
+					contentStart += current.result[0].length;
+					var testPattern = current.pattern;
 					/*
-					 * A substitution was made, so make a copy of the test pattern and set its
-					 * end regex to the resolved one.  This will cause end-match detection to be
-					 * performed with this concrete end regex value, but the original pattern
-					 * definition containing the capture reference will not be affected.
+					 * If the end regex contains a capture reference (eg.- "\1") then substitute
+					 * the resolved capture values from the begin match.
 					 */
-					testPattern = {
-						pattern: testPattern.pattern,
-						regexBegin: testPattern.regexBegin,
-						regexEnd: resolvedEndRegex
-					};
-					endRegex = resolvedEndRegex;
-				}
-
-				var lastIndex = contentStart;
-				while (!resultEnd) {
-					var result = findMatch(endRegex, text, lastIndex);
-					if (!result) {
-						eolRegex.lastIndex = 0;
-						result = eolRegex.exec(text);
+					var resolvedEndRegex = this._substituteCaptureValues(endRegex, current.result);
+					if (resolvedEndRegex !== endRegex) {
+						/*
+						 * A substitution was made, so make a copy of the test pattern and set its
+						 * end regex to the resolved one.  This will cause end-match detection to be
+						 * performed with this concrete end regex value, but the original pattern
+						 * definition containing the capture reference will not be affected.
+						 */
 						testPattern = {
 							pattern: testPattern.pattern,
 							regexBegin: testPattern.regexBegin,
-							regexEnd: eolRegex
+							regexEnd: resolvedEndRegex
 						};
+						endRegex = resolvedEndRegex;
 					}
-					var testBlock = new Block(
-						{
-							start: start,
-							end: offset + result.index + result[0].length,
-							contentStart: offset + contentStart,
-							contentEnd: offset + result.index
-						},
-						testPattern,
-						block.getStyler(),
-						model,
-						block);
-					var subBlocks = testBlock.getBlocks();
-					if (!subBlocks.length || subBlocks[subBlocks.length - 1].end <= (result.index + offset)) {
-						resultEnd = testBlock;
-					}
-					lastIndex = result.index + result[0].length;
-				}
-			}
-			results.push(resultEnd);
-			if (results.length === maxBlockCount || endIndex <= resultEnd.end) {
-				break;
-			}
-			index = resultEnd.end - offset;
-			updateMatch(current, text, matches, index, endIndex);
-		}
-		return results;
-	};
-	var computeTasks = function(block, baseModel, annotations, start, end) {
-		start = start || block.start;
-		end = end || block.end;
-		if (block.start <= end && start <= block.end) {
-			var annotationModel = block.getAnnotationModel();
-			if (!annotationModel) { return; }
 
-			var annotationType = mAnnotations.AnnotationType.ANNOTATION_TASK;
-			var subPatterns = block.getLinePatterns();
-			if (subPatterns.length && block.pattern && block.pattern.pattern.name && block.pattern.pattern.name.indexOf("comment") === 0) {
-				var substyles = [];
-				parse(baseModel.getText(block.contentStart, block.end), block.contentStart, block, substyles, true);
-				for (var i = 0; i < substyles.length; i++) {
-					if (substyles[i].style === "meta.annotation.task.todo" && start <= substyles[i].start && substyles[i].end <= end) {
-						annotations.push(mAnnotations.AnnotationType.createAnnotation(annotationType, substyles[i].start, substyles[i].end, baseModel.getText(substyles[i].start, substyles[i].end)));
+					var lastIndex = contentStart;
+					while (!resultEnd) {
+						var result = this._findMatch(endRegex, text, lastIndex);
+						if (!result) {
+							this._eolRegex.lastIndex = 0;
+							result = this._eolRegex.exec(text);
+							testPattern = {
+								pattern: testPattern.pattern,
+								regexBegin: testPattern.regexBegin,
+								regexEnd: this._eolRegex
+							};
+						}
+						var testBlock = this.createBlock(
+							{
+								start: start,
+								end: offset + result.index + result[0].length,
+								contentStart: offset + contentStart,
+								contentEnd: offset + result.index
+							},
+							block.styler,
+							model,
+							block,
+							testPattern);
+						var subBlocks = testBlock.getBlocks();
+						if (!subBlocks.length || subBlocks[subBlocks.length - 1].end <= (result.index + offset)) {
+							resultEnd = testBlock;
+						}
+						lastIndex = result.index + result[0].length;
 					}
 				}
+				results.push(resultEnd);
+				if (results.length === maxBlockCount || endIndex <= resultEnd.end) {
+					break;
+				}
+				index = resultEnd.end - offset;
+				this._updateMatch(current, text, matches, index, endIndex);
+			}
+			return results;
+		},
+		computeStyle: function(block, model, offset) {
+			if (!block.pattern) {
+				return null;
+			}
+
+			var fullBlock = {
+				start: block.start,
+				end: block.end,
+				style: block.pattern.pattern.name
+			};
+			if (block.contentStart <= offset && offset < block.contentEnd) {
+				if (block.pattern.pattern.contentName) {
+					return {
+						start: block.contentStart,
+						end: block.contentEnd,
+						style: block.pattern.pattern.contentName
+					};
+				}
+				return fullBlock;
+			}
+
+			var regex, captures, testString, index;
+			if (offset < block.contentStart) {
+				captures = block.pattern.pattern.beginCaptures || block.pattern.pattern.captures;
+				if (!captures) {
+					return fullBlock;
+				}
+				regex = block.pattern.regexBegin;
+				testString = model.getText(block.start, block.contentStart);
+				index = block.start;
+			} else {
+				captures = block.pattern.pattern.endCaptures || block.pattern.pattern.captures;
+				if (!captures) {
+					return fullBlock;
+				}
+				regex = block.pattern.regexEnd;
+				testString = model.getText(block.contentEnd, block.end);
+				index = block.contentEnd;
+			}
+
+			regex.lastIndex = 0;
+			var result = regex.exec(testString);
+			if (result) {
+				var styles = [];
+				this._getCaptureStyles(result, captures, index, styles);
+				var style = styles[binarySearch(styles, offset, true)];
+				if (style && style.start <= offset && offset < style.end) {
+					return style;
+				}
+			}
+			return fullBlock;
+		},
+		createBlock: function(bounds, styler, model, parent, data) {
+			/* for pattern-based matching data is a pattern */
+			return new Block(
+				bounds,
+				data ? data.pattern.name : null,
+				data ? data.pattern.id : null,
+				styler,
+				model,
+				parent,
+				function(newBlock) {
+					newBlock.pattern = data;
+					newBlock.linePatterns = [];
+					newBlock.blockPatterns = [];
+					newBlock.enclosurePatterns = {};
+					this._initPatterns(this._patternManager, newBlock);
+				}.bind(this));
+		},
+		getBlockContentStyleName: function(block) {
+			return block.pattern.pattern.contentName || block.pattern.pattern.name;
+		},
+		getBlockEndStyle: function(block, text, endIndex, _styles) {
+			/* pattern-defined blocks specify an end style by either a capture or name */
+			var result;
+			if (block.pattern.regexEnd) {
+				result = this._findMatch(block.pattern.regexEnd, text, 0);
+				if (result) {
+					/* the end match is still valid */
+					var captures = block.pattern.pattern.endCaptures || block.pattern.pattern.captures;
+					if (captures) {
+						this._getCaptureStyles(result, captures, endIndex - result[0].length, _styles);
+					} else if (block.pattern.pattern.name) {
+						_styles.push({start: endIndex - result[0].length, end: endIndex, style: block.pattern.pattern.name});
+					}
+				}
+			}
+			return result ? result[0] : null;
+		},
+		getBlockStartStyle: function(block, text, index, _styles) {
+			/* pattern-defined blocks specify a start style by either a capture or name */
+			var result;
+			if (block.pattern.regexBegin) {
+				result = this._findMatch(block.pattern.regexBegin, text, 0);
+				if (result) {
+					/* the begin match is still valid */
+					var captures = block.pattern.pattern.beginCaptures || block.pattern.pattern.captures;
+					if (captures) {
+						this._getCaptureStyles(result, captures, index, _styles);
+					} else {
+						_styles.push({start: index, end: index + result[0].length, style: block.pattern.pattern.name});
+					}
+				}
+			}
+			return result ? result[0] : null;
+		},
+		getBracketMatch: function(block, text) {
+			var match;
+			var keys = Object.keys(block.enclosurePatterns);
+			for (var i = 0; i < keys.length; i++) {
+				var current = block.enclosurePatterns[keys[i]];
+				var result = this._findMatch(current.regex, text, 0);
+				if (result && result.index === 0) {
+					match = current;
+					break;
+				}
+			}
+			if (!match) { return null; }
+
+			var closingName;
+			var atStart = false;
+			if (match.pattern.name.indexOf(this._PUNCTUATION_SECTION_BEGIN) !== -1) {
+				atStart = true;
+				closingName = match.pattern.name.replace(this._PUNCTUATION_SECTION_BEGIN, this._PUNCTUATION_SECTION_END);
+			} else {
+				closingName = match.pattern.name.replace(this._PUNCTUATION_SECTION_END, this._PUNCTUATION_SECTION_BEGIN);
+			}
+			var closingBracket = block.enclosurePatterns[closingName];
+			if (!closingBracket) { return null; }
+
+			return {
+				beginName: match.pattern.name,
+				endName: closingName,
+				atStart: atStart
+			};
+		},
+		parse: function(text, offset, block, _styles, ignoreCaptures) {
+			if (!text) {
+				return;
+			}
+			var patterns = block.linePatterns;
+			if (!patterns) {
+				return;
+			}
+
+			var matches = [];
+			patterns.forEach(function(current) {
+				var regex = current.regex || current.regexBegin;
+				regex.oldLastIndex = regex.lastIndex;
+				var result = this._findMatch(regex, text, 0);
+				if (result) {
+					matches.push({result: result, pattern: current});
+				}
+			}.bind(this));
+			matches.sort(function(a,b) {
+				if (a.result.index < b.result.index) {
+					return -1;
+				}
+				if (a.result.index > b.result.index) {
+					return 1;
+				}
+				return a.pattern.pattern.index < b.pattern.pattern.index ? -1 : 1;
+			});
+
+			var index = 0;
+			while (matches.length > 0) {
+				var current = matches[0];
+				matches.splice(0,1);
+
+				if (current.result.index < index) {
+					/* processing of another match has moved index beyond this match */
+					this._updateMatch(current, text, matches, index);
+					continue;
+				}
+	
+				/* apply the style */
+				var start = current.result.index;
+				var end, result;
+				var substyles = [];
+				if (current.pattern.regex) {	/* line pattern defined by a "match" */
+					result = current.result;
+					end = start + result[0].length;
+					var tokenStyle = {start: offset + start, end: offset + end, style: current.pattern.pattern.name};
+					if (!ignoreCaptures) {
+						if (current.pattern.pattern.captures) {
+							this._getCaptureStyles(result, current.pattern.pattern.captures, offset + start, substyles);
+						}
+						substyles.sort(function(a,b) {
+							if (a.start < b.start) {
+								return -1;
+							}
+							if (a.start > b.start) {
+								return 1;
+							}
+							return 0;
+						});
+						for (var j = 0; j < substyles.length - 1; j++) {
+							if (substyles[j + 1].start < substyles[j].end) {
+								var newStyle = {start: substyles[j + 1].end, end: substyles[j].end, style: substyles[j].style};
+								substyles[j].end = substyles[j + 1].start;
+								substyles.splice(j + 2, 0, newStyle);
+							}
+						}
+					}
+					this._mergeStyles(tokenStyle, substyles, _styles);
+				} else {	/* pattern defined by a "begin/end" pair */
+					/* 
+					 * If the end match contains a capture reference (eg.- "\1") then update
+					 * its regex with the resolved capture values from the begin match.
+					 */
+					var endRegex = current.pattern.regexEnd;
+					endRegex = this._substituteCaptureValues(endRegex, current.result);
+	
+					result = this._findMatch(endRegex, text, current.result.index + current.result[0].length);
+					if (!result) {
+						this._eolRegex.lastIndex = 0;
+						result = this._eolRegex.exec(text);
+					}
+					end = result.index + result[0].length;
+					_styles.push({start: offset + start, end: offset + end, style: current.pattern.pattern.name});
+				}
+				index = result.index + result[0].length;
+				this._updateMatch(current, text, matches, index);
+			}
+			patterns.forEach(function(current) {
+				var regex = current.regex || current.regexBegin;
+				regex.lastIndex = regex.oldLastIndex;
+			});
+		},
+		setStyler: function(/*styler*/) {	
+		},
+		verifyBlock: function(baseModel, text, ancestorBlock, changeCount) {
+			var result = null;
+			var matches = [];
+			var parentBlock = ancestorBlock.parent;
+			parentBlock.blockPatterns.forEach(function(current) {
+				var match = this._findMatch(current.regexBegin || current.regex, text, 0);
+				if (match) {
+					matches.push({result: match, pattern: current});
+				}
+			}.bind(this));
+			matches.sort(function(a,b) {
+				/* ensure that matches at index 0 make it to the front, other matches do not matter */
+				if (!a.result.index && b.result.index) {
+					return -1;
+				}
+				if (a.result.index && !b.result.index) {
+					return 1;
+				}
+				if (!a.result.index && !b.result.index) {
+					return a.pattern.pattern.index < b.pattern.pattern.index ? -1 : 1;
+				}
+				return 0;
+			});
+			if (!matches.length || matches[0].result.index !== 0 || matches[0].pattern.pattern.id !== ancestorBlock.pattern.pattern.id) {
+				result = false;
+			} else {
+				/* the block start appears to be unchanged, now verify that the block end is unchanged */
+				var match = matches[0];
+				var endRegex = match.pattern.regexEnd;
+				if (!endRegex) {
+					/* single-match block, just verify its length */
+					result = ancestorBlock.start + match.result[0].length === ancestorBlock.end + changeCount;
+				} else {
+					/* begin/end-match block */
+
+					 /*
+					  * Determine whether an earlier match of the block's end pattern has been introduced.
+					  * Verifying that this has NOT happened (the most typical case) can be quickly done by
+					  * verifying that the first occurrence of its end pattern is still at its former location.
+					  * However if a match is found prior to this then the blocks preceding it must be computed
+					  * to verify that it is a valid end match (ie.- it is not contained within another block).
+				 	  */
+
+					/*
+					 * If the end regex contains a capture reference (eg.- "\1") then substitute
+					 * the resolved capture values from the begin match.
+					 */
+					endRegex = this._substituteCaptureValues(endRegex, match.result);
+
+					var searchStartIndex = match.result[0].length;
+					var currentMatch = this._findMatch(endRegex, text, searchStartIndex);
+					while (result === null && currentMatch && ancestorBlock.start + currentMatch.index !== ancestorBlock.contentEnd + changeCount) {
+						/*
+						 * A match was found preceeding the former end match, so now compute
+						 * blocks to determine whether it is in fact a valid new end match.
+						 */
+						var blocks = this.computeBlocks(baseModel, text, ancestorBlock, ancestorBlock.start, searchStartIndex, currentMatch.index + 1, null);
+						if (!blocks.length || blocks[blocks.length - 1].end <= ancestorBlock.start + currentMatch.index) {
+							/* the match is valid, so the attempt to use ancestorBlock as-is fails */
+							result = false;
+						} else {
+							/* the match is not valid, so search for the next potential end match */
+							if (!blocks.length) {
+								currentMatch = null;
+							} else {
+								searchStartIndex = blocks[blocks.length - 1].end - ancestorBlock.start;
+								currentMatch = this._findMatch(endRegex, text, searchStartIndex);
+							}
+						}
+					}
+					if (!currentMatch) {
+						this._eolRegex.lastIndex = 0;
+						currentMatch = this._eolRegex.exec(text);
+						result = ancestorBlock.start + currentMatch.index === ancestorBlock.end + changeCount;
+					}
+				}
+			}
+			return result !== null ? result : true;
+		},
+
+		/** @private */
+
+		_findMatch: function(regex, text, startIndex, testBeforeMatch) {
+			/*
+			 * testBeforeMatch provides a potential optimization for callers that do not strongly expect to find
+			 * a match.  If this argument is defined then test() is initially called on the regex, which executes
+			 * significantly faster than exec().  If a match is found then the regex's lastIndex is reverted to
+			 * its pre-test() value, and exec() is then invoked on it in order to get the match details.
+			 */
+	
+			var index = startIndex;
+			var initialLastIndex = regex.lastIndex;
+			this._linebreakRegex.lastIndex = startIndex;
+	
+			var currentLine = this._linebreakRegex.exec(text);
+			/*
+			 * Processing of the first line is treated specially, as it may not start at the beginning of a logical line, but
+			 * regex's may be dependent on matching '^'.  To resolve this, compute the full line corresponding to the start
+			 * of the text, even if it begins prior to startIndex, and adjust the regex's lastIndex accordingly to begin searching
+			 * for matches at the correct location.
+			 */
+			var lineString, indexAdjustment;
+			regex.lastIndex = 0;
+			if (currentLine) {
+				var lineStart = currentLine.index;
+				while (0 <= --lineStart) {
+					var char = text.charAt(lineStart);
+					if (char === this._NEWLINE || char === this._CR) {
+						break;
+					}
+				}
+				lineString = text.substring(lineStart + 1, currentLine.index + currentLine[1].length);
+				regex.lastIndex = indexAdjustment = currentLine.index - lineStart - 1;
+			}
+			while (currentLine && currentLine.index < text.length) {
+				var result;
+				if (testBeforeMatch) {
+					var revertIndex = regex.lastIndex;
+					if (regex.test(lineString)) {
+						regex.lastIndex = revertIndex;
+						result = regex.exec(lineString);
+					}
+				} else {
+					result = regex.exec(lineString);
+				}
+				if (result) {
+					result.index += index;
+					result.index -= indexAdjustment;
+					regex.lastIndex = initialLastIndex;
+					return result;
+				}
+				indexAdjustment = 0;
+				index += currentLine[0].length;
+				currentLine = this._linebreakRegex.exec(text);
+				if (currentLine) {
+					lineString = currentLine[1];
+					regex.lastIndex = 0;
+				}
+			}
+			regex.lastIndex = initialLastIndex;
+			return null;
+		},
+		_getCaptureStyles: function(result, captures, offset, _styles) {
+			if (captures[0]) {
+				/* capture index 0 is the full result */
+				_styles.push({start: offset, end: offset + result[0].length, style: captures[0].name});
+				return;
 			}
 	
-			block.getBlocks().forEach(function(current) {
-				computeTasks(current, baseModel, annotations, start, end);
+			var stringIndex = 0;
+			for (var i = 1; i < result.length; i++) {
+				if (result[i]) {
+					var capture = captures[i];
+					if (capture) {
+						var styleStart = offset + stringIndex;
+						_styles.push({start: styleStart, end: styleStart + result[i].length, style: capture.name});
+					}
+					stringIndex += result[i].length;
+				}
+			}
+		},
+		_initPatterns: function(patternManager, block) {
+			if (block.pattern && block.pattern.pattern.linePatterns) {
+				block.linePatterns = block.pattern.pattern.linePatterns;
+				block.blockPatterns = block.pattern.pattern.blockPatterns;
+				block.enclosurePatterns = block.pattern.pattern.enclosurePatterns;
+				return;
+			}
+			var patterns = patternManager.getPatterns(block.pattern ? block.pattern.pattern : null);
+			var initRegex = function(match) {
+				var matchString = typeof(match) === "string" ? match : match.match;
+				var result = this._ignoreCaseRegex.exec(matchString);
+				var flags = this._FLAGS;
+				if (result) {
+					matchString = matchString.substring(result[0].length);
+					flags += "i";
+				}
+				return new RegExp(matchString, flags);
+			}.bind(this);
+			var lastBlock = -1;
+			var index = 0;
+			patterns.forEach(function(current) {
+				var pattern;
+				if (current.match && !current.begin && !current.end) {
+					pattern = {regex: initRegex(current.match), pattern: current};
+					block.linePatterns.push(pattern);
+					if (current.name && current.name.indexOf("punctuation.section") === 0 && (current.name.indexOf(this._PUNCTUATION_SECTION_BEGIN) !== -1 || current.name.indexOf(this._PUNCTUATION_SECTION_END) !== -1)) { //$NON-NLS-0$
+						block.enclosurePatterns[current.name] = pattern;
+					}
+				} else if (!current.match && current.begin && current.end) {
+					lastBlock = index;
+					pattern = {regexBegin: initRegex(current.begin), regexEnd: initRegex(current.end), pattern: current};
+					block.linePatterns.push(pattern);
+				}
+				index++;
 			}.bind(this));
-		}
+			block.blockPatterns = block.linePatterns.slice(0, lastBlock + 1);
+			if (block.pattern) {
+				block.pattern.pattern.enclosurePatterns = block.enclosurePatterns;
+				block.pattern.pattern.linePatterns = block.linePatterns;
+				block.pattern.pattern.blockPatterns = block.blockPatterns;
+			}
+		},
+		_mergeStyles: function(fullStyle, substyles, resultStyles) {
+			var i = fullStyle.start;
+			substyles.forEach(function(current) {
+				if (i <= current.start) {
+					resultStyles.push({start: i, end: current.start, style: fullStyle.style});
+				}
+				resultStyles.push(current);
+				i = current.end;
+			});
+			if (i < fullStyle.end) {
+				resultStyles.push({start: i, end: fullStyle.end, style: fullStyle.style});
+			}
+		},
+		_substituteCaptureValues: function(regex, resolvedResult) {
+			var regexString = regex.toString();
+			this._captureReferenceRegex.lastIndex = 0;
+			if (!this._captureReferenceRegex.test(regexString)) {
+				/* nothing to do */
+				return regex;
+			}
+
+			this._captureReferenceRegex.lastIndex = 0;
+			var result = this._captureReferenceRegex.exec(regexString);
+			while (result) {
+				regexString = regexString.replace(result[0], resolvedResult[result[1]] || "");
+				this._captureReferenceRegex.lastIndex = 0;
+				result = this._captureReferenceRegex.exec(regexString);
+			}
+			/* return an updated regex, remove the leading '/' and trailing /FLAGS */
+			return new RegExp(regexString.substring(1, regexString.length - 1 - this._FLAGS.length), this._FLAGS);
+		},
+		_updateMatch: function(match, text, matches, minimumIndex, endIndex) {
+			var regEx = match.pattern.regex ? match.pattern.regex : match.pattern.regexBegin;
+			endIndex = endIndex || Infinity;
+			var result = this._findMatch(regEx, text, minimumIndex, true);
+			if (result && result.index < endIndex) {
+				match.result = result;
+				for (var i = 0; i < matches.length; i++) {
+					if (result.index < matches[i].result.index || (result.index === matches[i].result.index && match.pattern.pattern.index < matches[i].pattern.pattern.index)) {
+						matches.splice(i, 0, match);
+						return;
+					}
+				}
+				matches.push(match);
+			}
+		},
+		_captureReferenceRegex: /\\(\d)/g,
+		_eolRegex: /$/,
+		_ignoreCaseRegex: /^\(\?i\)\s*/,
+		_linebreakRegex: /(.*)(?:[\r\n]|$)/g,
+		_CR: "\r", //$NON-NLS-0$
+		_FLAGS: "g", //$NON-NLS-0$
+		_NEWLINE: "\n", //$NON-NLS-0$
+		_PUNCTUATION_SECTION_BEGIN: ".begin", //$NON-NLS-0$
+		_PUNCTUATION_SECTION_END: ".end" //$NON-NLS-0$
 	};
 
 	function PatternManager(grammars, rootId) {
@@ -22888,6 +23274,18 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			});
 			return result;
 		},
+
+		/** @private */
+
+		_addPattern: function(pattern, patternId, parentId) {
+			pattern.parentId = parentId;
+			pattern.id = patternId;
+			pattern.qualifiedId = pattern.parentId + "#" + pattern.id;
+			this._patterns.push(pattern);
+			if (pattern.patterns && !pattern.include) {
+				this._addPatterns(pattern.patterns, pattern.qualifiedId);
+			}
+		},
 		_addPatterns: function(patterns, parentId) {
 			patterns.forEach(function(pattern) {
 				this._addPattern(pattern, this._NO_ID + this._unnamedCounter++, parentId);
@@ -22898,15 +23296,6 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			keys.forEach(function(key) {
 				this._addPattern(repository[key], key, parentId);
 			}.bind(this));
-		},
-		_addPattern: function(pattern, patternId, parentId) {
-			pattern.parentId = parentId;
-			pattern.id = patternId;
-			pattern.qualifiedId = pattern.parentId + "#" + pattern.id;
-			this._patterns.push(pattern);
-			if (pattern.patterns && !pattern.include) {
-				this._addPatterns(pattern.patterns, pattern.qualifiedId);
-			}
 		},
 		_processInclude: function(pattern, indexCounter, resultObject) {
 			var searchExp;
@@ -22935,21 +23324,19 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		_NO_ID: "NoID"	//$NON-NLS-0$
 	};
 
-	function Block(bounds, pattern, styler, model, parent) {
+	function Block(bounds, name, typeId, styler, model, parent, initFn) {
 		this.start = bounds.start;
 		this.end = bounds.end;
 		this.contentStart = bounds.contentStart;
 		this.contentEnd = bounds.contentEnd;
-		this.pattern = pattern;
-		this._styler = styler;
-		this._parent = parent;
-		this._linePatterns = [];
-		this._blockPatterns = [];
-		this._enclosurePatterns = {};
-		if (model) {
-			this._initPatterns();
-			this._subBlocks = computeBlocks(model, model.getText(this.start, this.end), this, this.start);
+		this.name = name;
+		this.typeId = typeId;
+		this.styler = styler;
+		this.parent = parent;
+		if (initFn) {
+			initFn(this);
 		}
+		this._subBlocks = styler.computeBlocks(model, model.getText(this.start, this.end), this, this.start, null, null, null);
 	}
 	Block.prototype = {
 		adjustBounds: function(index, value) {
@@ -22971,130 +23358,11 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				}
 			});
 		},
-		computeStyle: function(model, offset) {
-			if (!(this.pattern && this.start <= offset && offset < this.end)) {
-				return null;
-			}
-
-			var fullBlock = {
-				start: this.start,
-				end: this.end,
-				style: this.pattern.pattern.name
-			};
-			if (this.contentStart <= offset && offset < this.contentEnd) {
-				if (this.pattern.pattern.contentName) {
-					return {
-						start: this.contentStart,
-						end: this.contentEnd,
-						style: this.pattern.pattern.contentName
-					};
-				}
-				return fullBlock;
-			}
-
-			var regex, captures, testString, index;
-			if (offset < this.contentStart) {
-				captures = this.pattern.pattern.beginCaptures || this.pattern.pattern.captures;
-				if (!captures) {
-					return fullBlock;
-				}
-				regex = this.pattern.regexBegin;
-				testString = model.getText(this.start, this.contentStart);
-				index = this.start;
-			} else {
-				captures = this.pattern.pattern.endCaptures || this.pattern.pattern.captures;
-				if (!captures) {
-					return fullBlock;
-				}
-				regex = this.pattern.regexEnd;
-				testString = model.getText(this.contentEnd, this.end);
-				index = this.contentEnd;
-			}
-
-			regex.lastIndex = 0;
-			var result = regex.exec(testString);
-			if (result) {
-				var styles = [];
-				getCaptureStyles(result, captures, index, styles);
-				var style = styles[binarySearch(styles, offset, true)];
-				if (style && style.start <= offset && offset < style.end) {
-					return style;
-				}
-			}
-			return fullBlock;
-		},
-		getAnnotationModel: function() {
-			return this._styler._getAnnotationModel();
-		},
-		getBlockPatterns: function() {
-			return this._blockPatterns;
-		},
 		getBlocks: function() {
 			return this._subBlocks;
 		},
-		getEnclosurePatterns: function() {
-			return this._enclosurePatterns;
-		},
-		getLinePatterns: function() {
-			return this._linePatterns;
-		},
-		getParent: function() {
-			return this._parent;
-		},
-		getPatternManager: function() {
-			return this._styler._getPatternManager();
-		},
-		getPatterns: function() {
-			/* all patterns appear in the line patterns list */
-			return this.getLinePatterns();	
-		},
-		getStyler: function() {
-			return this._styler;
-		},
 		isRenderingWhitespace: function() {
-			return this._styler._isRenderingWhitespace();
-		},
-		_initPatterns: function() {
-			if (this.pattern && this.pattern.pattern._linePatterns) {
-				this._linePatterns = this.pattern.pattern._linePatterns;
-				this._blockPatterns = this.pattern.pattern._blockPatterns;
-				this._enclosurePatterns = this.pattern.pattern._enclosurePatterns;
-				return;
-			}
-			var patterns = this.getPatternManager().getPatterns(this.pattern ? this.pattern.pattern : null);
-			var initRegex = function(match) {
-				var matchString = typeof(match) === "string" ? match : match.match;
-				var result = ignoreCaseRegex.exec(matchString);
-				var flags = FLAGS;
-				if (result) {
-					matchString = matchString.substring(result[0].length);
-					flags += "i";
-				}
-				return new RegExp(matchString, flags);
-			};
-			var lastBlock = -1;
-			var index = 0;
-			patterns.forEach(function(current) {
-				var pattern;
-				if (current.match && !current.begin && !current.end) {
-					pattern = {regex: initRegex(current.match), pattern: current};
-					this._linePatterns.push(pattern);
-					if (current.name && current.name.indexOf("punctuation.section") === 0 && (current.name.indexOf(PUNCTUATION_SECTION_BEGIN) !== -1 || current.name.indexOf(PUNCTUATION_SECTION_END) !== -1)) { //$NON-NLS-0$
-						this._enclosurePatterns[current.name] = pattern;
-					}
-				} else if (!current.match && current.begin && current.end) {
-					lastBlock = index;
-					pattern = {regexBegin: initRegex(current.begin), regexEnd: initRegex(current.end), pattern: current};
-					this._linePatterns.push(pattern);
-				}
-				index++;
-			}.bind(this));
-			this._blockPatterns = this._linePatterns.slice(0, lastBlock + 1);
-			if (this.pattern) {
-				this.pattern.pattern._enclosurePatterns = this._enclosurePatterns;
-				this.pattern.pattern._linePatterns = this._linePatterns;
-				this.pattern.pattern._blockPatterns = this._blockPatterns;
-			}
+			return this.styler._isRenderingWhitespace();
 		}
 	};
 
@@ -23102,24 +23370,22 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 		this._styler = styler;
 	}
 	TextStylerAccessor.prototype = {
-		getPatterns: function(offset) {
-			return this._styler.getPatterns(offset);
-		},
 		getStyles: function(offset) {
 			return this._styler.getStyles(offset);
 		}
 	};
 
-	function TextStyler (view, annotationModel, grammars, rootGrammarId) {
-		this.whitespacesVisible = this.spacesVisible = this.tabsVisible = false;
-		this.highlightCaretLine = false;
-		this.foldingEnabled = true;
-		this.detectTasks = true;
-		this.view = view;
-		this.annotationModel = annotationModel;
-		this.patternManager = new PatternManager(grammars, rootGrammarId);
+	function TextStyler(view, annotationModel, stylerAdapter) {
+		this._whitespacesVisible = this._spacesVisible = this._tabsVisible = false;
+		this._highlightCaretLine = false;
+		this._foldingEnabled = true;
+		this._detectTasks = true;
+		this._view = view;
+		this._annotationModel = annotationModel;
+		this._stylerAdapter = stylerAdapter;
+		this._stylerAdapter.setStyler(this);
 		this._accessor = new TextStylerAccessor(this);
-		this._bracketAnnotations = undefined;
+		this._bracketAnnotations;
 
 		var self = this;
 		this._listener = {
@@ -23151,46 +23417,49 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 
 		var charCount = model.getCharCount();
 		var rootBounds = {start: 0, contentStart: 0, end: charCount, contentEnd: charCount};
-		this._rootBlock = new Block(rootBounds, null, this, model);
+		this._rootBlock = this._stylerAdapter.createBlock(rootBounds, this, model, null);
 		if (annotationModel) {
 			var add = [];
 			annotationModel.removeAnnotations(mAnnotations.AnnotationType.ANNOTATION_FOLDING);
 			this._computeFolding(this._rootBlock.getBlocks(), view.getModel(), add);
-			if (this.detectTasks) {
+			if (this._detectTasks) {
 				annotationModel.removeAnnotations(mAnnotations.AnnotationType.ANNOTATION_TASK);
-				computeTasks(this._rootBlock, model, add);
+				this._computeTasks(this._rootBlock, model, add);
 			}
 			annotationModel.replaceAnnotations([], add);
 		}
 		view.redrawLines();
 	}
-
 	TextStyler.prototype = {
+		computeBlocks: function(model, text, block, offset, startIndex, endIndex, maxBlockCount) {
+			return this._stylerAdapter.computeBlocks(model, text, block, offset, startIndex, endIndex, maxBlockCount);
+		},
 		destroy: function() {
-			var view = this.view;
-			if (view) {
-				var model = view.getModel();
+			if (this._view) {
+				var model = this._view.getModel();
 				if (model.getBaseModel) {
 					model = model.getBaseModel();
 				}
 				model.removeEventListener("Changed", this._listener.onChanged); //$NON-NLS-0$
-				view.removeEventListener("MouseDown", this._listener.onMouseDown); //$NON-NLS-0$
-				view.removeEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
-				view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
-				view.removeEventListener("LineStyle", this._listener.onLineStyle); //$NON-NLS-0$
-				this.view = null;
+				this._view.removeEventListener("MouseDown", this._listener.onMouseDown); //$NON-NLS-0$
+				this._view.removeEventListener("Selection", this._listener.onSelection); //$NON-NLS-0$
+				this._view.removeEventListener("Destroy", this._listener.onDestroy); //$NON-NLS-0$
+				this._view.removeEventListener("LineStyle", this._listener.onLineStyle); //$NON-NLS-0$
+				this._view = null;
 			}
 		},
-		getPatterns: function(offset) {
-			var block = this._findBlock(this._rootBlock, offset);
-			return block.getPatterns();
+		getBlockAtIndex: function(index) {
+			return this._findBlock(this._rootBlock, index);
+		},
+		getRootBlock: function() {
+			return this._rootBlock;
 		},
 		getStyleAccessor: function() {
 			return this._accessor;
 		},
 		getStyles: function(offset) {
 			var result = [];
-			var model = this.view.getModel();
+			var model = this._view.getModel();
 			if (model.getBaseModel) {
 				model = model.getBaseModel();
 			}
@@ -23198,50 +23467,53 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			var lineIndex = model.getLineAtOffset(offset);
 			var lineText = model.getLine(lineIndex);
 			var styles = [];
-			parse(lineText, model.getLineStart(lineIndex), block, styles);
+			this._stylerAdapter.parse(lineText, model.getLineStart(lineIndex), block, styles);
 			var style = styles[binarySearch(styles, offset, true)];
 			if (style && style.start <= offset && offset < style.end) {
 				result.push(style);
 			}
 			while (block) {
-				var style = block.computeStyle(model, offset);
+				style = this._stylerAdapter.computeStyle(block, model, offset);
 				if (style) {
 					result.splice(0, 0, style);
 				}
-				block = block.getParent();
+				block = block.parent;
 			}
 			return result;
 		},
-		setHighlightCaretLine: function(highlight) {
-			this.highlightCaretLine = highlight;
-		},
-		setWhitespacesVisible: function(visible, redraw) {
-			if (this.whitespacesVisible === visible) { return; }
-			this.whitespacesVisible = visible;
-			if (redraw) {
-				this.view.redraw();
-			}
-		},
-		setTabsVisible: function(visible) {
-			if (this.tabsVisible === visible) { return; }
-			this.tabsVisible = visible;
-			this.setWhitespacesVisible(this.tabsVisible || this.spacesVisible, false);
-			this.view.redraw();
-		},
-		setSpacesVisible: function(visible) {
-			if (this.spacesVisible === visible) { return; }
-			this.spacesVisible = visible;
-			this.setWhitespacesVisible(this.tabsVisible || this.spacesVisible, false);
-			this.view.redraw();
-		},
-		setDetectHyperlinks: function(enabled) {
-		},
-		setFoldingEnabled: function(enabled) {
-			this.foldingEnabled = enabled;
+		setDetectHyperlinks: function() {
 		},
 		setDetectTasks: function(enabled) {
-			this.detectTasks = enabled;
+			this._detectTasks = enabled;
 		},
+		setFoldingEnabled: function(enabled) {
+			this._foldingEnabled = enabled;
+		},
+		setHighlightCaretLine: function(highlight) {
+			this._highlightCaretLine = highlight;
+		},
+		setSpacesVisible: function(visible) {
+			if (this._spacesVisible === visible) { return; }
+			this._spacesVisible = visible;
+			this.setWhitespacesVisible(this._tabsVisible || this._spacesVisible, false);
+			this._view.redraw();
+		},
+		setTabsVisible: function(visible) {
+			if (this._tabsVisible === visible) { return; }
+			this._tabsVisible = visible;
+			this.setWhitespacesVisible(this._tabsVisible || this._spacesVisible, false);
+			this._view.redraw();
+		},
+		setWhitespacesVisible: function(visible, redraw) {
+			if (this._whitespacesVisible === visible) { return; }
+			this._whitespacesVisible = visible;
+			if (redraw) {
+				this._view.redraw();
+			}
+		},
+
+		/** @private */
+
 		_computeFolding: function(blocks, viewModel, _add) {
 			if (!viewModel.getBaseModel) { return; }
 			var baseModel = viewModel.getBaseModel();
@@ -23252,6 +23524,28 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				}
 				this._computeFolding(block.getBlocks(), viewModel, _add);
 			}.bind(this));
+		},
+		_computeTasks: function(block, baseModel, annotations, start, end) {
+			start = start || block.start;
+			end = end || block.end;
+			if (block.start <= end && start <= block.end) {
+				if (!this._annotationModel) { return; }
+
+				var annotationType = mAnnotations.AnnotationType.ANNOTATION_TASK;
+				if (block.name && block.name.indexOf("comment") === 0) {
+					var substyles = [];
+					this._stylerAdapter.parse(baseModel.getText(block.contentStart, block.end), block.contentStart, block, substyles, true);
+					for (var i = 0; i < substyles.length; i++) {
+						if (substyles[i].style === "meta.annotation.task.todo" && start <= substyles[i].start && substyles[i].end <= end) {
+							annotations.push(mAnnotations.AnnotationType.createAnnotation(annotationType, substyles[i].start, substyles[i].end, baseModel.getText(substyles[i].start, substyles[i].end)));
+						}
+					}
+				}
+
+				block.getBlocks().forEach(function(current) {
+					this._computeTasks(current, baseModel, annotations, start, end);
+				}.bind(this));
+			}
 		},
 		_createFoldingAnnotation: function(viewModel, baseModel, start, end) {
 			var startLine = baseModel.getLineAtOffset(start);
@@ -23273,7 +23567,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			}
 			return parentBlock;
 		},
-		_findBrackets: function(bracket, closingBracket, block, text, start, end) {
+		_findBrackets: function(bracketMatch, block, text, start, end) {
 			var result = [], styles = [];
 			var offset = start, blocks = block.getBlocks();
 			var startIndex = binarySearch(blocks, start, true);
@@ -23282,11 +23576,11 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				var blockStart = blocks[i].start;
 				var blockEnd = blocks[i].end;
 				if (offset < blockStart) {
-					parse(text.substring(offset - start, blockStart - start), offset, block, styles);
+					this._stylerAdapter.parse(text.substring(offset - start, blockStart - start), offset, block, styles);
 					styles.forEach(function(current) {
-						if (current.style.indexOf(bracket.pattern.name) === 0) {
+						if (current.style.indexOf(bracketMatch.beginName) === 0) {
 							result.push(current.start + 1);
-						} else if (current.style.indexOf(closingBracket.pattern.name) === 0) {
+						} else if (current.style.indexOf(bracketMatch.endName) === 0) {
 							result.push(-(current.start + 1));
 						}
 					});
@@ -23295,12 +23589,12 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				offset = blockEnd;
 			}
 			if (offset < end) {
-				parse(text.substring(offset - start, end - start), offset, block, styles);
+				this._stylerAdapter.parse(text.substring(offset - start, end - start), offset, block, styles);
 				styles.forEach(function(current) {
 					if (current.style) {
-						if (current.style.indexOf(bracket.pattern.name) === 0) {
+						if (current.style.indexOf(bracketMatch.beginName) === 0) {
 							result.push(current.start + 1);
-						} else if (current.style.indexOf(closingBracket.pattern.name) === 0) {
+						} else if (current.style.indexOf(bracketMatch.endName) === 0) {
 							result.push(-(current.start + 1));
 						}
 					}
@@ -23308,43 +23602,22 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			}
 			return result;
 		},
-		findMatchingBracket: function(model, block, offset) {
+		_findMatchingBracket: function(model, block, offset) {
 			var lineIndex = model.getLineAtOffset(offset);
 			var lineEnd = model.getLineEnd(lineIndex);
 			var text = model.getText(offset, lineEnd);
-
-			var match;
-			var enclosurePatterns = block.getEnclosurePatterns();
-			var keys = Object.keys(enclosurePatterns);
-			for (var i = 0; i < keys.length; i++) {
-				var current = enclosurePatterns[keys[i]];
-				var result = findMatch(current.regex, text, 0);
-				if (result && result.index === 0) {
-					match = current;
-					break;
-				}
-			}
-			if (!match) { return -1; }
-
-			var closingName;
-			var onEnclosureStart = false;
-			if (match.pattern.name.indexOf(PUNCTUATION_SECTION_BEGIN) !== -1) {
-				onEnclosureStart = true;
-				closingName = match.pattern.name.replace(PUNCTUATION_SECTION_BEGIN, PUNCTUATION_SECTION_END);
-			} else {
-				closingName = match.pattern.name.replace(PUNCTUATION_SECTION_END, PUNCTUATION_SECTION_BEGIN);
-			}
-			var closingBracket = enclosurePatterns[closingName];
-			if (!closingBracket) { return -1; }
+			
+			var bracketMatch = this._stylerAdapter.getBracketMatch(block, text);
+			if (!bracketMatch) { return -1; }
 
 			var lineText = model.getLine(lineIndex);
 			var lineStart = model.getLineStart(lineIndex);
-			var brackets = this._findBrackets(match, closingBracket, block, lineText, lineStart, lineEnd);
-			for (i = 0; i < brackets.length; i++) {
+			var brackets = this._findBrackets(bracketMatch, block, lineText, lineStart, lineEnd);
+			for (var i = 0; i < brackets.length; i++) {
 				var sign = brackets[i] >= 0 ? 1 : -1;
 				if (brackets[i] * sign - 1 === offset) {
 					var level = 1;
-					if (!onEnclosureStart) {
+					if (!bracketMatch.atStart) {
 						i--;
 						for (; i>=0; i--) {
 							sign = brackets[i] >= 0 ? 1 : -1;
@@ -23358,7 +23631,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 							lineText = model.getLine(lineIndex);
 							lineStart = model.getLineStart(lineIndex);
 							lineEnd = model.getLineEnd(lineIndex);
-							brackets = this._findBrackets(match, closingBracket, block, lineText, lineStart, lineEnd);
+							brackets = this._findBrackets(bracketMatch, block, lineText, lineStart, lineEnd);
 							for (var j = brackets.length - 1; j >= 0; j--) {
 								sign = brackets[j] >= 0 ? 1 : -1;
 								level += sign;
@@ -23378,12 +23651,12 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 							}
 						}
 						lineIndex += 1;
-						var lineCount = model.getLineCount ();
+						var lineCount = model.getLineCount();
 						while (lineIndex < lineCount) {
 							lineText = model.getLine(lineIndex);
 							lineStart = model.getLineStart(lineIndex);
 							lineEnd = model.getLineEnd(lineIndex);
-							brackets = this._findBrackets(match, closingBracket, block, lineText, lineStart, lineEnd);
+							brackets = this._findBrackets(bracketMatch, block, lineText, lineStart, lineEnd);
 							for (var k=0; k<brackets.length; k++) {
 								sign = brackets[k] >= 0 ? 1 : -1;
 								level += sign;
@@ -23399,22 +23672,15 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			}
 			return -1;
 		},
-		_getAnnotationModel: function() {
-			return this.annotationModel;
-		},
 		_getLineStyle: function(lineIndex) {
-			if (this.highlightCaretLine) {
-				var view = this.view;
-				var model = view.getModel();
-				var selection = view.getSelection();
+			if (this._highlightCaretLine) {
+				var model = this._view.getModel();
+				var selection = this._view.getSelection();
 				if (selection.start === selection.end && model.getLineAtOffset(selection.start) === lineIndex) {
-					return caretLineStyle;
+					return this._caretLineStyle;
 				}
 			}
 			return null;
-		},
-		_getPatternManager: function() {
-			return this.patternManager;
 		},
 		_getStyles: function(block, model, text, start) {
 			if (model.getBaseModel) {
@@ -23431,67 +23697,52 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				var blockEnd = blocks[i].end;
 				if (offset < blockStart) {
 					/* content on that line that preceeds the start of the block */
-					parse(text.substring(offset - start, blockStart - start), offset, block, styles);
+					this._stylerAdapter.parse(text.substring(offset - start, blockStart - start), offset, block, styles);
 				}
 				var s = Math.max(offset, blockStart);
 				if (s === blockStart) {
-					/* currently at the block's "start" match, which specifies its style by either a capture or name */
-					if (blocks[i].pattern.regexBegin) {
-						var result = findMatch(blocks[i].pattern.regexBegin, text.substring(s - start), 0);
-						if (result) {
-							/* the begin match is still valid */
-							var captures = blocks[i].pattern.pattern.beginCaptures || blocks[i].pattern.pattern.captures;
-							if (captures) {
-								getCaptureStyles(result, captures, s, styles);
-							} else {
-								styles.push({start: s, end: s + result[0].length, style: blocks[i].pattern.pattern.name});
-							}
-							s += result[0].length;
-						}
+					/* currently in the block's "start" segment */
+					var startString = this._stylerAdapter.getBlockStartStyle(blocks[i], text.substring(s - start), s, styles);
+					if (startString) {
+						s += startString.length;
 					}
 				}
 
 				/*
-				 * Compute the end match now in order to determine the end-bound of the contained content, but do not add the
-				 * end match's styles to the styles array until content styles have been computed so that ordering is preserved.
+				 * Compute the block end now in order to determine the end-bound of the contained content, but do not add
+				 * its styles to the styles array until content styles have been computed, so that ordering is preserved.
 				 */
 				var e = Math.min(end, blockEnd);
 				var endStyles = [];
 				if (e === blockEnd) {
-					/* currently at the block's "end" match, which specifies its style by either a capture or name */
-					if (blocks[i].pattern.regexEnd) {
-						var testString = text.substring(e - offset - (blocks[i].end - blocks[i].contentEnd));
-						var result = findMatch(blocks[i].pattern.regexEnd, testString, 0);
-						if (result) {
-							/* the end match is still valid */
-							var captures = blocks[i].pattern.pattern.endCaptures || blocks[i].pattern.pattern.captures;
-							if (captures) {
-								getCaptureStyles(result, captures, e - result[0].length, endStyles);
-							} else if (blocks[i].pattern.pattern.name) {
-								endStyles.push({start: e - result[0].length, end: e, style: blocks[i].pattern.pattern.name});
-							}
-							e -= result[0].length;
-						}
+					/* currently in the block's "end" segment */
+					var testString = text.substring(e - offset - (blocks[i].end - blocks[i].contentEnd));
+					var endString = this._stylerAdapter.getBlockEndStyle(blocks[i], testString, e, endStyles);
+					if (endString) {
+						e -= endString.length;
 					}
 				}
 
 				var blockSubstyles = this._getStyles(blocks[i], model, text.substring(s - start, e - start), s);
-				var blockStyle = blocks[i].pattern.pattern.contentName || blocks[i].pattern.pattern.name;
-				if (blockStyle) {
+				var blockStyleName = this._stylerAdapter.getBlockContentStyleName(blocks[i]);
+				if (blockStyleName) {
 					/*
 					 * If a name was specified for the current block then apply its style throughout its
-					 * content wherever a style is not provided by a sub-pattern.
+					 * content wherever a style is not provided by a sub-element.
 					 */
 					var index = s;
 					blockSubstyles.forEach(function(current) {
 						if (current.start - index) {
-							styles.push({start: index, end: current.start, style: blockStyle});
+							styles.push({start: index, end: current.start, style: blockStyleName});
+						}
+						if (current.mergeable) {
+							current.style += "," + blockStyleName;
 						}
 						styles.push(current);
 						index = current.end;
 					});
 					if (e - index) {
-						styles.push({start: index, end: e, style: blockStyle});
+						styles.push({start: index, end: e, style: blockStyleName});
 					}
 				} else {
 					styles = styles.concat(blockSubstyles);
@@ -23501,7 +23752,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			}
 			if (offset < end) {
 				/* content on that line that follows the end of the block */
-				parse(text.substring(offset - start, end - start), offset, block, styles);
+				this._stylerAdapter.parse(text.substring(offset - start, end - start), offset, block, styles);
 			}
 			if (model.getBaseModel) {
 				for (var j = 0; j < styles.length; j++) {
@@ -23513,13 +23764,13 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			return styles;
 		},
 		_isRenderingWhitespace: function() {
-			return this.whitespacesVisible && (this.tabsVisible || this.spacesVisible);
+			return this._whitespacesVisible && (this._tabsVisible || this._spacesVisible);
 		},
-		_onDestroy: function(e) {
+		_onDestroy: function() {
 			this.destroy();
 		},
 		_onLineStyle: function(e) {
-			if (e.textView === this.view) {
+			if (e.textView === this._view) {
 				e.style = this._getLineStyle(e.lineIndex);
 			}
 			e.ranges = this._getStyles(this._rootBlock, e.textView.getModel(), e.lineText, e.lineStart);
@@ -23529,79 +23780,11 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				}
 			});
 			if (this._isRenderingWhitespace()) {
-				if (this.spacesVisible) {
-					this._spliceStyles(spacePattern, e.ranges, e.lineText, e.lineStart);
+				if (this._spacesVisible) {
+					this._spliceStyles(this._spacePattern, e.ranges, e.lineText, e.lineStart);
 				}
-				if (this.tabsVisible) {
-					this._spliceStyles(tabPattern, e.ranges, e.lineText, e.lineStart);
-				}
-			}
-		},
-		_onSelection: function(e) {
-			var oldSelection = e.oldValue;
-			var newSelection = e.newValue;
-			var view = this.view;
-			var model = view.getModel();
-			var lineIndex;
-			if (this.highlightCaretLine) {
-				var oldLineIndex = model.getLineAtOffset(oldSelection.start);
-				lineIndex = model.getLineAtOffset(newSelection.start);
-				var newEmpty = newSelection.start === newSelection.end;
-				var oldEmpty = oldSelection.start === oldSelection.end;
-				if (!(oldLineIndex === lineIndex && oldEmpty && newEmpty)) {
-					if (oldEmpty) {
-						view.redrawLines(oldLineIndex, oldLineIndex + 1);
-					}
-					if ((oldLineIndex !== lineIndex || !oldEmpty) && newEmpty) {
-						view.redrawLines(lineIndex, lineIndex + 1);
-					}
-				}
-			}
-			if (!this.annotationModel) { return; }
-			var remove = this._bracketAnnotations, add, caret;
-			if (newSelection.start === newSelection.end && (caret = view.getCaretOffset()) > 0) {
-				var mapCaret = caret - 1;
-				if (model.getBaseModel) {
-					mapCaret = model.mapOffset(mapCaret);
-					model = model.getBaseModel();
-				}
-				var block = this._findBlock(this._rootBlock, mapCaret);
-				var bracket = this.findMatchingBracket(model, block, mapCaret);
-				if (bracket !== -1) {
-					add = [
-						mAnnotations.AnnotationType.createAnnotation(mAnnotations.AnnotationType.ANNOTATION_MATCHING_BRACKET, bracket, bracket + 1),
-						mAnnotations.AnnotationType.createAnnotation(mAnnotations.AnnotationType.ANNOTATION_CURRENT_BRACKET, mapCaret, mapCaret + 1)
-					];
-				}
-			}
-			this._bracketAnnotations = add;
-			this.annotationModel.replaceAnnotations(remove, add);
-		},
-		_onMouseDown: function(e) {
-			if (e.clickCount !== 2) { return; }
-			var view = this.view;
-			var model = view.getModel();
-			var offset = view.getOffsetAtLocation(e.x, e.y);
-			if (offset > 0) {
-				var mapOffset = offset - 1;
-				var baseModel = model;
-				if (model.getBaseModel) {
-					mapOffset = model.mapOffset(mapOffset);
-					baseModel = model.getBaseModel();
-				}
-				var block = this._findBlock(this._rootBlock, mapOffset);
-				var bracket = this.findMatchingBracket(baseModel, block, mapOffset);
-				if (bracket !== -1) {
-					e.preventDefault();
-					var mapBracket = bracket;
-					if (model.getBaseModel) {
-						mapBracket = model.mapOffset(mapBracket, true);
-					}
-					if (offset > mapBracket) {
-						offset--;
-						mapBracket++;
-					}
-					view.setSelection(mapBracket, offset);
+				if (this._tabsVisible) {
+					this._spliceStyles(this._tabPattern, e.ranges, e.lineText, e.lineStart);
 				}
 			}
 		},
@@ -23610,8 +23793,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			var removedCharCount = e.removedCharCount;
 			var addedCharCount = e.addedCharCount;
 			var changeCount = addedCharCount - removedCharCount;
-			var view = this.view;
-			var viewModel = view.getModel();
+			var viewModel = this._view.getModel();
 			var baseModel = viewModel.getBaseModel ? viewModel.getBaseModel() : viewModel;
 			var end = start + removedCharCount;
 			var charCount = baseModel.getCharCount();
@@ -23620,101 +23802,26 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 			var lineStart = baseModel.getLineStart(baseModel.getLineAtOffset(start));
 			var ancestorBlock = this._findBlock(this._rootBlock, start);
 
-			var blocks, parentBlock, redraw, text, te, ts;
+			var blockExtended, blocks, parentBlock, redraw, text, te, ts;
 			do {
-				parentBlock = ancestorBlock.getParent();
+				parentBlock = ancestorBlock.parent;
 
 				/*
 				 * Determine whether ancestorBlock contains the full range of
 				 * text whose styling may be affected by this model change.
 				 */
-				if (parentBlock) {
+				if (!blockExtended && parentBlock) {
 					/* verify that ancestorBlock's start and end matches are not affected by this change */
-					var fail = null;
-					var matches = [];
-					text = baseModel.getText(ancestorBlock.start, Math.min(charCount, ancestorBlock.end + changeCount + 1)); 
-					parentBlock.getBlockPatterns().forEach(function(current) {
-						var result = findMatch(current.regexBegin || current.regex, text, 0);
-						if (result) {
-							matches.push({result: result, pattern: current});
-						}
-					}.bind(this));
-					matches.sort(function(a,b) {
-						/* ensure that matches at index 0 make it to the front, other matches do not matter */
-						if (!a.result.index && b.result.index) {
-							return -1;
-						}
-						if (a.result.index && !b.result.index) {
-							return 1;
-						}
-						if (!a.result.index && !b.result.index) {
-							return a.pattern.pattern.index < b.pattern.pattern.index ? -1 : 1;
-						}
-						return 0;
-					});
-					if (!matches.length || matches[0].result.index !== 0 || matches[0].pattern.pattern.id !== ancestorBlock.pattern.pattern.id) {
-						fail = true;
-					} else {
-						/* the block start appears to be unchanged, now verify that the block end is unchanged */
-						var match = matches[0];
-						var endRegex = match.pattern.regexEnd;
-						if (!endRegex) {
-							/* single-match block, just verify its length */
-							fail = ancestorBlock.start + match.result[0].length !== ancestorBlock.end + changeCount;
-						} else {
-							/* begin/end-match block */
-
-							 /*
-							  * Determine whether an earlier match of the block's end pattern has been introduced.
-							  * Verifying that this has NOT happened (the most typical case) can be quickly done by
-							  * verifying that the first occurrence of its end pattern is still at its former location.
-							  * However if a match is found prior to this then the blocks preceding it must be computed
-							  * to verify that it is a valid end match (ie.- it is not contained within another block).
-						 	  */
-
-							/*
-							 * If the end regex contains a capture reference (eg.- "\1") then substitute
-							 * the resolved capture values from the begin match.
-							 */
-							endRegex = substituteCaptureValues(endRegex, match.result);
-
-							var searchStartIndex = match.result[0].length;
-							var currentMatch = findMatch(endRegex, text, searchStartIndex);
-							while (fail === null && currentMatch && ancestorBlock.start + currentMatch.index !== ancestorBlock.contentEnd + changeCount) {
-								/*
-								 * A match was found preceeding the former end match, so now compute
-								 * blocks to determine whether it is in fact a valid new end match.
-								 */
-								blocks = computeBlocks(baseModel, text, ancestorBlock, ancestorBlock.start, searchStartIndex, currentMatch.index + 1);
-								if (!blocks.length || blocks[blocks.length - 1].end <= ancestorBlock.start + currentMatch.index) {
-									/* the match is valid, so the attempt to use ancestorBlock as-is fails */
-									fail = true;
-								} else {
-									/* the match is not valid, so search for the next potential end match */
-									if (!blocks.length) {
-										currentMatch = null;
-									} else {
-										searchStartIndex = blocks[blocks.length - 1].end - ancestorBlock.start;
-										currentMatch = findMatch(endRegex, text, searchStartIndex);
-									}
-								}
-							}
-							if (!currentMatch) {
-								eolRegex.lastIndex = 0;
-								currentMatch = eolRegex.exec(text);
-								fail = ancestorBlock.start + currentMatch.index !== ancestorBlock.end + changeCount;
-							}
-						}
-					}
-					if (fail) {
+					text = baseModel.getText(ancestorBlock.start, Math.min(charCount, ancestorBlock.end + changeCount + 1));
+					if (!this._stylerAdapter.verifyBlock(baseModel, text, ancestorBlock, changeCount)) {
 						ancestorBlock = parentBlock;
 						continue;
 					}
 				}
 
 				/*
-				 * The change has not directly changed ancestorBlock's matches, now verify that its end bound
-				 * is still valid (ie.- ensure that a new block is not extending beyond the end bound).
+				 * The change has not directly changed ancestorBlock's start/end strings, now verify that its end
+				 * bound is still valid (ie.- ensure that a new block is not extending beyond the end bound).
 				 */
 
 				blocks = ancestorBlock.getBlocks();
@@ -23722,7 +23829,22 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				var blockStart = binarySearch(blocks, lineStart, true);
 				var blockEnd = binarySearch(blocks, end, false, blockStart - 1, blockCount);
 
-				if (blockStart < blockCount && blocks[blockStart].start <= lineStart && lineStart < blocks[blockStart].end) {
+				/*
+				 * If the change immediately follows the preceding block then test whether
+				 * the block should be extended.
+				 */
+				blockExtended = false;
+				if (blockStart && blocks.length && blocks[blockStart - 1].end === start) {
+					text = baseModel.getText(blocks[blockStart - 1].start, Math.min(charCount, start + 1));
+					var tempBlocks = this.computeBlocks(baseModel, text, ancestorBlock, blocks[blockStart - 1].start, null, null, null);
+					if (tempBlocks.length && tempBlocks[0].end !== blocks[blockStart - 1].end) {
+						/* the change has affected the preceding block's end, so include this block */
+						blockStart--;
+						blockExtended = true;
+					}
+				}
+
+				if (blockStart < blockCount && blocks[blockStart].start <= lineStart && (lineStart < blocks[blockStart].end || blockExtended)) {
 					ts = blocks[blockStart].start;
 					if (ts > start) { ts += changeCount; }
 				} else if (blockStart === blockCount && blockCount > 0 && ancestorBlock.end - changeCount === blocks[blockCount - 1].end) {
@@ -23740,11 +23862,11 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				if (start <= te) { te += changeCount; }
 				te = Math.min(te, charCount - 1);
 				text = baseModel.getText(ts, te + 1);
-				var newBlocks = computeBlocks(baseModel, text, ancestorBlock, ts);
+				var newBlocks = this.computeBlocks(baseModel, text, ancestorBlock, ts, null, null, null);
 
 				if (blockEnd < blockCount) {
 					/* ensure that blockEnd's end is preserved */
-					if (newBlocks.length && newBlocks[newBlocks.length - 1].end === te && newBlocks[newBlocks.length - 1].pattern.pattern.id === blocks[blockEnd].pattern.pattern.id) {
+					if (newBlocks.length && newBlocks[newBlocks.length - 1].end === te && newBlocks[newBlocks.length - 1].typeId === blocks[blockEnd].typeId) {
 						break;
 					}
 
@@ -23753,17 +23875,17 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 					 * within.  Attempt to find a subsequent sibling block with the same type, as its end match 
 					 * will serve as the end match for this spanning block as well.
 					 */
-					if (newBlocks.length && newBlocks[newBlocks.length - 1].pattern.regexEnd === eolRegex) {
+					if (newBlocks.length && this._stylerAdapter.blockSpansBeyondEnd(newBlocks[newBlocks.length - 1])) {
 						blockEnd++;
 						var subBlocks = newBlocks[newBlocks.length - 1].getBlocks();
-						var spanningPattern = (subBlocks.length ? subBlocks[subBlocks.length - 1] : newBlocks[newBlocks.length - 1]).pattern.pattern.id;
+						var spanningTypeId = (subBlocks.length ? subBlocks[subBlocks.length - 1] : newBlocks[newBlocks.length - 1]).typeId;
 						while (blockEnd < blockCount) {
-							if (blocks[blockEnd].pattern.pattern.id === spanningPattern) {
+							if (blocks[blockEnd].typeId === spanningTypeId) {
 								/* found a potential end block, must verify it */
 								var tempTe = blocks[blockEnd].end + changeCount;
 								tempTe = Math.min(tempTe, charCount - 1);
 								text = baseModel.getText(ts, tempTe + 1);
-								var tempNewBlocks = computeBlocks(baseModel, text, ancestorBlock, ts);
+								var tempNewBlocks = this.computeBlocks(baseModel, text, ancestorBlock, ts, null, null, null);
 								if (tempNewBlocks.length && tempNewBlocks[tempNewBlocks.length - 1].end === tempTe) {
 									/* verified, can now stop looking */
 									te = tempTe;
@@ -23793,7 +23915,7 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 					te = charCount;
 					blockEnd = blockCount;
 					text = baseModel.getText(ts, te);
-					newBlocks = computeBlocks(baseModel, text, ancestorBlock, ts);
+					newBlocks = this.computeBlocks(baseModel, text, ancestorBlock, ts, null, null, null);
 					break;
 				}
 
@@ -23812,12 +23934,27 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 				for (var i = 0; i < newBlocks.length; i++) {
 					block = blocks[blockStart + i];
 					var newBlock = newBlocks[i];
-					if (block.start !== newBlock.start || block.end !== newBlock.end || block.pattern.pattern.id !== newBlock.pattern.pattern.id) {
+					if (block.start !== newBlock.start || block.end !== newBlock.end || block.typeId !== newBlock.typeId) {
 						redraw = true;
 						break;
 					}
 				}
 			}
+
+			if (!blocks.length && !newBlocks.length) {
+				this.dispatchEvent({
+					type: "BlocksChanged",
+					old: [ancestorBlock],
+					new: [ancestorBlock]
+				});
+			} else {
+				this.dispatchEvent({
+					type: "BlocksChanged",
+					old: blocks.slice(blockStart, blockEnd),
+					new: newBlocks
+				});
+			}
+
 			var args = [blockStart, blockEnd - blockStart].concat(newBlocks);
 			Array.prototype.splice.apply(blocks, args);
 			if (redraw) {
@@ -23827,15 +23964,15 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 					redrawStart = viewModel.mapOffset(redrawStart, true);
 					redrawEnd = viewModel.mapOffset(redrawEnd, true);
 				}
-				view.redrawRange(redrawStart, redrawEnd);
+				this._view.redrawRange(redrawStart, redrawEnd);
 			}
 
-			if (this.annotationModel) {
+			if (this._annotationModel) {
 				var remove = [], add = [];
 				var allFolding = [];
-				var iter = this.annotationModel.getAnnotations(ts, te);
-				var doFolding = this.foldingEnabled && baseModel !== viewModel;
-				var parent = ancestorBlock.getParent() || ancestorBlock;
+				var iter = this._annotationModel.getAnnotations(ts, te);
+				var doFolding = this._foldingEnabled && baseModel !== viewModel;
+				var parent = ancestorBlock.parent || ancestorBlock;
 				while (iter.hasNext()) {
 					var annotation = iter.next();
 					if (doFolding && annotation.type === mAnnotations.AnnotationType.ANNOTATION_FOLDING) {
@@ -23876,11 +24013,78 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 						this._updateFolding(block, baseModel, viewModel, allFolding, add, ts, te);
 					}.bind(this));
 				}
-				if (this.detectTasks) {
-					computeTasks(ancestorBlock, baseModel, add, ts, te);
+				if (this._detectTasks) {
+					this._computeTasks(ancestorBlock, baseModel, add, ts, te);
 				}
-				this.annotationModel.replaceAnnotations(remove, add);
+				this._annotationModel.replaceAnnotations(remove, add);
 			}
+		},
+		_onMouseDown: function(e) {
+			if (e.clickCount !== 2) { return; }
+			var model = this._view.getModel();
+			var offset = this._view.getOffsetAtLocation(e.x, e.y);
+			if (offset > 0) {
+				var mapOffset = offset - 1;
+				var baseModel = model;
+				if (model.getBaseModel) {
+					mapOffset = model.mapOffset(mapOffset);
+					baseModel = model.getBaseModel();
+				}
+				var block = this._findBlock(this._rootBlock, mapOffset);
+				var bracket = this._findMatchingBracket(baseModel, block, mapOffset);
+				if (bracket !== -1) {
+					e.preventDefault();
+					var mapBracket = bracket;
+					if (model.getBaseModel) {
+						mapBracket = model.mapOffset(mapBracket, true);
+					}
+					if (offset > mapBracket) {
+						offset--;
+						mapBracket++;
+					}
+					this._view.setSelection(mapBracket, offset);
+				}
+			}
+		},
+		_onSelection: function(e) {
+			var oldSelection = e.oldValue;
+			var newSelection = e.newValue;
+			var model = this._view.getModel();
+			var lineIndex;
+			if (this._highlightCaretLine) {
+				var oldLineIndex = model.getLineAtOffset(oldSelection.start);
+				lineIndex = model.getLineAtOffset(newSelection.start);
+				var newEmpty = newSelection.start === newSelection.end;
+				var oldEmpty = oldSelection.start === oldSelection.end;
+				if (!(oldLineIndex === lineIndex && oldEmpty && newEmpty)) {
+					if (oldEmpty) {
+						this._view.redrawLines(oldLineIndex, oldLineIndex + 1);
+					}
+					if ((oldLineIndex !== lineIndex || !oldEmpty) && newEmpty) {
+						this._view.redrawLines(lineIndex, lineIndex + 1);
+					}
+				}
+			}
+			if (!this._annotationModel) { return; }
+
+			var remove = this._bracketAnnotations, add, caret;
+			if (newSelection.start === newSelection.end && (caret = this._view.getCaretOffset()) > 0) {
+				var mapCaret = caret - 1;
+				if (model.getBaseModel) {
+					mapCaret = model.mapOffset(mapCaret);
+					model = model.getBaseModel();
+				}
+				var block = this._findBlock(this._rootBlock, mapCaret);
+				var bracket = this._findMatchingBracket(model, block, mapCaret);
+				if (bracket !== -1) {
+					add = [
+						mAnnotations.AnnotationType.createAnnotation(mAnnotations.AnnotationType.ANNOTATION_MATCHING_BRACKET, bracket, bracket + 1),
+						mAnnotations.AnnotationType.createAnnotation(mAnnotations.AnnotationType.ANNOTATION_CURRENT_BRACKET, mapCaret, mapCaret + 1)
+					];
+				}
+			}
+			this._bracketAnnotations = add;
+			this._annotationModel.replaceAnnotations(remove, add);
 		},
 		_spliceStyles: function(whitespacePattern, ranges, text, offset) {
 			var regex = whitespacePattern.regex;
@@ -23928,10 +24132,19 @@ define("orion/editor/textStyler", [ //$NON-NLS-0$
 					this._updateFolding(current, baseModel, viewModel, allFolding, _add, start, end);
 				}.bind(this));
 			}
-		}
+		},
+		_caretLineStyle: {styleClass: "meta annotation currentLine"}, //$NON-NLS-0$
+		_spacePattern: {regex: /[ ]/g, style: {styleClass: "punctuation separator space", unmergeable: true}}, //$NON-NLS-0$
+		_tabPattern: {regex: /\t/g, style: {styleClass: "punctuation separator tab", unmergeable: true}} //$NON-NLS-0$
 	};
 
-	return {TextStyler: TextStyler};
+	mEventTarget.EventTarget.addMixin(TextStyler.prototype);
+
+	return {
+		TextStyler: TextStyler,
+		Block: Block,
+		createPatternBasedAdapter: createPatternBasedAdapter
+	};
 });
 
 /*******************************************************************************
@@ -24177,6 +24390,8 @@ define("orion/editor/stylers/text_html/syntax", ["orion/editor/stylers/lib/synta
 
 define('orion/editor/edit', [ //$NON-NLS-0$
 	"require", //$NON-NLS-0$
+
+	"orion/editor/config", //$NON-NLS-0$
 	"orion/editor/shim", //$NON-NLS-0$
 	
 	"orion/editor/textView", //$NON-NLS-0$
@@ -24207,7 +24422,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 	"orion/editor/stylers/text_css/syntax", //$NON-NLS-0$
 	"orion/editor/stylers/text_html/syntax" //$NON-NLS-0$
 
-], function(require, shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations,
+], function(require, config, shim, mTextView, mTextModel, mTextTheme, mProjModel, mEventTarget, mKeyBinding, mRulers, mAnnotations,
 			mTooltip, mUndoStack, mTextDND, mEditor, mEditorFeatures, mContentAssist, mCSSContentAssist, mHtmlContentAssist,
 			mAsyncStyler, mMirror, mTextMateStyler, mHtmlGrammar, mTextStyler, mJS, mCSS, mHTML) {
 
@@ -24444,7 +24659,8 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 				if (contentType) {
 					contentType = contentType.replace(/[*|:/".<>?+]/g, '_');
 					require(["./stylers/" + contentType + "/syntax"], function(grammar) { //$NON-NLS-1$ //$NON-NLS-0$
-						this.styler = new mTextStyler.TextStyler(textView, annotationModel, grammar.grammars, grammar.id);
+						var stylerAdapter = new mTextStyler.createPatternBasedAdapter(grammar.grammars, grammar.id);
+						this.styler = new mTextStyler.TextStyler(textView, annotationModel, stylerAdapter);
 					});
 				}
 				if (contentType === "text/css") { //$NON-NLS-0$
@@ -24524,6 +24740,7 @@ define('orion/editor/edit', [ //$NON-NLS-0$
 		for (var i = 0; i < arguments.length; i++) {
 			merge(editorNS, arguments[i]);	
 		}
+		editorNS.edit = edit;
 	}
 	
 	return edit;
