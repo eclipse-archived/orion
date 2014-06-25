@@ -1247,7 +1247,7 @@ define('orion/util',[],function() {
 	var isMac = navigator.platform.indexOf("Mac") !== -1; //$NON-NLS-0$
 	var isWindows = navigator.platform.indexOf("Win") !== -1; //$NON-NLS-0$
 	var isLinux = navigator.platform.indexOf("Linux") !== -1; //$NON-NLS-0$
-	var isTouch = "ontouchstart" in document.createElement("input"); //$NON-NLS-1$ //$NON-NLS-0$
+	var isTouch = typeof document !== "undefined" && "ontouchstart" in document.createElement("input"); //$NON-NLS-1$ //$NON-NLS-0$
 	
 	var platformDelimiter = isWindows ? "\r\n" : "\n"; //$NON-NLS-1$ //$NON-NLS-0$
 
@@ -3049,9 +3049,9 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			classRule += "}"; //$NON-NLS-0$
 			return frames + classRule;
 		}
-		document.addEventListener("animationstart", insertListener, false); //$NON-NLS-0$
-		document.addEventListener("MSAnimationStart", insertListener, false);  //$NON-NLS-0$
-		document.addEventListener("webkitAnimationStart", insertListener, false); //$NON-NLS-0$
+		addHandler(document, "animationstart", insertListener, false); //$NON-NLS-0$
+		addHandler(document, "MSAnimationStart", insertListener, false);  //$NON-NLS-0$
+		addHandler(document, "webkitAnimationStart", insertListener, false); //$NON-NLS-0$
 		var style = document.createElement("style"); //$NON-NLS-0$
 		style.id = id;
 		var head = document.getElementsByTagName("head")[0] || document.documentElement; //$NON-NLS-0$
@@ -4701,7 +4701,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
         /**
 		 * Returns the specified view options.
 		 * <p>
-		 * The returned value is either a <code>orion.editor.TextViewOptions</code> or an option value. An option value is returned when only one string paremeter
+		 * The returned value is either a <code>orion.editor.TextViewOptions</code> or an option value. An option value is returned when only one string parameter
 		 * is specified. A <code>orion.editor.TextViewOptions</code> is returned when there are no paremeters, or the parameters are a list of options names or a
 		 * <code>orion.editor.TextViewOptions</code>. All view options are returned when there no paremeters.
 		 * </p>
@@ -4774,7 +4774,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 		 * @since 5.0
 		 */
 		getLineAtOffset: function(offset) {
-			this.getModel().getLineAtOffset(offset);
+			return this.getModel().getLineAtOffset(offset);
 		},
 		/**
 		 * @name getLineStart
@@ -6798,7 +6798,7 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 			return lineNode._line.getModelOffset (node, offset);
 		},
 		_updateSelectionFromDOM: function() {
-			if (!(util.isOS || util.isAndroid || this._checkSelectionChange)) {
+			if (!(util.isIOS || util.isAndroid || this._checkSelectionChange)) {
 				return false;
 			}
 			var window = this._getWindow();
@@ -8504,6 +8504,8 @@ define("orion/editor/textView", [ //$NON-NLS-0$
 					} else {
 						handlers.push({target: this._clientDiv, type: "DOMCharacterDataModified", handler: function (e) { return self._handleDataModified(e ? e : window.event); }}); //$NON-NLS-0$
 					}
+				}
+				if ((util.isFirefox && (!util.isWindows || util.isFirefox >= 15)) || util.isIE) {
 					handlers.push({target: this._clientDiv, type: "compositionstart", handler: function (e) { return self._handleCompositionStart(e ? e : window.event); }}); //$NON-NLS-0$
 					handlers.push({target: this._clientDiv, type: "compositionend", handler: function (e) { return self._handleCompositionEnd(e ? e : window.event); }}); //$NON-NLS-0$
 				}
@@ -10342,6 +10344,9 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 		 * @see orion.editor.ProjectionTextModel#addProjection
 		 */
 		removeProjection: function(projection) {
+			this._removeProjection(projection);
+		},
+		_removeProjection: function(projection, noEvents) {
 			var i, delta = 0;
 			for (i = 0; i < this._projections.length; i++) {
 				var p = this._projections[i];
@@ -10358,26 +10363,30 @@ define("orion/editor/projectionTextModel", ['orion/editor/textModel', 'orion/edi
 				var addedLineCount = projection._lineCount;
 				var removedCharCount = projection._model.getCharCount();
 				var removedLineCount = projection._model.getLineCount() - 1;
-				var modelChangingEvent = {
-					type: "Changing", //$NON-NLS-0$
-					text: model.getText(projection.start, projection.end),
-					start: eventStart,
-					removedCharCount: removedCharCount,
-					addedCharCount: addedCharCount,
-					removedLineCount: removedLineCount,
-					addedLineCount: addedLineCount
-				};
-				this.onChanging(modelChangingEvent);
+				if (!noEvents) {
+					var modelChangingEvent = {
+						type: "Changing", //$NON-NLS-0$
+						text: model.getText(projection.start, projection.end),
+						start: eventStart,
+						removedCharCount: removedCharCount,
+						addedCharCount: addedCharCount,
+						removedLineCount: removedLineCount,
+						addedLineCount: addedLineCount
+					};
+					this.onChanging(modelChangingEvent);
+				}
 				this._projections.splice(i, 1);
-				var modelChangedEvent = {
-					type: "Changed", //$NON-NLS-0$
-					start: eventStart,
-					removedCharCount: removedCharCount,
-					addedCharCount: addedCharCount,
-					removedLineCount: removedLineCount,
-					addedLineCount: addedLineCount
-				};
-				this.onChanged(modelChangedEvent);
+				if (!noEvents) {
+					var modelChangedEvent = {
+						type: "Changed", //$NON-NLS-0$
+						start: eventStart,
+						removedCharCount: removedCharCount,
+						addedCharCount: addedCharCount,
+						removedLineCount: removedLineCount,
+						addedLineCount: addedLineCount
+					};
+					this.onChanged(modelChangedEvent);
+				}
 			}
 		},
 		/** @ignore */
@@ -10852,7 +10861,7 @@ define("orion/editor/annotations", ['i18n!orion/editor/nls/messages', 'orion/edi
 		},
 		_expandImpl: function(checkOverlaping) {
 			if (this._expand()) {
-				this._projectionModel.removeProjection(this._projection);
+				this._projectionModel._removeProjection(this._projection, !this._annotationModel);
 				if (checkOverlaping) {
 					this._forEachOverlaping(function(annotation) {
 						if (annotation._recollapse) {
@@ -13594,10 +13603,11 @@ define("orion/editor/textDND", ['orion/util'], function(util) { //$NON-NLS-1$ //
 /*global define*/
 define('orion/objects',[], function() {
 	function mixin(target/*, source..*/) {
-		for (var j = 1; j < arguments.length; j++) {
+		var hasOwnProperty = Object.prototype.hasOwnProperty;
+		for (var j = 1, len = arguments.length; j < len; j++) {
 			var source = arguments[j];
 			for (var key in source) {
-				if (Object.prototype.hasOwnProperty.call(source, key)) {
+				if (hasOwnProperty.call(source, key)) {
 					target[key] = source[key];
 				}
 			}
@@ -14537,6 +14547,9 @@ define("orion/editor/editor", [ //$NON-NLS-0$
 			
 			textView.destroy();
 			
+			if (this._annotationModel) {
+				this._annotationModel.setTextModel(null);
+			}
 			this._textView = this._undoStack = this._textDND = this._contentAssist = 
 				this._listener = this._annotationModel = this._annotationStyler =
 				this._annotationRuler = this._overviewRuler = this._lineNumberRuler =
@@ -19373,7 +19386,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 			}
 		}
 		
-		this.parentNode.addEventListener("scroll", this.onScroll.bind(this)); //$NON-NLS-0$
+		textUtil.addEventListener(this.parentNode, "scroll", this.onScroll.bind(this)); //$NON-NLS-0$
 		
 		var self = this;
 		this.textViewListener = {
@@ -19432,7 +19445,7 @@ define("orion/editor/contentAssist", [ //$NON-NLS-0$
 		createAccessible: function() {
 			var mode = this._contentAssistMode;
 			var self = this;
-			this.parentNode.addEventListener("keydown", function(evt) { //$NON-NLS-0$
+			textUtil.addEventListener(this.parentNode, "keydown", function(evt) { //$NON-NLS-0$
 				if (!evt) { evt = window.event; }
 				if (evt.preventDefault) {
 					evt.preventDefault();
@@ -19923,7 +19936,7 @@ define("orion/editor/stylers/text_css/syntax", ["orion/editor/stylers/lib/syntax
 				name: "constant.numeric.value.css" //$NON-NLS-0$
 			},
 			{			
-				match: "(?:-webkit-|-moz-|-ms-|\\b)(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
+				match: "(?:-webkit-|-moz-|-ms-|-o-|\\b)(?:" + keywords.join("|") + ")\\b", //$NON-NLS-2$ //$NON-NLS-1$ //$NON-NLS-0$
 				name: "keyword.control.css" //$NON-NLS-0$
 			}
 		],
@@ -23766,6 +23779,9 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 		getBlocks: function() {
 			return this._subBlocks;
 		},
+		getBlockAtIndex: function(index) {
+			return binarySearch(this.getBlocks(), index, true);
+		},
 		isRenderingWhitespace: function() {
 			return this.styler._isRenderingWhitespace();
 		}
@@ -23956,6 +23972,9 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 			var startLine = baseModel.getLineAtOffset(start);
 			var endLine = baseModel.getLineAtOffset(end);
 			if (startLine === endLine) {
+				return null;
+			}
+			if (startLine + 1 === endLine && baseModel.getLineStart(endLine) === baseModel.getLineEnd(endLine)) {
 				return null;
 			}
 			return new (mAnnotations.AnnotationType.getType(mAnnotations.AnnotationType.ANNOTATION_FOLDING))(start, end, viewModel);
@@ -24253,10 +24272,10 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 					ts = blocks[blockStart].start;
 					if (ts > start) { ts += changeCount; }
 				} else if (blockStart === blockCount && blockCount > 0 && ancestorBlock.end - changeCount === blocks[blockCount - 1].end) {
-					ts = blocks[blockCount - 1].start;
+					ts = blocks[--blockStart].start;
 					if (ts > start) { ts += changeCount; }
 				} else {
-					ts = lineStart;
+					ts = Math.max(lineStart, ancestorBlock.contentStart);
 				}
 
 				if (blockEnd < blockCount) {
@@ -24350,13 +24369,13 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 				this.dispatchEvent({
 					type: "BlocksChanged",
 					old: [ancestorBlock],
-					new: [ancestorBlock]
+					"new": [ancestorBlock]
 				});
 			} else {
 				this.dispatchEvent({
 					type: "BlocksChanged",
 					old: blocks.slice(blockStart, blockEnd),
-					new: newBlocks
+					"new": newBlocks
 				});
 			}
 
@@ -24525,7 +24544,7 @@ define("orion/editor/textStyler", ['orion/editor/annotations', 'orion/editor/eve
 		_updateFolding: function(block, baseModel, viewModel, allFolding, _add, start, end) {
 			start = start || block.start;
 			end = end || block.end;
-			if (block.start <= end && start <= block.end) {
+			if (!block.doNotFold && block.start <= end && start <= block.end) {
 				var index = binarySearch(allFolding, block.start, true);
 				if (!(index < allFolding.length && allFolding[index].start === block.start && allFolding[index].end === block.end)) {
 					var annotation = this._createFoldingAnnotation(viewModel, baseModel, block.start, block.end);
