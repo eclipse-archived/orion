@@ -5,13 +5,16 @@ The idea is to exploit internet design principles throughout, instead of trying 
 existing desktop IDE concepts to the browser. See the [Orion wiki](http://wiki.eclipse.org/Orion) for more 
 information about Orion.
 
-This repository is solely for the Orion website (hosted at orionhub.org). Wanted the Orion client repository? [Go here](http://git.eclipse.org/c/orion/org.eclipse.orion.client.git/). 
-Wanted the server repository? [Go here](http://git.eclipse.org/c/orion/org.eclipse.orion.server.git/).
+This repository is solely for the Orion website (hosted at orionhub.org). 
+
+If you were looking for the Orion client repository, [click here](http://git.eclipse.org/c/orion/org.eclipse.orion.client.git/). 
+
+If you were looking for the Orion server repository, [click here](http://git.eclipse.org/c/orion/org.eclipse.orion.server.git/).
  
+####IMPORTANT: Orion Development happens at Eclipse.org, not GitHub.com.  Please Contribute using Eclipse.org tooling.
+
 Contributing
 ------------
-
-####IMPORTANT: Orion Development happens at Eclipse.org, not GitHub.com.  Please Contribute using Eclipse.org tooling.
 
 Orion source code is available in an Eclipse Git repository, and there is also a mirror
 on GitHub. For complete details on getting the source and getting setup to develop Orion,
