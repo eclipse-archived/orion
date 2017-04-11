@@ -7,11 +7,10 @@ information about Orion.
 
 This repository is solely for the Orion website (hosted at orionhub.org). 
 
-If you were looking for the Orion client repository, [click here](http://git.eclipse.org/c/orion/org.eclipse.orion.client.git/). 
+If you were looking for the Orion client repository, [click here](https://github.com/eclipse/orion.client). 
 
-If you were looking for the Orion server repository, [click here](http://git.eclipse.org/c/orion/org.eclipse.orion.server.git/).
+If you were looking for the Orion server repository, [click here](https://github.com/eclipse/orion.server).
  
-####IMPORTANT: Orion Development happens at Eclipse.org, not GitHub.com.  Please Contribute using Eclipse.org tooling.
 
 Contributing
 ------------
@@ -22,7 +21,7 @@ see the [Orion wiki](http://wiki.eclipse.org/Orion/Getting_the_source) and the [
 
 Bug reports are welcome in [bugzilla](https://bugs.eclipse.org/bugs/enter_bug.cgi?product=Orion).
 
-Patches are welcome in [Gerrit](http://wiki.eclipse.org/Gerrit).
+Fixes are welcome as patches on bug reports or as pull requests directly against any one of the repositories.
 
 License
 -------
